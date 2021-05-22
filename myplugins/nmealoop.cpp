@@ -1,7 +1,7 @@
 #include "nmealoop.h"
 #include "nmeaparse/NMEAParser.h"
 #include "nmeaparse/GPSService.h"
-#include "json/json.hpp"
+#include "../json/json.hpp"
 #include <fcntl.h>
 
 

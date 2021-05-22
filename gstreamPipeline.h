@@ -10,7 +10,7 @@
 #include <gst/net/gstnet.h>
 #endif
 
-#include "myplugins/json/json.hpp"
+#include "json/json.hpp"
 
 
 #define MAX_GATHER      (20*GST_SECOND)
