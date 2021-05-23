@@ -30,11 +30,13 @@ NMEAINCLUDE = myplugins/NemaTode/include
 RPICAMLIB = myplugins/gst-rpicamsrc/src/.libs/libgstrpicamsrc.so
 
 
-all: helperlib myplugins
+all: helperlib myplugins nmealib
+all4pi: $(all) rpicamerasrc
 
-
+rpicamerasrc: $(RPICAMLIB)
 helperlib: $(HELPERLIB)
 myplugins: $(MYPLUGINSLIB)
+nmealib: $(NMEALIB)
 
 # ld only looks in ar files once, in the order they're quoted, and only uses symbols in it that are unfulfilled *at the point it opens the ar*
 $(HELPERLIB): $(HELPEROBJ) 
@@ -51,9 +53,8 @@ $(MYPLUGINSLIB) : $(MYPLUGINSOBJ)
 	ar rvs $(MYPLUGINSLIB) $(MYPLUGINSAR)
 
 $(RPICAMLIB):
-	cd gstreamHelpers/myplugins/gst-rpicamsrc && ./autogen.sh --prefix=/usr --libdir=/usr/lib/arm-linux-gnueabihf/ && $(MAKE) && sudo $(MAKE) install
-
+	cd myplugins/gst-rpicamsrc && ./autogen.sh --prefix=/usr --libdir=/usr/lib/arm-linux-gnueabihf/ && $(MAKE) && sudo $(MAKE) install
 
 clean:
-	rm -rf $(OBJ) $(EXEC) $(NMEAOBJ) $(NMEALIB) $(GESSRCLIB) $(GESSRCOBJ)
+	rm -rf *.o *.a
 
