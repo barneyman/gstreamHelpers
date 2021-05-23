@@ -10,9 +10,9 @@ CXXFLAGS = -Wno-psabi
 LDFLAGS = 
 #INCLUDE = myplugins/NemaTode/include
 
-HELPERSRC = gstreamEdits.cpp gstreamPipeline.cpp gstreamPipeline.cpp
+HELPERSRC = gstreamEdits.cpp gstreamBin.cpp gstreamPipeline.cpp
 HELPEROBJ = $(HELPERSRC:.cc=.o)
-HELPERAR = gstreamEdits.o gstreamPipeline.o gstreamPipeline.o
+HELPERAR = gstreamEdits.o gstreamBin.o gstreamPipeline.o
 HELPERLIB = gstreamHelpers.a
 HELPERHEADERS = gstreamPipeline.h gstreamEdits.h gstreamBin.h
 
