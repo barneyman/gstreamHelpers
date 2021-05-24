@@ -1,0 +1,6 @@
+[submodule "myplugins/NemaTode"]
+	path = myplugins/NemaTode
+	url = https://github.com/ckgt/NemaTode.git
+[submodule "myplugins/gst-rpicamsrc"]
+	path = myplugins/gst-rpicamsrc
+	url = https://github.com/thaytan/gst-rpicamsrc.git
