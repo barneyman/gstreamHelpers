@@ -20,6 +20,7 @@
     GstClockTime runningTime;
 
     unsigned frameRate;
+    bool useLocalTime;
 
     std::mutex gpsMutex;
   } ;

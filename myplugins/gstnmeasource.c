@@ -80,10 +80,12 @@ static GstFlowReturn gst_nmeasource_fill (GstBaseSrc * src, guint64 offset,
 enum
 {
   PROP_0,
-  PROP_FRAME_RATE
+  PROP_FRAME_RATE,
+  PROP_USE_LOCALTIME
 };
 
 #define DEFAULT_FRAMERATE 1
+
 
 
 /* pad templates */
@@ -148,7 +150,7 @@ gst_nmeasource_class_init (GstNmeaSourceClass * klass)
   //base_src_class->alloc = GST_DEBUG_FUNCPTR (gst_nmeasource_alloc);
   base_src_class->fill = GST_DEBUG_FUNCPTR (gst_nmeasource_fill);
 
-/*
+
   // set up my properties
   g_object_class_install_property (gobject_class, PROP_FRAME_RATE,
       g_param_spec_int ("frame-rate", "Frame Rate",
@@ -156,7 +158,12 @@ gst_nmeasource_class_init (GstNmeaSourceClass * klass)
           1,30, DEFAULT_FRAMERATE,
           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));  
 
-*/
+
+  g_object_class_install_property (gobject_class, PROP_USE_LOCALTIME,
+      g_param_spec_boolean ("localtime", "localtime",
+          "Use OS time", 
+          FALSE,
+          (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));  
 
 
 }
@@ -167,6 +174,10 @@ gst_nmeasource_init (GstNmeaSource *nmeasource)
 #ifdef _USE_FIXED_CAPS  
   gst_pad_use_fixed_caps(GST_BASE_SRC(nmeasource)->srcpad);
 #endif
+
+  nmeasource->threadInfo.useLocalTime=false;
+
+
 }
 
 void
@@ -180,6 +191,9 @@ gst_nmeasource_set_property (GObject * object, guint property_id,
   switch (property_id) {
     case PROP_FRAME_RATE:
       nmeasource->threadInfo.frameRate= g_value_get_int (value);
+      break;
+    case PROP_USE_LOCALTIME:
+      nmeasource->threadInfo.useLocalTime=g_value_get_boolean (value)?true:false;
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -198,6 +212,10 @@ gst_nmeasource_get_property (GObject * object, guint property_id,
   switch (property_id) {
     case PROP_FRAME_RATE:
       g_value_set_int (value, nmeasource->threadInfo.frameRate);
+      break;
+
+    case PROP_USE_LOCALTIME:
+      g_value_set_boolean(value, nmeasource->threadInfo.useLocalTime);
       break;
 
     default:

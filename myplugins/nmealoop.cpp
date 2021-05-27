@@ -3,6 +3,7 @@
 #include "nmeaparse/GPSService.h"
 #include "../json/json.hpp"
 #include <fcntl.h>
+#include <unistd.h>
 
 
 void* gpsMonitorThreadEntry(void *arg);
@@ -14,8 +15,7 @@ void startMonitorThread(struct nmea_threadInfo &filter)
   nlohmann::json jsonData;
   jsonData["msg"]="Starting Thread";
   pushJson(&filter,jsonData);
-
-  filter.gpsPolling=true;
+  //filter.gpsPolling=true;
   pthread_create(&filter.gpsThreadId,NULL,&gpsMonitorThreadEntry,&filter);
 
 }
@@ -58,18 +58,66 @@ void* gpsMonitorThreadEntry(void *arg)
 
   nlohmann::json jsonData;
 
-  if(!gpsFeed)
-  {
-    jsonData["msg"]="No GPS Serial Feed";
-
-    pushJson(filter,jsonData);
-
-  }
-  else
   {
 
     while(filter->gpsPolling)
     {
+
+      if(filter->useLocalTime)
+      {
+            jsonData["gpsLocked"]=false;
+            {
+              
+              jsonData["speedKMH"]=(int)0;
+              jsonData["altitudeM"]=(int)0;
+              jsonData["latitudeN"]=(int)0;
+              jsonData["longitudeE"]=(int)0;
+              jsonData["bearingDeg"]=(int)0;
+              jsonData["satelliteCount"]=0;
+              
+              char timebuf[25];
+
+              time_t rawtime;
+              struct tm *info;
+              time( &rawtime );
+              info = localtime( &rawtime );
+
+              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02dZ",
+                info->tm_year+1900,
+                info->tm_mon,
+                info->tm_mday,
+                info->tm_hour,
+                info->tm_min,
+                info->tm_sec);
+
+              jsonData["local"]=timebuf;
+
+            }
+
+        pushJson(filter,jsonData);
+
+        // dont spam the json
+        usleep(100*1000);
+
+        continue;
+
+      }
+
+
+      if(!gpsFeed)
+      {
+        jsonData["msg"]="No GPS Serial Feed";
+
+        pushJson(filter,jsonData);
+
+        // dont spam the json
+        usleep(1000*1000);
+
+        continue;
+
+      }
+
+
 
       char lineBuffer[255];
       memset(&lineBuffer,0,sizeof(lineBuffer));
