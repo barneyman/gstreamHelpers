@@ -92,6 +92,19 @@ void* gpsMonitorThreadEntry(void *arg)
 
               jsonData["local"]=timebuf;
 
+              info = gmtime(&rawtime);
+
+              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02dZ",
+                info->tm_year+1900,
+                info->tm_mon,
+                info->tm_mday,
+                info->tm_hour,
+                info->tm_min,
+                info->tm_sec);
+
+              jsonData["utc"]=timebuf;
+
+
             }
 
         pushJson(filter,jsonData);
