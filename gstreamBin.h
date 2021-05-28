@@ -58,7 +58,13 @@ public:
     {
     }
 
-    bool ConnectLate(const char*source, const char*dest=NULL)
+    // connect late and create a ghost pad (special dest==NULL behaviour)
+    bool ConnectLateToGhostSrc(const char*source)
+    {
+        return ConnectLate(source,NULL);
+    }
+
+    bool ConnectLate(const char*source, const char*dest)
     {
         return ConnectLate(FindNamedPlugin(source),FindNamedPlugin(dest));
     }

@@ -147,7 +147,7 @@ bool gstreamListeningBin::ConnectLate(GstElement *source, GstElement *dest)
 
 void gstreamListeningBin::padAdded(GstElement*src,GstPad*padAdded)
 {
-    // walk thru the late bind items, and hoopk things up
+    // walk thru the late bind items, and hook things up
     for(auto each=m_lateSrcs.begin();each!=m_lateSrcs.end();each++)
     {
         if(src!=std::get<0>(*each))
