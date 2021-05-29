@@ -39,7 +39,7 @@ myplugins: $(MYPLUGINSLIB)
 nmealib: $(NMEALIB)
 
 # ld only looks in ar files once, in the order they're quoted, and only uses symbols in it that are unfulfilled *at the point it opens the ar*
-$(HELPERLIB): $(HELPEROBJ) 
+$(HELPERLIB): $(HELPEROBJ) $(HELPERHEADERS)
 #	$(CXX) $(LDFLAGS) -o $@ $(OBJ) $(MYPLUGINSLIB) $(NMEALIB) $(CPPFLAGS) $(CXXFLAGS) $(GSTGESCONFIG) -I $(NMEAINCLUDE)
 	$(CXX) $(LDFLAGS) -c $(HELPEROBJ) $(CPPFLAGS) $(CXXFLAGS) $(GSTGESCONFIG)
 	ar rvs $(HELPERLIB) $(HELPERAR)
