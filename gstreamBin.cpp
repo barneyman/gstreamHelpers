@@ -1,25 +1,17 @@
 #include "gstreamBin.h"
 
-#ifdef _USE_MY_BIN
 #include "myplugins/gstmybin.h"
-#endif
 
 
 gstreamBin::gstreamBin(const char *binName, pluginContainer<GstElement> *parent):m_parent(parent),m_binName(binName)
 {
-    // create one
-#ifdef _USE_MY_BIN
-    // create my own gstbin that stores the ptr back to this class
+    // create my own gstbin that stores the ptr back to this class, handy for calling up the vtable 
     m_myBin=GST_ELEMENT(g_object_new (GST_TYPE_MYBIN,NULL));
 
     // preserve my this
     GstMyBin *mybininstance=GST_MYBIN(m_myBin);
     mybininstance->myClassPointer=this;
     gst_element_set_name (mybininstance,binName);
-#else
-    m_myBin=gst_bin_new (binName);
-#endif        
-
 
     pluginContainerSetParent(m_myBin);
 
@@ -94,12 +86,18 @@ GstPad* gstreamBin::GhostSinglePad(GstPad *eachPad, std::vector<GstPad*> &result
     GST_INFO_OBJECT (m_myBin, "Query caps are %s", gst_caps_to_string(queryCaps));
     GST_INFO_OBJECT (m_myBin, "Current caps are %s", gst_caps_to_string(srcCaps));
 
+    GstPadDirection dir=gst_pad_get_direction(eachPad);
+
+    GST_INFO_OBJECT (m_myBin, "Pad to be ghosted is %s", dir==GST_PAD_SRC?"Source":dir==GST_PAD_SINK?"Sink":"unknown");
+
+
     GstPad *ghostPad=gst_ghost_pad_new(NULL,eachPad);
 
     // ok - the logic here is this ...
     /// we've been called by a demuxer (probably) - current caps are it, the end.
     // so create a CAPS event from that, and send it to the ghost
-    gst_pad_send_event(ghostPad,gst_event_new_caps(srcCaps));
+    // TODO: enabling this returns 'sending evenbt wrong direction"
+    // gst_pad_send_event(ghostPad,gst_event_new_caps(srcCaps));
 
 
 
@@ -109,6 +107,12 @@ GstPad* gstreamBin::GhostSinglePad(GstPad *eachPad, std::vector<GstPad*> &result
     //     GstEvent *reconfig=gst_event_new_reconfigure();
     //     gst_pad_send_event(ghostPad,reconfig);
     // }
+
+    // activate the new pad
+    if(!gst_pad_set_active(ghostPad, TRUE))
+    {
+        GST_ERROR_OBJECT (m_myBin, "gst_pad_set_active %s failed", GST_ELEMENT_NAME(ghostPad) );
+    }
 
     // do this after the reconfig
     gst_element_add_pad(GST_ELEMENT(m_myBin),ghostPad);
