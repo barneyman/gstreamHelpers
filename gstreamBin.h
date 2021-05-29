@@ -3,8 +3,6 @@
 
 #include "gstreamPipeline.h"
 
-#define _USE_MY_BIN // use the mybin plugin subclass of gstbin
-
 
 class gstreamBin : public pluginContainer<GstElement>
 {
