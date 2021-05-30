@@ -102,13 +102,15 @@ static GstStaticPadTemplate gst_jsonparse_src_template =
 GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS ("text/x-raw,format=utf8")
+    GST_STATIC_CAPS ("text/x-raw,format=pango-markup")
+    //GST_STATIC_CAPS ("text/x-raw,format=utf8")
     );
 
 static GstStaticPadTemplate gst_jsonparse_sink_template =
 GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
+//    GST_STATIC_CAPS ("text/x-raw,format=pango-markup")
     GST_STATIC_CAPS ("text/x-raw,format=utf8")
     );
 
@@ -140,7 +142,7 @@ gst_jsonparse_class_init (GstJsonparseClass * klass)
   gobject_class->get_property = gst_jsonparse_get_property;
   gobject_class->dispose = gst_jsonparse_dispose;
   gobject_class->finalize = gst_jsonparse_finalize;
-  //base_transform_class->transform_caps = GST_DEBUG_FUNCPTR (gst_jsonparse_transform_caps);
+  base_transform_class->transform_caps = GST_DEBUG_FUNCPTR (gst_jsonparse_transform_caps);
   //base_transform_class->fixate_caps = GST_DEBUG_FUNCPTR (gst_jsonparse_fixate_caps);
   //base_transform_class->accept_caps = GST_DEBUG_FUNCPTR (gst_jsonparse_accept_caps);
   base_transform_class->set_caps = GST_DEBUG_FUNCPTR (gst_jsonparse_set_caps);
@@ -148,7 +150,7 @@ gst_jsonparse_class_init (GstJsonparseClass * klass)
   //base_transform_class->decide_allocation = GST_DEBUG_FUNCPTR (gst_jsonparse_decide_allocation);
   base_transform_class->filter_meta = GST_DEBUG_FUNCPTR (gst_jsonparse_filter_meta);
   base_transform_class->propose_allocation = GST_DEBUG_FUNCPTR (gst_jsonparse_propose_allocation);
-  //base_transform_class->transform_size = GST_DEBUG_FUNCPTR (gst_jsonparse_transform_size);
+  base_transform_class->transform_size = GST_DEBUG_FUNCPTR (gst_jsonparse_transform_size);
   base_transform_class->get_unit_size = GST_DEBUG_FUNCPTR (gst_jsonparse_get_unit_size);
   base_transform_class->start = GST_DEBUG_FUNCPTR (gst_jsonparse_start);
   base_transform_class->stop = GST_DEBUG_FUNCPTR (gst_jsonparse_stop);
@@ -158,7 +160,7 @@ gst_jsonparse_class_init (GstJsonparseClass * klass)
   //base_transform_class->copy_metadata = GST_DEBUG_FUNCPTR (gst_jsonparse_copy_metadata);
   //base_transform_class->transform_meta = GST_DEBUG_FUNCPTR (gst_jsonparse_transform_meta);
   //base_transform_class->before_transform = GST_DEBUG_FUNCPTR (gst_jsonparse_before_transform);
-  //base_transform_class->transform = GST_DEBUG_FUNCPTR (gst_jsonparse_transform);
+  base_transform_class->transform = GST_DEBUG_FUNCPTR (gst_jsonparse_transform);
   base_transform_class->transform_ip = GST_DEBUG_FUNCPTR (gst_jsonparse_transform_ip);
 
 }
@@ -167,6 +169,11 @@ static void
 gst_jsonparse_init (GstJsonparse *jsonparse)
 {
   jsonparse->myClassPointer=NULL;
+
+  GstBaseTransform *base=GST_BASE_TRANSFORM(jsonparse);
+
+  gst_base_transform_set_in_place(base, TRUE);
+
 }
 
 void
@@ -234,15 +241,23 @@ gst_jsonparse_transform_caps (GstBaseTransform * trans, GstPadDirection directio
 
   othercaps = gst_caps_copy (caps);
 
+
   /* Copy other caps and modify as appropriate */
   /* This works for the simplest cases, where the transform modifies one
    * or more fields in the caps structure.  It does not work correctly
    * if passthrough caps are preferred. */
+  GstPad *otherPad=NULL;
   if (direction == GST_PAD_SRC) {
     /* transform caps going upstream */
+    otherPad=trans->sinkpad;
   } else {
     /* transform caps going downstream */
+    otherPad=trans->srcpad;
   }
+
+   GstCaps *otherPadCaps=gst_pad_get_pad_template_caps (otherPad);
+
+   return otherPadCaps;
 
   if (filter) {
     GstCaps *intersect;
@@ -341,6 +356,9 @@ gst_jsonparse_transform_size (GstBaseTransform * trans, GstPadDirection directio
 {
   GstJsonparse *jsonparse = GST_JSONPARSE (trans);
 
+  if(othersize)
+    *othersize=1024;
+
   GST_DEBUG_OBJECT (jsonparse, "transform_size");
 
   return TRUE;
@@ -351,6 +369,9 @@ gst_jsonparse_get_unit_size (GstBaseTransform * trans, GstCaps * caps,
     gsize * size)
 {
   GstJsonparse *jsonparse = GST_JSONPARSE (trans);
+
+  if(size)
+    *size=1024;
 
   GST_DEBUG_OBJECT (jsonparse, "get_unit_size");
 
@@ -453,6 +474,12 @@ gst_jsonparse_transform (GstBaseTransform * trans, GstBuffer * inbuf,
 
   GST_DEBUG_OBJECT (jsonparse, "transform");
 
+  if(jsonparse->myClassPointer)
+  {
+    jsonparse->myClassPointer->PeekBuffer(inbuf, outbuf);
+  }
+
+
   return GST_FLOW_OK;
 }
 
@@ -465,7 +492,7 @@ gst_jsonparse_transform_ip (GstBaseTransform * trans, GstBuffer * buf)
 
   if(jsonparse->myClassPointer)
   {
-    jsonparse->myClassPointer->PeekBuffer(buf);
+    jsonparse->myClassPointer->PeekBuffer(buf, NULL);
   }
 
   return GST_FLOW_OK;

@@ -21,7 +21,7 @@ public:
         return NULL;
     }
 
-    virtual void PeekBuffer(GstBuffer * buf)
+    virtual void PeekBuffer(GstBuffer * buf, GstBuffer *bufOut)
     {}
 
 
