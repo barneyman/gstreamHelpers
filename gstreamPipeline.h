@@ -1056,13 +1056,23 @@ protected:
         gst_message_parse_buffering(msg,&percent);
         gst_message_parse_buffering_stats (msg, &mode, &in, &out, &left);
 
-        GST_INFO_OBJECT (m_pipeline, "%s - %d mode (avg in %d out %d) Room left %d%%",// - avail %.1f s left ( %d %d )\n",
-            GST_OBJECT_NAME (msg->src),
-            (int)mode,in,out, percent);//,((signed long)left)/1000.0f, buffer, bytes);
+        if(percent==100)
+        {
+            GST_WARNING_OBJECT (m_pipeline, "Queue %s is full - Pipeline running",
+                GST_OBJECT_NAME (msg->src));
+        }
+        else if(!percent)
+        {
+            GST_WARNING_OBJECT (m_pipeline, "Queue %s is empty - Pipeline paused",// - avail %.1f s left ( %d %d )\n",
+                GST_OBJECT_NAME (msg->src));
+        }
+        else
+        {
+            GST_INFO_OBJECT (m_pipeline, "%s (avg in %d out %d) Room used %d%% %lld ms",// - avail %.1f s left ( %d %d )\n",
+                GST_OBJECT_NAME (msg->src),
+                in,out, percent, left);
+        }
 
-        // g_print("%s - %d mode (avg in %d out %d) Room left %d%%\n",
-        //     GST_OBJECT_NAME (msg->src),
-        //     (int)mode,in,out, percent);
 
         genericMessageHandler(msg,"Buffer");
     }
