@@ -593,14 +593,14 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   gst_buffer_set_size (buf, len);
 
   // sort out timestamps - stolen from gstvideotestsrc
-  GST_BUFFER_PTS (buf)=nmeasource->threadInfo.runningTime;
+  GST_BUFFER_DTS (buf) = GST_BUFFER_PTS (buf)=nmeasource->threadInfo.runningTime;
   GST_BUFFER_DTS (buf) = GST_CLOCK_TIME_NONE;
 
   if(myClock)
   {
-    GST_ERROR_OBJECT (nmeasource, "Running Time %" GST_TIME_FORMAT ".",GST_TIME_ARGS(gst_clock_get_time (myClock)-baseTime));
+    GST_INFO_OBJECT (nmeasource, "Running Time %" GST_TIME_FORMAT ".",GST_TIME_ARGS(gst_clock_get_time (myClock)-baseTime));
   }
-  GST_ERROR_OBJECT (nmeasource, "Buffer PTS %" GST_TIME_FORMAT ".",GST_TIME_ARGS(nmeasource->threadInfo.runningTime));
+  GST_INFO_OBJECT (nmeasource, "Buffer PTS %" GST_TIME_FORMAT ".",GST_TIME_ARGS(nmeasource->threadInfo.runningTime));
 
   gst_object_sync_values (GST_OBJECT (src), GST_BUFFER_PTS (buf));
 
