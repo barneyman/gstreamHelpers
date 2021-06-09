@@ -782,7 +782,8 @@ protected:
 
                                 bool result=gst_element_send_event((GstElement*)g_value_get_object(&item),gst_event_new_eos());
 
-                                GST_INFO_OBJECT (m_pipeline, "%s",result?"succeeded":"FAILED");
+                                if(!result)
+                                    GST_ERROR_OBJECT (m_pipeline, " Sending EOS FAILED");
 
 
                                 g_value_reset(&item);
@@ -916,7 +917,7 @@ protected:
         return ret;
     }
 
-    void CrackMessage(GstMessage *msg)
+    virtual void CrackMessage(GstMessage *msg)
     {
             // https://gstreamer.freedesktop.org/documentation/gstreamer/gstmessage.html?gi-language=c#GstMessageType
             switch (GST_MESSAGE_TYPE (msg))
@@ -989,7 +990,7 @@ protected:
 
                     }
                     genericMessageHandler(msg,"Application");
-                    break;
+                    break; 
 
                 default:
 
