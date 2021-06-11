@@ -3,7 +3,9 @@
 #include "myplugins/gstmybin.h"
 
 
-gstreamBin::gstreamBin(const char *binName, pluginContainer<GstElement> *parent):m_parent(parent),m_binName(binName)
+gstreamBin::gstreamBin(const char *binName, pluginContainer<GstElement> *parent):
+    m_parent(parent),
+    m_binName(binName)
 {
     // create my own gstbin that stores the ptr back to this class, handy for calling up the vtable 
     m_myBin=GST_ELEMENT(g_object_new (GST_TYPE_MYBIN,NULL));
@@ -20,6 +22,34 @@ gstreamBin::gstreamBin(const char *binName, pluginContainer<GstElement> *parent)
 
 }    
 
+
+gstreamBin::~gstreamBin()
+{
+    // remove request pads
+    for(auto each=m_padsToBeReleased.begin();each!=m_padsToBeReleased.end();each++)
+    {
+        gst_element_release_request_pad(each->first,each->second);
+    }
+    // then unref the targets of ghosts
+    for(auto each=m_ghostPadsSrcs.begin();each!=m_ghostPadsSrcs.end();each++)
+    {
+        GstPad*targetPad=gst_ghost_pad_get_target((GstGhostPad*)*each);
+        if(targetPad)
+        {
+            gst_ghost_pad_set_target ((GstGhostPad*)*each, NULL);
+        }
+    }
+
+    for(auto each=m_ghostPadsSinks.begin();each!=m_ghostPadsSinks.end();each++)
+    {
+        GstPad*targetPad=gst_ghost_pad_get_target((GstGhostPad*)*each);
+        if(targetPad)
+        {
+            gst_ghost_pad_set_target ((GstGhostPad*)*each, NULL);
+        }
+    }
+
+}
 
 bool gstreamBin::AddGhostPads(const char*sink,const char*source, const char *sinkcaps, const char *srccaps)
 {

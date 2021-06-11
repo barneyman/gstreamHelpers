@@ -12,33 +12,7 @@ class gstreamBin : public pluginContainer<GstElement>
 public:
     gstreamBin(const char *binName, pluginContainer<GstElement> *parent);
 
-    ~gstreamBin()
-    {
-        // remove request pads
-        for(auto each=m_padsToBeReleased.begin();each!=m_padsToBeReleased.end();each++)
-        {
-            gst_element_release_request_pad(each->first,each->second);
-        }
-        // then unref the targets of ghosts
-        for(auto each=m_ghostPadsSrcs.begin();each!=m_ghostPadsSrcs.end();each++)
-        {
-            GstPad*targetPad=gst_ghost_pad_get_target((GstGhostPad*)*each);
-            if(targetPad)
-            {
-                gst_object_unref(targetPad);
-            }
-        }
-
-        for(auto each=m_ghostPadsSinks.begin();each!=m_ghostPadsSinks.end();each++)
-        {
-            GstPad*targetPad=gst_ghost_pad_get_target((GstGhostPad*)*each);
-            if(targetPad)
-            {
-                gst_object_unref(targetPad);
-            }
-        }
-
-    }
+    ~gstreamBin();
 
     const char *Name() { return m_binName.c_str(); }
     operator const char*() { return Name(); }
@@ -55,6 +29,8 @@ public:
     virtual void PeekBuffer(GstBuffer * buf, GstBuffer *bufOut)
     {}
 
+    virtual void segment_event(GstEvent *ev)
+    {}
 
     void IterateAndGhost(GList *elementPads, std::vector<GstPad*> &results, GstCaps *allowedCaps=NULL);
 
