@@ -41,7 +41,7 @@ public:
         // make sure it's not already there
         if(FindNamedPlugin(name, false))
         {
-            g_printerr ("plugin already present.\n");
+            GST_ERROR_OBJECT(m_parent, "plugin %s already present", plugin);
             return 1;
         }
 
@@ -62,7 +62,7 @@ public:
 
         if(!newplugin)
         {
-            g_printerr ("failed to make plugin '%s'.\n",overridePlugin.c_str());
+            GST_ERROR_OBJECT(m_parent, "failed to make plugin '%s'", overridePlugin.c_str());
             return 2;
         }
 
@@ -298,7 +298,7 @@ public:
 
         if(!source || !sink || (mid && !middle))
         {
-            g_printerr ("No Elements to be linked.\n");
+            GST_ERROR_OBJECT(m_pipeline, "No Elements to be linked.");
             return 1;
         }
 
@@ -307,19 +307,19 @@ public:
         {
             if (LinkAllSourcePadsToDestAny (source, middle) != true)     
             {
-                g_printerr ("Elements %s & %s could not be linked.\n",first, mid);
+                GST_ERROR_OBJECT(m_pipeline, "Elements %s & %s could not be linked.",first, mid);
                 return 2;
             }
             else if (LinkAllSourcePadsToDestAny (middle, sink) != true)     
             {
-                g_printerr ("Elements %s & %s could not be linked.\n", mid, last);
+                GST_ERROR_OBJECT(m_pipeline, "Elements %s & %s could not be linked.", mid, last);
                 return 3;
             }
 
         }
         else if (LinkAllSourcePadsToDestAny (source, sink) != true) 
         {
-            g_printerr ("Elements %s & %s could not be linked.\n",first, last);
+            GST_ERROR_OBJECT(m_pipeline, "Elements %s & %s could not be linked.",first, last);
             return 4;
         }
 
@@ -530,7 +530,7 @@ public:
 
         if (ret == GST_STATE_CHANGE_FAILURE) 
         {
-            g_printerr ("Unable to set the pipeline to '%s' state.\n", gst_element_state_get_name(newState));
+            GST_ERROR_OBJECT(m_pipeline, "Unable to set the pipeline to '%s' state.", gst_element_state_get_name(newState));
             return false;
         }
 
@@ -552,7 +552,7 @@ public:
                     // worked
                     break;
                 case GST_STATE_CHANGE_FAILURE:
-                    g_printerr ("Unable to get pipeline state.\n");
+                    GST_ERROR_OBJECT(m_pipeline, "Unable to get pipeline state.");
                     DumpGraph("GetState Failed");
                     return false;
                 case GST_STATE_CHANGE_ASYNC:
@@ -560,7 +560,7 @@ public:
                     DumpGraph("pumping");
                     break;
                 default:
-                    g_print("gst_element_get_state returned %d\n", ret);
+                    GST_DEBUG_OBJECT(m_pipeline, "gst_element_get_state returned %d\n", ret);
                     break;
             }
 
