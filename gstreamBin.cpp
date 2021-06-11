@@ -64,8 +64,12 @@ void gstreamBin::IterateAndGhost(GList *elementPads, std::vector<GstPad*> &resul
             GstCaps *padCaps=gst_pad_query_caps(eachPad,NULL);
             if(padCaps)
             {
-                if(!gst_caps_can_intersect(padCaps,allowedCaps))
+                bool intersect=gst_caps_can_intersect(padCaps,allowedCaps);
+                gst_caps_unref(padCaps);
+                if(!intersect)
+                {
                     continue;
+                }
             }
         }
 
@@ -85,6 +89,8 @@ GstPad* gstreamBin::GhostSinglePad(GstPad *eachPad, std::vector<GstPad*> &result
 
     GST_INFO_OBJECT (m_myBin, "Query caps are %s", gst_caps_to_string(queryCaps));
     GST_INFO_OBJECT (m_myBin, "Current caps are %s", gst_caps_to_string(srcCaps));
+
+    gst_caps_unref(queryCaps);
 
     GstPadDirection dir=gst_pad_get_direction(eachPad);
 
@@ -217,6 +223,7 @@ bool gstreamListeningBin::ConnectSrcToSink(GstPad*srcPad, GstElement *sinkElemen
         {
             GstCaps *sinkCaps=gst_pad_query_caps(eachSinkPad,NULL);
             GST_INFO_OBJECT (m_myBin, "Sink caps for '%s' are %s", GST_ELEMENT_NAME(eachSinkPad), gst_caps_to_string(sinkCaps));
+            gst_caps_unref(sinkCaps);
         }
     }
     if(!succeeded)
@@ -225,6 +232,7 @@ bool gstreamListeningBin::ConnectSrcToSink(GstPad*srcPad, GstElement *sinkElemen
         GstPad *newSinkPad=gst_element_request_pad(sinkElement,gst_pad_template_new("sink_%u",GST_PAD_SINK,GST_PAD_REQUEST,srcCaps),"sink_%u",srcCaps);
         if(newSinkPad)
         {
+            addPadToBeReleased(sinkElement,newSinkPad);
             if(GST_PAD_LINK_OK==gst_pad_link(srcPad,newSinkPad))
             {
                 // yay!

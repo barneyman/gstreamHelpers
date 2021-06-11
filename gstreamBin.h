@@ -3,11 +3,42 @@
 
 #include "gstreamPipeline.h"
 
+// TODO calls that leak
+// gst_pad_query_caps
+// gst_element_request_pad
 
 class gstreamBin : public pluginContainer<GstElement>
 {
 public:
     gstreamBin(const char *binName, pluginContainer<GstElement> *parent);
+
+    ~gstreamBin()
+    {
+        // remove request pads
+        for(auto each=m_padsToBeReleased.begin();each!=m_padsToBeReleased.end();each++)
+        {
+            gst_element_release_request_pad(each->first,each->second);
+        }
+        // then unref the targets of ghosts
+        for(auto each=m_ghostPadsSrcs.begin();each!=m_ghostPadsSrcs.end();each++)
+        {
+            GstPad*targetPad=gst_ghost_pad_get_target((GstGhostPad*)*each);
+            if(targetPad)
+            {
+                gst_object_unref(targetPad);
+            }
+        }
+
+        for(auto each=m_ghostPadsSinks.begin();each!=m_ghostPadsSinks.end();each++)
+        {
+            GstPad*targetPad=gst_ghost_pad_get_target((GstGhostPad*)*each);
+            if(targetPad)
+            {
+                gst_object_unref(targetPad);
+            }
+        }
+
+    }
 
     const char *Name() { return m_binName.c_str(); }
     operator const char*() { return Name(); }
@@ -41,6 +72,16 @@ protected:
     GstElement* m_myBin;
 
     std::vector<GstPad*> m_ghostPadsSinks,m_ghostPadsSrcs;
+
+protected:
+
+    void addPadToBeReleased(GstElement*el,GstPad*pad)
+    {
+        m_padsToBeReleased.push_back(std::pair<GstElement*,GstPad*>(el,pad));
+    }
+
+    std::vector<std::pair<GstElement*,GstPad*> > m_padsToBeReleased;
+
 
 };
 

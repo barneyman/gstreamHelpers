@@ -265,16 +265,18 @@ public:
             m_pipeline=NULL;
         }
 
-        if(g_atomic_int_dec_and_test(&m_initCount))
-        {
-            gst_deinit();
-        }
-
         if(m_networkClock)
         {
             gst_object_unref(m_networkClock);
             m_networkClock=NULL;
         }
+
+
+        if(g_atomic_int_dec_and_test(&m_initCount))
+        {
+            gst_deinit();
+        }
+
 
     }
 
@@ -642,6 +644,7 @@ public:
         // get the caps of the srcPad;
         GstCaps *queryCaps=gst_pad_query_caps(srcPad,NULL);
         GST_INFO_OBJECT (m_pipeline, "Query caps are %s", gst_caps_to_string(queryCaps));
+        gst_caps_unref(queryCaps);
         
         // gst_pad_query_caps for splitmuxsrc seems to return static, so always said ANY, which caused chaos
         // need to confirm this works with other demuxes
@@ -672,6 +675,7 @@ public:
             {
                 GstCaps *sinkCaps=gst_pad_query_caps(eachSinkPad,NULL);
                 GST_INFO_OBJECT (m_pipeline, "Sink caps for '%s' are %s", GST_ELEMENT_NAME(eachSinkPad), gst_caps_to_string(sinkCaps));
+                gst_caps_unref(sinkCaps);
             }
         }
         if(!succeeded)
