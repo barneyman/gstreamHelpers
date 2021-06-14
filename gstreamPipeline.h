@@ -523,6 +523,35 @@ public:
     bool Play() { return ChangeStateAndWait(GST_STATE_PLAYING); }
     bool Stop() { return ChangeStateAndWait(GST_STATE_NULL); }
 
+    bool AwaitState(GstState newState, GstClockTime waitFor=2*GST_SECOND)
+    {
+        GstState currentState=GST_STATE_VOID_PENDING,pendingState;
+        while(currentState!=newState)
+        {
+            GstStateChangeReturn ret=gst_element_get_state((GstElement*)m_pipeline, &currentState, &pendingState, 2*GST_SECOND);
+
+            switch(ret)
+            {
+                case GST_STATE_CHANGE_SUCCESS:
+                    // worked
+                    break;
+                case GST_STATE_CHANGE_FAILURE:
+                    GST_ERROR_OBJECT(m_pipeline, "Unable to get pipeline state.");
+                    DumpGraph("GetState Failed");
+                    return false;
+                case GST_STATE_CHANGE_ASYNC:
+                    PumpMessages();
+                    DumpGraph("pumping");
+                    break;
+                default:
+                    GST_DEBUG_OBJECT(m_pipeline, "gst_element_get_state returned %d\n", ret);
+                    break;
+            }
+        }
+
+        return true;
+    }
+
 
     bool ChangeStateAndWait(GstState newState)
     {
