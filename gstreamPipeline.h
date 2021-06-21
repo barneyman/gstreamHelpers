@@ -484,6 +484,7 @@ public:
         {
             if(!Ready())
             {
+                DumpGraph("Ready FAILED");
                 return false;
             }
         }
@@ -493,6 +494,7 @@ public:
             GST_INFO_OBJECT (m_pipeline, "PREROLL request");
             if(!PreRoll())
             {
+                DumpGraph("PREROLL FAILED");
                 return false;
             }
             GST_INFO_OBJECT (m_pipeline, "PREROLL");
@@ -1171,8 +1173,11 @@ protected:
 
 class gstreamPipeline : public gstreamPipelineBase<GstElement>
 {
-public:
+
+protected:
     gstreamPipeline(){}
+
+public:
 
     gstreamPipeline(const char *pipelineName):gstreamPipelineBase(pipelineName)
     {}
