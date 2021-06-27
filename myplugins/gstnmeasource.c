@@ -84,7 +84,7 @@ enum
   PROP_USE_LOCALTIME
 };
 
-#define DEFAULT_FRAMERATE 1
+#define DEFAULT_FRAMERATE 5
 
 
 
@@ -323,7 +323,7 @@ gst_nmeasource_start (GstBaseSrc * src)
 
   // if i set this to true, i need to provide a clock to the pipeline
   // GST_MESSAGE_CLOCK_PROVIDE
-  gst_base_src_set_live(src, FALSE);
+  gst_base_src_set_live(src, TRUE);
   gst_base_src_set_format(src, GST_FORMAT_TIME );
 
 
@@ -358,8 +358,7 @@ gst_nmeasource_get_times (GstBaseSrc * src, GstBuffer * buffer,
 
   // stolen from gsttestvieosrc
   /* for live sources, sync on the timestamp of the buffer */
-  //if (gst_base_src_is_live (src)) {
-  if(true) {
+  if (gst_base_src_is_live (src)) {
     GstClockTime timestamp = GST_BUFFER_PTS (buffer);
 
     if (GST_CLOCK_TIME_IS_VALID (timestamp)) {
@@ -550,33 +549,11 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 
   GST_INFO_OBJECT (nmeasource, "At frame rate %d timeDelta is %lld", nmeasource->threadInfo.frameRate, nmeasource->threadInfo.frameTimeDelta);
 
-
-  // if we've not been here before, start a timeout
-#ifdef _ASSUME_DURATION_DOES_THIS  
-  if(myClock)
-  {
-    if(!nmeasource->waitId)
-    {
-      nmeasource->waitId=gst_clock_new_periodic_id(myClock,gst_clock_get_time(myClock)+frameTimeDelta,frameTimeDelta);
-    }
-    else
-    {
-      GstClockTimeDiff jitter=0;
-      GstClockReturn ret=gst_clock_id_wait(nmeasource->waitId,&jitter);
-      if(ret!=GST_CLOCK_OK)
-      {
-        GST_WARNING_OBJECT (nmeasource, "wait returned %d, jitter  %" GST_TIME_FORMAT ".",ret,GST_TIME_ARGS(jitter));
-      }
-    }
-  }
-#endif  
-
     // get the mutex for shortest time
   {
     std::lock_guard<std::mutex> guard(nmeasource->threadInfo.gpsMutex);
     copyOfData=nmeasource->threadInfo.sample.gpsOutput;
   }
-
 
 
   int len=copyOfData.length();
@@ -592,9 +569,16 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   gst_buffer_fill (buf, offset, copyOfData.c_str(), len);
   gst_buffer_set_size (buf, len);
 
+  nmeasource->threadInfo.runningTime=gst_clock_get_time (myClock)-baseTime;
+
   // sort out timestamps - stolen from gstvideotestsrc
   GST_BUFFER_DTS (buf) = GST_BUFFER_PTS (buf)=nmeasource->threadInfo.runningTime;
   GST_BUFFER_DTS (buf) = GST_CLOCK_TIME_NONE;
+
+  
+
+  GST_BUFFER_OFFSET (buf) = nmeasource->threadInfo.framesFilled;
+  GST_BUFFER_OFFSET_END (buf) = GST_BUFFER_OFFSET (buf) +1;
 
   if(myClock)
   {
@@ -604,15 +588,11 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 
   gst_object_sync_values (GST_OBJECT (src), GST_BUFFER_PTS (buf));
 
-  GST_BUFFER_OFFSET (buf)=0;
-  GST_BUFFER_OFFSET_END (buf)=len;
-
   GST_BUFFER_DURATION (buf) = nmeasource->threadInfo.frameTimeDelta; 
 
   GST_INFO_OBJECT (nmeasource, "Buffer Dur %" GST_TIME_FORMAT ".",GST_TIME_ARGS(nmeasource->threadInfo.frameTimeDelta));
 
   nmeasource->threadInfo.runningTime+=nmeasource->threadInfo.frameTimeDelta;
-  nmeasource->threadInfo.framesFilled++;
 
   return GST_FLOW_OK;
 }
