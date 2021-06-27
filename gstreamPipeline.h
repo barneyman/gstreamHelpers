@@ -1128,10 +1128,13 @@ protected:
         if((GstElement*)(msg->src)==(GstElement*)m_pipeline)
         {
             GST_INFO_OBJECT (m_pipeline, "PIPELINE State change '%s' -> '%s'",gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
+            pipelineStateChangeMessageHandler(msg);
             m_pipelineState=new_state;
         }
     }
 
+
+    virtual void pipelineStateChangeMessageHandler(GstMessage*msg){}
 
     virtual void elementMessageHandler(GstMessage*msg)
     {
