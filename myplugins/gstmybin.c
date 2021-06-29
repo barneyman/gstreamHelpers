@@ -40,9 +40,10 @@ gst_mybin_class_init (GstMyBinClass * klass)
     GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
     GstBinClass *base_src_class = GST_BIN_CLASS (klass);
 
+/*
     gst_element_class_add_static_pad_template (GST_ELEMENT_CLASS(klass),
         &gst_mybin_sink_template);
-
+*/
 
     gobject_class->set_property = gst_mybin_set_property;
     gobject_class->get_property = gst_mybin_get_property;
