@@ -86,7 +86,7 @@ void* gpsMonitorThreadEntry(void *arg)
 
               snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ",
                 info->tm_year+1900,
-                info->tm_mon,
+                info->tm_mon+1,
                 info->tm_mday,
                 info->tm_hour,
                 info->tm_min,
@@ -99,7 +99,7 @@ void* gpsMonitorThreadEntry(void *arg)
 
               snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ",
                 info->tm_year+1900,
-                info->tm_mon,
+                info->tm_mon+1,
                 info->tm_mday,
                 info->tm_hour,
                 info->tm_min,
