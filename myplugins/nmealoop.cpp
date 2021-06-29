@@ -4,6 +4,7 @@
 #include "../json/json.hpp"
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 
 void* gpsMonitorThreadEntry(void *arg);
@@ -77,30 +78,33 @@ void* gpsMonitorThreadEntry(void *arg)
               
               char timebuf[25];
 
-              time_t rawtime;
               struct tm *info;
-              time( &rawtime );
-              info = localtime( &rawtime );
+              struct timeval tod;
+              gettimeofday(&tod,NULL);
 
-              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02dZ",
+              info = localtime( &tod.tv_sec );
+
+              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ",
                 info->tm_year+1900,
                 info->tm_mon,
                 info->tm_mday,
                 info->tm_hour,
                 info->tm_min,
-                info->tm_sec);
+                info->tm_sec,
+                tod.tv_usec/1000);
 
               jsonData["local"]=timebuf;
 
-              info = gmtime(&rawtime);
+              info = gmtime(&tod.tv_sec);
 
-              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02dZ",
+              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ",
                 info->tm_year+1900,
                 info->tm_mon,
                 info->tm_mday,
                 info->tm_hour,
                 info->tm_min,
-                info->tm_sec);
+                info->tm_sec,
+                tod.tv_usec/1000);
 
               jsonData["utc"]=timebuf;
 
