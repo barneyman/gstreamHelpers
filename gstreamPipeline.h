@@ -1092,6 +1092,30 @@ protected:
         gst_message_parse_buffering(msg,&percent);
         gst_message_parse_buffering_stats (msg, &mode, &in, &out, &left);
 
+        switch(mode)
+        {
+            case GST_BUFFERING_STREAM:
+                GST_INFO_OBJECT (m_pipeline, "Queue %s is STREAMBUFFERING",
+                    GST_OBJECT_NAME (msg->src));
+                break;
+            case GST_BUFFERING_DOWNLOAD:
+                GST_INFO_OBJECT (m_pipeline, "Queue %s is DOWNLOADBUFFERING",
+                    GST_OBJECT_NAME (msg->src));
+                break;
+            case GST_BUFFERING_TIMESHIFT:
+                GST_INFO_OBJECT (m_pipeline, "Queue %s is TIMESHIFTING",
+                    GST_OBJECT_NAME (msg->src));
+                break;
+            case GST_BUFFERING_LIVE:
+                GST_INFO_OBJECT (m_pipeline, "Queue %s is LIVEBUFFERING",
+                    GST_OBJECT_NAME (msg->src));
+                break;
+            default:
+                GST_INFO_OBJECT (m_pipeline, "Queue %s is UNKNOWN",
+                    GST_OBJECT_NAME (msg->src));
+                break;
+        }
+
         if(percent==100)
         {
             GST_WARNING_OBJECT (m_pipeline, "Queue %s is full - Pipeline running",
@@ -1104,13 +1128,13 @@ protected:
         }
         else
         {
-            GST_INFO_OBJECT (m_pipeline, "%s (avg in %d out %d) Room used %d%% %lld ms",// - avail %.1f s left ( %d %d )\n",
+            GST_WARNING_OBJECT (m_pipeline, "%s (avg in %d out %d) Room used %d%% %lld ms",// - avail %.1f s left ( %d %d )\n",
                 GST_OBJECT_NAME (msg->src),
                 in,out, percent, left);
         }
 
 
-        genericMessageHandler(msg,"Buffer");
+        //genericMessageHandler(msg,"Buffer");
     }
 
     virtual void errorMessageHandler(GstMessage*msg)
