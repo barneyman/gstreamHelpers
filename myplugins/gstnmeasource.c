@@ -84,7 +84,7 @@ enum
   PROP_USE_LOCALTIME
 };
 
-#define DEFAULT_FRAMERATE 1
+#define DEFAULT_FRAMERATE 20
 
 
 
@@ -359,7 +359,8 @@ gst_nmeasource_get_times (GstBaseSrc * src, GstBuffer * buffer,
   // stolen from gsttestvieosrc
   /* for live sources, sync on the timestamp of the buffer */
   if (gst_base_src_is_live (src)) {
-    GstClockTime timestamp = GST_BUFFER_PTS (buffer);
+    // add a duration to this sync time so the basesrc works out what my latency is
+    GstClockTime timestamp = GST_BUFFER_PTS (buffer)+GST_BUFFER_DURATION (buffer);
 
     if (GST_CLOCK_TIME_IS_VALID (timestamp)) {
       /* get duration to calculate end time */

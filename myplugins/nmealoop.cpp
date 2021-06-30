@@ -76,7 +76,7 @@ void* gpsMonitorThreadEntry(void *arg)
               jsonData["bearingDeg"]=(int)0;
               jsonData["satelliteCount"]=0;
               
-              char timebuf[25];
+              char timebuf[125];
 
               struct tm *info;
               struct timeval tod;
@@ -114,7 +114,7 @@ void* gpsMonitorThreadEntry(void *arg)
         pushJson(filter,jsonData);
 
         // dont spam the json
-        usleep(100*1000);
+        usleep(10*1000);
 
         continue;
 
