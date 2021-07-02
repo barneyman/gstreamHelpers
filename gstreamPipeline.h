@@ -1012,7 +1012,7 @@ protected:
                     break;
 
                 case GST_MESSAGE_QOS:
-                    genericMessageHandler(msg,"QoS");
+                    qosMessageHandler(msg);
                     break;
 
 
@@ -1118,12 +1118,12 @@ protected:
 
         if(percent==100)
         {
-            GST_WARNING_OBJECT (m_pipeline, "Queue %s is full - Pipeline running",
+            GST_WARNING_OBJECT (m_pipeline, "Queue %s is full",
                 GST_OBJECT_NAME (msg->src));
         }
         else if(!percent)
         {
-            GST_WARNING_OBJECT (m_pipeline, "Queue %s is empty - Pipeline paused",// - avail %.1f s left ( %d %d )\n",
+            GST_WARNING_OBJECT (m_pipeline, "Queue %s is empty",// - avail %.1f s left ( %d %d )\n",
                 GST_OBJECT_NAME (msg->src));
         }
         else
@@ -1135,6 +1135,24 @@ protected:
 
 
         //genericMessageHandler(msg,"Buffer");
+    }
+
+    virtual void qosMessageHandler(GstMessage*msg)
+    {
+        gboolean islive=FALSE;
+        guint64 running, stream, timestamp, duration;
+        gst_message_parse_qos(msg,&islive,&running, &stream, &timestamp, &duration);
+
+        
+        GstFormat format;
+        guint64 processed, dropped;
+        gst_message_parse_qos_stats(msg, &format, &processed, &dropped);
+
+        GST_WARNING_OBJECT (m_pipeline, "QOS msg %s - %lld dropped",// - avail %.1f s left ( %d %d )\n",
+            GST_OBJECT_NAME (msg->src),
+            dropped);
+
+
     }
 
     virtual void errorMessageHandler(GstMessage*msg)
