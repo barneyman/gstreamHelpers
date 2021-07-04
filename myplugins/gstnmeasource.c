@@ -538,7 +538,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource, "fill offset %lld size %u", offset, size);
+  GST_DEBUG_OBJECT (nmeasource, "fill offset %lld size %u", offset, size);
  
   offset=0;
 
@@ -548,7 +548,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   GstClock *myClock=GST_ELEMENT_CLOCK (src);
   GstClockTime baseTime=gst_element_get_base_time(GST_ELEMENT(src));
 
-  GST_INFO_OBJECT (nmeasource, "At frame rate %d timeDelta is %lld", nmeasource->threadInfo.frameRate, nmeasource->threadInfo.frameTimeDelta);
+  GST_DEBUG_OBJECT (nmeasource, "At frame rate %d timeDelta is %lld", nmeasource->threadInfo.frameRate, nmeasource->threadInfo.frameTimeDelta);
 
     // get the mutex for shortest time
   {
@@ -559,7 +559,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 
   int len=copyOfData.length();
 
-  GST_INFO_OBJECT (nmeasource, "Buffer %d, needed %d (offset %d) %s", size, len, offset, copyOfData.c_str());
+  GST_DEBUG_OBJECT (nmeasource, "Buffer %d, needed %d (offset %d) %s", size, len, offset, copyOfData.c_str());
 
   if((offset+len)>=size)
   {
@@ -582,7 +582,21 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 
   if(myClock)
   {
-    GST_INFO_OBJECT (nmeasource, "Running Time %" GST_TIME_FORMAT ".",GST_TIME_ARGS(gst_clock_get_time (myClock)-baseTime));
+    GstClockTime runningTime=gst_clock_get_time (myClock)-baseTime;
+    GST_INFO_OBJECT (nmeasource, "Running Time %" GST_TIME_FORMAT ".",GST_TIME_ARGS(runningTime));
+
+    // do a check of running time against what *I* think running time is, hopefully spot a downstream hold on me
+    GstClockTime diff=abs(runningTime>nmeasource->threadInfo.runningTime);
+    // if we're more than a frame out ...
+    if(diff>nmeasource->threadInfo.frameTimeDelta)
+    {
+      GST_WARNING_OBJECT (nmeasource, "Pipe Running Time %" GST_TIME_FORMAT ". My Running Time %" GST_TIME_FORMAT " Diff %" GST_TIME_FORMAT "",
+        GST_TIME_ARGS(runningTime),GST_TIME_ARGS(nmeasource->threadInfo.runningTime),GST_TIME_ARGS(diff));
+
+      if(diff/nmeasource->threadInfo.frameTimeDelta > 1)
+        GST_ERROR_OBJECT (nmeasource, " %u dropped",(unsigned)diff/nmeasource->threadInfo.frameTimeDelta );
+
+    }
   }
   GST_INFO_OBJECT (nmeasource, "Buffer PTS %" GST_TIME_FORMAT ".",GST_TIME_ARGS(GST_BUFFER_PTS (buf)));
 
