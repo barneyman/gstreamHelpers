@@ -550,6 +550,8 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   GST_DEBUG_OBJECT (nmeasource, "At frame rate %d timeDelta is %lld", nmeasource->threadInfo.frameRate, nmeasource->threadInfo.frameTimeDelta);
 
 #define _USE_PIEPLINE_TIME
+
+#ifdef _USE_PIEPLINE_TIME
   GstClockTime pts=gst_clock_get_time (myClock);
 
   struct tm *info; time_t nowsecs=pts/GST_SECOND;
@@ -565,8 +567,6 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
     info->tm_sec,
     (pts-(nowsecs*GST_SECOND))/1000000);
   copyOfData=timebuf;
-
-#ifdef _USE_PIEPLINE_TIME
 #else
     // get the mutex for shortest time
   {
