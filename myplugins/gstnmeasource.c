@@ -84,7 +84,7 @@ enum
   PROP_USE_LOCALTIME
 };
 
-#define DEFAULT_FRAMERATE 20
+#define DEFAULT_FRAMERATE 30
 
 
 
@@ -543,19 +543,37 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   offset=0;
 
   std::string copyOfData;
-  GstClockTime pts;
 
   GstClock *myClock=GST_ELEMENT_CLOCK (src);
   GstClockTime baseTime=gst_element_get_base_time(GST_ELEMENT(src));
 
   GST_DEBUG_OBJECT (nmeasource, "At frame rate %d timeDelta is %lld", nmeasource->threadInfo.frameRate, nmeasource->threadInfo.frameTimeDelta);
 
+#define _USE_PIEPLINE_TIME
+  GstClockTime pts=gst_clock_get_time (myClock);
+
+  struct tm *info; time_t nowsecs=pts/GST_SECOND;
+  info = gmtime(&nowsecs);
+
+  char timebuf[128];
+  snprintf(timebuf,sizeof(timebuf)-1, "{\"utc\":\"%d-%02d-%02dT%02d:%02d:%02d.%03dZ\"}",
+    info->tm_year+1900,
+    info->tm_mon+1,
+    info->tm_mday,
+    info->tm_hour,
+    info->tm_min,
+    info->tm_sec,
+    (pts-(nowsecs*GST_SECOND))/1000000);
+  copyOfData=timebuf;
+
+#ifdef _USE_PIEPLINE_TIME
+#else
     // get the mutex for shortest time
   {
     std::lock_guard<std::mutex> guard(nmeasource->threadInfo.gpsMutex);
     copyOfData=nmeasource->threadInfo.sample.gpsOutput;
   }
-
+#endif
 
   int len=copyOfData.length();
 
@@ -570,9 +588,6 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   gst_buffer_fill (buf, offset, copyOfData.c_str(), len);
   gst_buffer_set_size (buf, len);
 
-  // THIS was causing the frame spamming!
-  //nmeasource->threadInfo.runningTime=gst_clock_get_time (myClock)-baseTime;
-
   // sort out timestamps - stolen from gstvideotestsrc
   GST_BUFFER_DTS (buf) = GST_BUFFER_PTS (buf) = nmeasource->threadInfo.runningTime;
   GST_BUFFER_DTS (buf) = GST_CLOCK_TIME_NONE;
@@ -584,6 +599,8 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   {
     GstClockTime runningTime=gst_clock_get_time (myClock)-baseTime;
     GST_INFO_OBJECT (nmeasource, "Running Time %" GST_TIME_FORMAT ".",GST_TIME_ARGS(runningTime));
+
+    GST_BUFFER_DTS (buf) = GST_BUFFER_PTS (buf) = runningTime;
 
     // do a check of running time against what *I* think running time is, hopefully spot a downstream hold on me
     GstClockTime diff=abs(runningTime>nmeasource->threadInfo.runningTime);
