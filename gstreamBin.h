@@ -40,6 +40,8 @@ protected:
     GstPad*GhostSingleSrcPad(GstPad *eachPad) { return GhostSinglePad(eachPad,m_ghostPadsSrcs); }
     GstPad*GhostSinglePad(GstPad *eachPad, std::vector<GstPad*> &results);
 
+    void advertiseElementsPadTemplates(const char *element) { advertiseElementsPadTemplates(FindNamedPlugin(element)); }
+    void advertiseElementsPadTemplates(GstElement *element);
 
 protected:
 

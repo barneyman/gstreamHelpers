@@ -51,6 +51,25 @@ gstreamBin::~gstreamBin()
 
 }
 
+void gstreamBin::advertiseElementsPadTemplates(GstElement *element)
+{
+    if(!element)
+        return;
+
+    GstElementClass  *eclass = GST_ELEMENT_GET_CLASS (element);
+    // get its pad templates
+
+    GList * padlist = gst_element_class_get_pad_template_list (eclass);
+
+    while (padlist) 
+    {
+        GstStaticPadTemplate *padtempl = (GstStaticPadTemplate*)padlist->data;
+        gst_element_class_add_static_pad_template (eclass, padtempl);
+        padlist = g_list_next (padlist);
+    }
+
+}
+
 bool gstreamBin::AddGhostPads(const char*sink,const char*source, const char *sinkcaps, const char *srccaps)
 {
     // get all the sink pads from the sink, and ghost them
