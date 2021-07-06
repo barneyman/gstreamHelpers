@@ -49,12 +49,19 @@ gstreamBin::~gstreamBin()
         }
     }
 
+    for(auto each=m_advertised.begin();each!=m_advertised.end();each++)
+    {
+        delete *each;
+    }
+
 }
 
 void gstreamBin::advertiseElementsPadTemplates(GstElement *element)
 {
     if(!element)
         return;
+
+    
 
     GstElementClass  *eclass = GST_ELEMENT_GET_CLASS (element);
     // get its pad templates
@@ -63,8 +70,30 @@ void gstreamBin::advertiseElementsPadTemplates(GstElement *element)
 
     while (padlist) 
     {
-        GstStaticPadTemplate *padtempl = (GstStaticPadTemplate*)padlist->data;
-        gst_element_class_add_static_pad_template (eclass, padtempl);
+        if(padlist->data)
+        {
+            //GstStaticPadTemplate *padtempl = (GstStaticPadTemplate*)padlist->data;
+            // doc'd as GstStaticPadTemplate but apparently not (looking at gstutils.c/gst_element_get_compatible_pad_template)
+            GstPadTemplate *padtempl = (GstPadTemplate*)padlist->data;
+
+            if(padtempl->direction == GST_PAD_SINK && padtempl->presence == GST_PAD_REQUEST)
+            {
+
+                // create a new one - dynamic
+                GstStaticPadTemplate *stat=new GstStaticPadTemplate();
+                stat->name_template=padtempl->name_template;
+                stat->direction=padtempl->direction;
+                stat->presence=padtempl->presence;
+                stat->static_caps=GST_STATIC_CAPS(gst_caps_to_string (padtempl->caps));
+
+                m_advertised.push_back(stat);
+
+                GST_INFO_OBJECT (m_myBin, "Advertising '%s' pad from '%s' - caps %s",padtempl->name_template,GST_ELEMENT_NAME(element), gst_caps_to_string (padtempl->caps));                
+
+                gst_element_class_add_static_pad_template (eclass, stat);
+
+            }
+        }
         padlist = g_list_next (padlist);
     }
 

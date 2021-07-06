@@ -43,6 +43,8 @@ protected:
     void advertiseElementsPadTemplates(const char *element) { advertiseElementsPadTemplates(FindNamedPlugin(element)); }
     void advertiseElementsPadTemplates(GstElement *element);
 
+    std::vector<GstStaticPadTemplate*> m_advertised;
+
 protected:
 
     pluginContainer<GstElement> *m_parent;
