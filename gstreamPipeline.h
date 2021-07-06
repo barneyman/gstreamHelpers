@@ -844,6 +844,15 @@ protected:
         Stop();        
     }
 
+    GstClockTime GetRunningTime()
+    {
+        // TODO check state of pipeline
+        GstClockTime baseTime=gst_element_get_base_time(GST_ELEMENT(m_pipeline));        
+        GstClockTime currentTime=gst_clock_get_time(gst_pipeline_get_clock(GST_PIPELINE(m_pipeline)));
+
+        return currentTime-baseTime;
+    }
+
 
 // Nothing connects - false
 // mustConnectAll=true && All sources connect - true, else false
