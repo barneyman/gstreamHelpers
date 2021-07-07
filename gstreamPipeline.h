@@ -539,11 +539,11 @@ public:
                     break;
                 case GST_STATE_CHANGE_FAILURE:
                     GST_ERROR_OBJECT(m_pipeline, "Unable to get pipeline state.");
-                    DumpGraph("GetState Failed");
+                    DumpGraph("GetState Failed bailing");
                     return false;
                 case GST_STATE_CHANGE_ASYNC:
                     PumpMessages();
-                    DumpGraph("pumping");
+                    DumpGraph("ASYNCwaiting");
                     break;
                 default:
                     GST_DEBUG_OBJECT(m_pipeline, "gst_element_get_state returned %d\n", ret);
