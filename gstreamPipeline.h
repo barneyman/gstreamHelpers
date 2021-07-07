@@ -540,7 +540,8 @@ public:
                 case GST_STATE_CHANGE_FAILURE:
                     GST_ERROR_OBJECT(m_pipeline, "Unable to get pipeline state.");
                     DumpGraph("GetState Failed bailing");
-                    return false;
+                    //return false;
+                    break;
                 case GST_STATE_CHANGE_ASYNC:
                     PumpMessages();
                     DumpGraph("ASYNCwaiting");
@@ -729,7 +730,7 @@ public:
         return succeeded;
     }
 
-    bool BlockPadPadForSeek(GstPad *pad)
+    bool BlockPadForSeek(GstPad *pad)
     {
         bool ret=gst_pad_add_probe (pad, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM, (GstPadProbeCallback) staticPadBlocked, this, NULL)?true:false;
         g_atomic_int_inc(&m_blockedPins);
@@ -755,7 +756,7 @@ public:
                     if(std::get<2>(*each))
                     {   
                         // https://gstreamer.freedesktop.org/documentation/application-development/advanced/pipeline-manipulation.html?gi-language=c#play-a-section-of-a-media-file
-                        if(!BlockPadPadForSeek(pad))
+                        if(!BlockPadForSeek(pad))
                         {
                             GST_ERROR_OBJECT (m_pipeline, "late pad arrive %s:%s",GST_ELEMENT_NAME(element),GST_ELEMENT_NAME(pad));
                         }
