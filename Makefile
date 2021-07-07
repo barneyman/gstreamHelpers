@@ -1,5 +1,5 @@
 CXX = g++
-CPPFLAGS = -g3 -O0
+CPPFLAGS = -g3 -O0 -Wformat
 PRODFLAGS = -O3 -g0
 
 GSTCONFIG = `pkg-config --cflags --libs gstreamer-1.0`

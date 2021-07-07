@@ -531,7 +531,7 @@ gst_json_to_pango_subsink_chain (GstPad * pad, GstObject * parent, GstBuffer * b
 
   if (filter->silent == FALSE)
   {
-    GST_INFO_OBJECT (filter, "I'm plugged, therefore I'm in. SUBTITLE - %.*s Json %s\n",info.size,(const char*)info.data, j3.dump().c_str());
+    GST_INFO_OBJECT (filter, "I'm plugged, therefore I'm in. SUBTITLE - %.*s Json %s\n",(int)info.size,(const char*)info.data, j3.dump().c_str());
   }
 
 

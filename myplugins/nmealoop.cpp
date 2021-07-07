@@ -84,7 +84,7 @@ void* gpsMonitorThreadEntry(void *arg)
 
               info = localtime( &tod.tv_sec );
 
-              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ",
+              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02d.%03ldZ",
                 info->tm_year+1900,
                 info->tm_mon+1,
                 info->tm_mday,
@@ -97,7 +97,7 @@ void* gpsMonitorThreadEntry(void *arg)
 
               info = gmtime(&tod.tv_sec);
 
-              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ",
+              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02d.%03ldZ",
                 info->tm_year+1900,
                 info->tm_mon+1,
                 info->tm_mday,

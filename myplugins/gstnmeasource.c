@@ -538,7 +538,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_DEBUG_OBJECT (nmeasource, "fill offset %lld size %u", offset, size);
+  GST_DEBUG_OBJECT (nmeasource, "fill offset %lu size %u", offset, size);
  
   offset=0;
 
@@ -547,7 +547,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   GstClock *myClock=GST_ELEMENT_CLOCK (src);
   GstClockTime baseTime=gst_element_get_base_time(GST_ELEMENT(src));
 
-  GST_DEBUG_OBJECT (nmeasource, "At frame rate %d timeDelta is %lld", nmeasource->threadInfo.frameRate, nmeasource->threadInfo.frameTimeDelta);
+  GST_DEBUG_OBJECT (nmeasource, "At frame rate %d timeDelta is %lu", nmeasource->threadInfo.frameRate, nmeasource->threadInfo.frameTimeDelta);
 
 #define _USE_PIEPLINE_TIME
 
@@ -558,7 +558,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   info = gmtime(&nowsecs);
 
   char timebuf[128];
-  snprintf(timebuf,sizeof(timebuf)-1, "{\"utc\":\"%d-%02d-%02dT%02d:%02d:%02d.%03dZ\"}",
+  snprintf(timebuf,sizeof(timebuf)-1, "{\"utc\":\"%d-%02d-%02dT%02d:%02d:%02d.%03luZ\"}",
     info->tm_year+1900,
     info->tm_mon+1,
     info->tm_mday,
@@ -577,11 +577,11 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 
   int len=copyOfData.length();
 
-  GST_DEBUG_OBJECT (nmeasource, "Buffer %d, needed %d (offset %d) %s", size, len, offset, copyOfData.c_str());
+  GST_DEBUG_OBJECT (nmeasource, "Buffer %d, needed %d (offset %lu) %s", size, len, offset, copyOfData.c_str());
 
   if((offset+len)>=size)
   {
-    GST_ERROR_OBJECT (nmeasource, "Buffer too small %d, needed %d (offset %d)", size, len, offset);
+    GST_ERROR_OBJECT (nmeasource, "Buffer too small %d, needed %d (offset %lu)", size, len, offset);
     return GST_FLOW_ERROR;
   }    
 
@@ -611,7 +611,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
         GST_TIME_ARGS(runningTime),GST_TIME_ARGS(nmeasource->threadInfo.runningTime),GST_TIME_ARGS(diff));
 
       if(diff/nmeasource->threadInfo.frameTimeDelta > 1)
-        GST_ERROR_OBJECT (nmeasource, " %u dropped",(unsigned)diff/nmeasource->threadInfo.frameTimeDelta );
+        GST_ERROR_OBJECT (nmeasource, " %lu dropped",(unsigned)diff/nmeasource->threadInfo.frameTimeDelta );
 
     }
   }
