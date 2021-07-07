@@ -476,7 +476,7 @@ public:
         if(m_seekLateEvent)
             return SeekRun(doReady);
 
-        GST_INFO_OBJECT (m_pipeline, "Running for %d seconds",timeoutSeconds);
+        GST_INFO_OBJECT (m_pipeline, "Running for %lu seconds",timeoutSeconds);
 
         DumpGraph("Ready");
         
@@ -1137,9 +1137,9 @@ protected:
         }
         else
         {
-            GST_WARNING_OBJECT (m_pipeline, "%s (avg in %d out %d) Room used %d%% %lld ms",// - avail %.1f s left ( %d %d )\n",
+            GST_WARNING_OBJECT (m_pipeline, "%s (avg in %d out %d) Room used %d %% %lu ms",
                 GST_OBJECT_NAME (msg->src),
-                in,out, percent, left);
+                in, out, percent, left);
         }
 
 
@@ -1157,7 +1157,7 @@ protected:
         guint64 processed, dropped;
         gst_message_parse_qos_stats(msg, &format, &processed, &dropped);
 
-        GST_WARNING_OBJECT (m_pipeline, "QOS msg %s - %lld dropped",// - avail %.1f s left ( %d %d )\n",
+        GST_WARNING_OBJECT (m_pipeline, "QOS msg %s - %lu dropped",// - avail %.1f s left ( %d %d )\n",
             GST_OBJECT_NAME (msg->src),
             dropped);
 
