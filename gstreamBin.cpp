@@ -235,6 +235,8 @@ bool gstreamListeningBin::ConnectLate(GstElement *source, GstElement *dest)
 
 void gstreamListeningBin::padAdded(GstElement*src,GstPad*padAdded)
 {
+    GST_INFO_OBJECT (m_myBin, "padAdded %s:%s", GST_ELEMENT_NAME(src),GST_ELEMENT_NAME(padAdded));    
+
     // walk thru the late bind items, and hook things up
     for(auto each=m_lateSrcs.begin();each!=m_lateSrcs.end();each++)
     {

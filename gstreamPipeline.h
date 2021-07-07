@@ -540,8 +540,7 @@ public:
                 case GST_STATE_CHANGE_FAILURE:
                     GST_ERROR_OBJECT(m_pipeline, "Unable to get pipeline state.");
                     DumpGraph("GetState Failed bailing");
-                    //return false;
-                    break;
+                    return false;
                 case GST_STATE_CHANGE_ASYNC:
                     PumpMessages();
                     DumpGraph("ASYNCwaiting");
@@ -652,6 +651,7 @@ public:
     {
         if(!g_atomic_int_get(&m_blockedPins))
         {
+            GST_INFO_OBJECT (m_pipeline, "removing BLOCK from %s",GST_ELEMENT_NAME(pad));
             return GST_PAD_PROBE_REMOVE;
         }
 
@@ -677,7 +677,7 @@ public:
         GstCaps *queryCaps=gst_pad_query_caps(srcPad,NULL);
         GST_INFO_OBJECT (m_pipeline, "Query caps are %s", gst_caps_to_string(queryCaps));
         gst_caps_unref(queryCaps);
-        
+
         // gst_pad_query_caps for splitmuxsrc seems to return static, so always said ANY, which caused chaos
         // need to confirm this works with other demuxes
         GstCaps *srcCaps=gst_pad_get_current_caps(srcPad);
@@ -727,12 +727,15 @@ public:
             }
         }
 
+        if(srcCaps)
+            gst_caps_unref(srcCaps);
+
         return succeeded;
     }
 
-    bool BlockPadForSeek(GstPad *pad)
+    long BlockPadForSeek(GstPad *pad)
     {
-        bool ret=gst_pad_add_probe (pad, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM, (GstPadProbeCallback) staticPadBlocked, this, NULL)?true:false;
+        long ret=gst_pad_add_probe (pad, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM, (GstPadProbeCallback) staticPadBlocked, this, NULL)?true:false;
         g_atomic_int_inc(&m_blockedPins);
         return ret;
         
@@ -755,6 +758,7 @@ public:
                     // if we are blocking the pad ...
                     if(std::get<2>(*each))
                     {   
+                        GST_INFO_OBJECT (m_pipeline, "adding BLOCK to %s:%s",GST_ELEMENT_NAME(element),GST_ELEMENT_NAME(pad));
                         // https://gstreamer.freedesktop.org/documentation/application-development/advanced/pipeline-manipulation.html?gi-language=c#play-a-section-of-a-media-file
                         if(!BlockPadForSeek(pad))
                         {
@@ -1029,6 +1033,7 @@ protected:
                 case GST_MESSAGE_APPLICATION:
                     if (gst_message_has_name (msg, _DO_SEEK_MSG))
                     {
+                        GST_INFO_OBJECT (m_pipeline, "Sending seeklate event from msgapp");
                         // do a seek
                         gst_element_send_event(m_seekLateOn,m_seekLateEvent);
                         m_seekLateEvent=NULL;

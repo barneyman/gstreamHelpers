@@ -78,7 +78,7 @@ public:
     }
 
     // connect late and create a ghost pad (special dest==NULL behaviour)
-    bool ConnectLateToGhostSrc(const char*source)
+    bool ConnectLateThenGhostSrc(const char*source)
     {
         return ConnectLate(source,NULL);
     }
