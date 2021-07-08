@@ -459,8 +459,9 @@ public:
         if(!Pause())
             return false;
 
-        if(!Play())
-            return false;
+//        // play is performed when the demux is unblocked
+//        if(!Play())
+//            return false;
 
         // then wait for us to play out
         internalRun(0);
@@ -573,13 +574,18 @@ public:
         GST_INFO_OBJECT (m_pipeline, "gst_element_set_state returned %d",ret);
 
         GstState currentState=GST_STATE_VOID_PENDING,pendingState;
-        while(currentState!=newState)
+        bool stateChangeSuccess=false;
+        // i changed this so seekrun will work ... in the background (when seeking) i issue a play call
+        // while we are still pausing (and ergo in this loop)
+        //while(currentState!=newState)
+        while(!stateChangeSuccess)
         {
             ret=gst_element_get_state((GstElement*)m_pipeline, &currentState, &pendingState, 2*GST_SECOND);
 
             switch(ret)
             {
                 case GST_STATE_CHANGE_SUCCESS:
+                    stateChangeSuccess=true;
                     // worked
                     break;
                 case GST_STATE_CHANGE_FAILURE:
@@ -597,7 +603,7 @@ public:
 
         }
         
-        return true;
+        return stateChangeSuccess;
     }
 
     static void eachChild(const GValue * item, gpointer user_data)
@@ -762,7 +768,7 @@ public:
                         // https://gstreamer.freedesktop.org/documentation/application-development/advanced/pipeline-manipulation.html?gi-language=c#play-a-section-of-a-media-file
                         if(!BlockPadForSeek(pad))
                         {
-                            GST_ERROR_OBJECT (m_pipeline, "late pad arrive %s:%s",GST_ELEMENT_NAME(element),GST_ELEMENT_NAME(pad));
+                            GST_ERROR_OBJECT (m_pipeline, "BlockPadForSeek failed %s:%s",GST_ELEMENT_NAME(element),GST_ELEMENT_NAME(pad));
                         }
                     }
 
@@ -1037,6 +1043,9 @@ protected:
                         // do a seek
                         gst_element_send_event(m_seekLateOn,m_seekLateEvent);
                         m_seekLateEvent=NULL;
+
+                        // and roll!!
+                        Play();
 
                     }
                     genericMessageHandler(msg,"Application");
