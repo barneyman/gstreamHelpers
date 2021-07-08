@@ -162,13 +162,15 @@ GstPad* gstreamBin::GhostSinglePad(GstPad *eachPad, std::vector<GstPad*> &result
     if(gst_pad_is_linked(eachPad))
         return NULL;
 
-    GstCaps *queryCaps=gst_pad_query_caps(eachPad,NULL);
+    //GstCaps *queryCaps=gst_pad_query_caps(eachPad,NULL);
     GstCaps *srcCaps=gst_pad_get_current_caps(eachPad);
 
-    GST_INFO_OBJECT (m_myBin, "Query caps are %s", gst_caps_to_string(queryCaps));
+    //GST_INFO_OBJECT (m_myBin, "Query caps are %s", gst_caps_to_string(queryCaps));
     GST_INFO_OBJECT (m_myBin, "Current caps are %s", gst_caps_to_string(srcCaps));
 
-    gst_caps_unref(queryCaps);
+    //gst_caps_unref(queryCaps);
+    if(srcCaps)
+        gst_caps_unref(srcCaps);
 
     GstPadDirection dir=gst_pad_get_direction(eachPad);
 
@@ -182,6 +184,7 @@ GstPad* gstreamBin::GhostSinglePad(GstPad *eachPad, std::vector<GstPad*> &result
     // so create a CAPS event from that, and send it to the ghost
     // TODO: enabling this returns 'sending evenbt wrong direction"
     // gst_pad_send_event(ghostPad,gst_event_new_caps(srcCaps));
+    gst_pad_mark_reconfigure (ghostPad);
 
 
 
