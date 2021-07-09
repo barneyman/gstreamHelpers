@@ -580,7 +580,7 @@ public:
         //while(currentState!=newState)
         while(!stateChangeSuccess)
         {
-            ret=gst_element_get_state((GstElement*)m_pipeline, &currentState, &pendingState, 2*GST_SECOND);
+            ret=gst_element_get_state((GstElement*)m_pipeline, &currentState, &pendingState, (2*GST_SECOND)/10);
 
             switch(ret)
             {
