@@ -526,6 +526,14 @@ public:
     bool Play() { return ChangeStateAndWait(GST_STATE_PLAYING); }
     bool Stop() { return ChangeStateAndWait(GST_STATE_NULL); }
 
+    GstState CurrentPipelineState() 
+    {
+        GstState currentState=GST_STATE_VOID_PENDING;
+        gst_element_get_state((GstElement*)m_pipeline, &currentState, NULL, 2*GST_SECOND);
+
+        return (currentState);
+    }
+
     bool AwaitState(GstState newState, GstClockTime waitFor=2*GST_SECOND)
     {
         GstState currentState=GST_STATE_VOID_PENDING,pendingState;
