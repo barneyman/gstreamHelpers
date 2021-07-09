@@ -29,6 +29,8 @@ gstreamBin::~gstreamBin()
     for(auto each=m_padsToBeReleased.begin();each!=m_padsToBeReleased.end();each++)
     {
         gst_element_release_request_pad(each->first,each->second);
+        g_object_unref (each->first);
+
     }
     // then unref the targets of ghosts
     for(auto each=m_ghostPadsSrcs.begin();each!=m_ghostPadsSrcs.end();each++)

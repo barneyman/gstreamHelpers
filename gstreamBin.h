@@ -54,6 +54,8 @@ protected:
 
     void addPadToBeReleased(GstElement*el,GstPad*pad)
     {
+        // grab a ref on the parent while we're here
+        g_object_ref (el);
         m_padsToBeReleased.push_back(std::pair<GstElement*,GstPad*>(el,pad));
     }
 
