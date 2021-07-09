@@ -21,10 +21,7 @@ public:
     bool AddGhostPads(GstElement *sinkElement,GstElement*sourceElement=NULL, const char *sinkcaps=NULL, const char *srccaps=NULL);
 
 
-    virtual GstPad *request_new_pad (GstElement * element,GstPadTemplate * templ,const gchar * name,const GstCaps * caps)
-    {
-        return NULL;
-    }
+    virtual GstPad *request_new_pad (GstElement * element,GstPadTemplate * templ,const gchar * name,const GstCaps * caps);
 
     virtual void PeekBuffer(GstBuffer * buf, GstBuffer *bufOut)
     {}
@@ -43,7 +40,7 @@ protected:
     void advertiseElementsPadTemplates(const char *element) { advertiseElementsPadTemplates(FindNamedPlugin(element)); }
     void advertiseElementsPadTemplates(GstElement *element);
 
-    std::vector<GstStaticPadTemplate*> m_advertised;
+    std::vector<std::pair<GstElement*,GstStaticPadTemplate*>> m_advertised;
 
 protected:
 

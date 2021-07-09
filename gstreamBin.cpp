@@ -49,21 +49,42 @@ gstreamBin::~gstreamBin()
         }
     }
 
+    // delete the static pads we use to advertise
     for(auto each=m_advertised.begin();each!=m_advertised.end();each++)
     {
-        delete *each;
+        delete each->second;
     }
 
 }
+
+GstPad *gstreamBin::request_new_pad (GstElement * element,GstPadTemplate * templ,const gchar * name,const GstCaps * caps)
+{
+    // find this template
+    for(auto each=m_advertised.begin();each!=m_advertised.end();each++)
+    {
+        GstPad*ret=gst_element_request_pad(each->first,templ,
+            name,
+            caps);
+
+        if(ret)
+        {
+            addPadToBeReleased(each->first,ret);
+            ret=GhostSinglePad(ret,m_ghostPadsSinks);
+            return ret;
+        }
+    }
+ 
+    return NULL;
+}
+
 
 void gstreamBin::advertiseElementsPadTemplates(GstElement *element)
 {
     if(!element)
         return;
 
-    
-
     GstElementClass  *eclass = GST_ELEMENT_GET_CLASS (element);
+    GstElementClass  *myclass = GST_ELEMENT_GET_CLASS (m_myBin);
     // get its pad templates
 
     GList * padlist = gst_element_class_get_pad_template_list (eclass);
@@ -86,11 +107,12 @@ void gstreamBin::advertiseElementsPadTemplates(GstElement *element)
                 stat->presence=padtempl->presence;
                 stat->static_caps=GST_STATIC_CAPS(gst_caps_to_string (padtempl->caps));
 
-                m_advertised.push_back(stat);
+                m_advertised.push_back(std::pair<GstElement*,GstStaticPadTemplate*>(element,stat));
 
                 GST_INFO_OBJECT (m_myBin, "Advertising '%s' pad from '%s' - caps %s",padtempl->name_template,GST_ELEMENT_NAME(element), gst_caps_to_string (padtempl->caps));                
 
-                gst_element_class_add_static_pad_template (eclass, stat);
+                gst_element_class_add_pad_template(myclass, padtempl);
+
 
             }
         }
