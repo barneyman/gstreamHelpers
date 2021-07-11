@@ -1,17 +1,82 @@
 #include "gstreamBin.h"
 
 
+class demuxInfo
+{
+public:
+    demuxInfo():
+        m_binDuration(0)
+    {
+
+    }
+
+    ~demuxInfo()
+    {
+        for(auto each=m_demuxSrcs.begin();each!=m_demuxSrcs.end();each++)
+        {
+            gst_caps_unref(*each);
+        }
+    }
+
+    virtual demuxInfo& operator=(const demuxInfo &other)
+    {
+        // copy the other vector adding ref
+        for(auto each=other.m_demuxSrcs.begin();each!=other.m_demuxSrcs.end();each++)
+        {
+            GstCaps *thisOne=*each;
+            gst_caps_ref(thisOne);
+            m_demuxSrcs.push_back(thisOne);
+        }
+        return *this;
+    }
+
+    bool isEmpty() { return m_demuxSrcs.size()==0; }
+
+    unsigned numSrcStreams() { return m_demuxSrcs.size(); }
+    unsigned numVideoStreams() { return countTheseCaps("video/x-h264"); }
+    unsigned numAudioStreams() { return countTheseCaps("audio/ANY"); }
+    unsigned numSubtitleStreams() { return countTheseCaps("text/x-raw"); }
+
+    GstClockTime muxerDuration() { return m_binDuration; }
+
+    std::vector<GstCaps*> m_demuxSrcs;
+
+protected:
+    unsigned countTheseCaps(const char *caps)
+    {
+        GstCaps *videoCaps=gst_caps_new_simple (caps,NULL,NULL);
+        unsigned count=countIntersects(videoCaps); 
+        gst_caps_unref(videoCaps);
+        return count;
+    }
+
+    unsigned countIntersects(GstCaps *with)
+    {
+        unsigned count=0;
+        for(auto each=m_demuxSrcs.begin();each!=m_demuxSrcs.end();each++)
+        {
+            if(gst_caps_can_intersect (*each,with))
+                count++;
+        }
+        return count;
+    }
+
+
+
+    gint64 m_binDuration;
+
+};
+
 
 // used to work out what's in a mux'd stream
 // opens it up to a demux then counts what that finds
-class gstDemuxDecodeBinExamine : public gstreamListeningBin
+class gstDemuxDecodeBinExamine : public gstreamListeningBin, public demuxInfo
 {
 public:
 
 
     gstDemuxDecodeBinExamine(gstreamPipeline *parent,const char*mkvName,const char *demuxer,const char *name="gstDemuxDecodeBinExamine"):
-        gstreamListeningBin(name,parent),
-        m_binDuration(0)
+        gstreamListeningBin(name,parent)
     {
         // we always need a demux
         AddPlugin(demuxer,"demuxer");
@@ -80,92 +145,39 @@ public:
 
     ~gstDemuxDecodeBinExamine()
     {
-        for(auto each=m_demuxSrcs.begin();each!=m_demuxSrcs.end();each++)
-        {
-            gst_caps_unref(*each);
-        }
 
     }
-
-    unsigned numSrcStreams() { return m_demuxSrcs.size(); }
-    unsigned numVideoStreams() { return countTheseCaps("video/x-h264"); }
-    unsigned numAudioStreams() { return countTheseCaps("audio/ANY"); }
-    unsigned numSubtitleStreams() { return countTheseCaps("text/x-raw"); }
-
-    GstClockTime muxerDuration() { return m_binDuration; }
-
-    std::vector<GstCaps*> m_demuxSrcs;
-
-protected:
-
-    unsigned countTheseCaps(const char *caps)
-    {
-        GstCaps *videoCaps=gst_caps_new_simple (caps,NULL,NULL);
-        unsigned count=countIntersects(videoCaps); 
-        gst_caps_unref(videoCaps);
-        return count;
-    }
-
-    unsigned countIntersects(GstCaps *with)
-    {
-        unsigned count=0;
-        for(auto each=m_demuxSrcs.begin();each!=m_demuxSrcs.end();each++)
-        {
-            GST_INFO_OBJECT (m_parent, "Intersecting %s with %s",gst_caps_to_string(with), gst_caps_to_string(*each));
-            if(gst_caps_can_intersect (*each,with))
-                count++;
-        }
-        return count;
-    }
-
 
 
 protected:
 
-    gint64 m_binDuration;
+
+
+
+
+    
 
 };
 
 // the above class is very powerful, but can kill a well tended Pipeline, so this one 
 // takes all the pain, and give you the result
-class gstreamDemuxExamineDiscrete 
+class gstreamDemuxExamineDiscrete
 {
 public:
 
-    gstreamDemuxExamineDiscrete(const char*mkvName,const char *demuxer):
-        m_videoStreams(0),m_subStreams(0),m_audioStreams(0)
+    gstreamDemuxExamineDiscrete(const char*mkvName,const char *demuxer)
     {
         // create a pipeline
         gstreamPipeline quickPipe("DiscreteQuickPipe");
         gstDemuxDecodeBinExamine examine(&quickPipe, mkvName, demuxer);
 
-
         examine.Run(&quickPipe);
 
-        // expose the result
-        m_demuxSrcs=examine.m_demuxSrcs;
-
-        m_videoStreams=examine.numVideoStreams();
-        m_subStreams=examine.numSubtitleStreams();
-        m_audioStreams=examine.numAudioStreams();
-        m_binDuration=examine.muxerDuration();
-
+        m_info=examine;
 
     }
 
-    // TODO turn this lot into a meta class
-    unsigned numSrcStreams() { return numVideoStreams()+numSubtitleStreams()+numAudioStreams(); }
-    unsigned numVideoStreams() { return m_videoStreams; }
-    unsigned numSubtitleStreams() { return m_subStreams; }
-    unsigned numAudioStreams() { return m_audioStreams; }
-    GstClockTime muxerDuration() { return m_binDuration; }
-
-    std::vector<GstCaps*> m_demuxSrcs;    
-
-protected:
-
-    unsigned m_videoStreams,m_subStreams, m_audioStreams;
-    GstClockTime m_binDuration;
+    demuxInfo m_info;
 
 };
 
@@ -185,14 +197,15 @@ public:
         // now build our demux pipeline based on what we know is there
         // by creating a toy that exposes all available srcs
         gstreamDemuxExamineDiscrete examine(mkvName,demuxer);
+        demuxInfo streamInfo=examine.m_info;
 
-        m_videoStreams=examine.numVideoStreams();
-        m_subtitleStreams=examine.numSubtitleStreams();
-        m_audioStreams=examine.numAudioStreams();
+        m_videoStreams=streamInfo.numVideoStreams();
+        m_subtitleStreams=streamInfo.numSubtitleStreams();
+        m_audioStreams=streamInfo.numAudioStreams();
 
-        m_binDuration=examine.muxerDuration();
+        m_binDuration=streamInfo.muxerDuration();
 
-        std::vector<GstCaps*> demuxSrcs=examine.m_demuxSrcs;
+        std::vector<GstCaps*> demuxSrcs=streamInfo.m_demuxSrcs;
 
         bool seeking=(startAt!=GST_CLOCK_TIME_NONE  && endAt!=GST_CLOCK_TIME_NONE)?true:false;
 
