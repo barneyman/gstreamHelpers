@@ -90,12 +90,13 @@ protected:
 
     void lateCtor(const char *muxer)
     {
-        if(pluginContainer<GstElement>::AddPlugin("vaapih264enc","encoder"))
+        // don't complain
+        if(pluginContainer<GstElement>::AddPlugin("vaapih264enc","encoder",NULL,false))
         {
             pluginContainer<GstElement>::AddPlugin("identity","pre-encoder");    
 
             GST_WARNING_OBJECT (m_parent, "Failed to create vaapih264enc, trying v4l2h264enc");
-            if(pluginContainer<GstElement>::AddPlugin("v4l2h264enc","encoder"))
+            if(pluginContainer<GstElement>::AddPlugin("v4l2h264enc","encoder",NULL,false))
             {
                 GST_WARNING_OBJECT (m_parent, "Failed to create v4l2h264enc, trying x264enc");
                 if(pluginContainer<GstElement>::AddPlugin("x264enc","encoder"))

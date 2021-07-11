@@ -31,7 +31,7 @@ protected:
 
 public:
 
-    int AddPlugin(const char *plugin, const char *name=NULL, nlohmann::json *settings=NULL)
+    int AddPlugin(const char *plugin, const char *name=NULL, nlohmann::json *settings=NULL, bool complainOnErr=true)
     {
         if(!name)
             name=plugin;
@@ -56,6 +56,14 @@ public:
             }
         }
 
+        // if we're not complaining, bail on the most frequent problem, early
+        if(!complainOnErr)
+        {
+            GstElementFactory *factory=gst_element_factory_find (overridePlugin.c_str());
+            if(!factory)
+                return 3;
+            g_object_unref(factory);
+        }
 
         // create it
         GstElement* newplugin = gst_element_factory_make (overridePlugin.c_str(), name);

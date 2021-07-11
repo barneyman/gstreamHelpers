@@ -277,7 +277,8 @@ public:
                     {
     //                    GST_WARNING_OBJECT (m_parent, "Failed to create vaapih264dec, trying v4l2h264dec");
 
-                        if(pluginContainer<GstElement>::AddPlugin("v4l2h264dec",decoderName))
+                        // don't complain to logs if this fails
+                        if(pluginContainer<GstElement>::AddPlugin("v4l2h264dec",decoderName,NULL,false))
                         {
                             GST_WARNING_OBJECT (m_parent, "Failed to create v4l2h264dec, trying avdec_h264");
 
