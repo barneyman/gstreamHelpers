@@ -30,6 +30,7 @@ public:
             gst_caps_ref(thisOne);
             m_demuxSrcs.push_back(thisOne);
         }
+        m_binDuration=other.m_binDuration;
         return *this;
     }
 
