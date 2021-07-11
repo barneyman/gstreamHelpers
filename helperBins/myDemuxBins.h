@@ -1,3 +1,6 @@
+#ifndef _mydemuxbins_guard
+#define _mydemuxbins_guard
+
 #include "gstreamBin.h"
 
 
@@ -561,4 +564,5 @@ public:
 
 };
 
+#endif // _mydemuxbins_guard
 

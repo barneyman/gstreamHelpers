@@ -1,3 +1,6 @@
+#ifndef _myjsonbins_guard
+#define _myjsonbins_guard
+
 #include "gstreamBin.h"
 #include "myplugins/gstjsonparse.h"
 #include "json/json.hpp"
@@ -465,3 +468,4 @@ public:
 };
 
 
+#endif //_myjsonbins_guard

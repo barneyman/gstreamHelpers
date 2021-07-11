@@ -1,3 +1,6 @@
+#ifndef _mymuxbins_guard
+#define _mymuxbins_guard
+
 #include "myElementBins.h"
 
 
@@ -155,3 +158,4 @@ public:
 
 };
 
+#endif // _mymuxbins_guard
