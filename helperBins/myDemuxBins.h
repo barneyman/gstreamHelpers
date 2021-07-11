@@ -188,16 +188,27 @@ public:
 class gstDemuxDecodeBin : public gstreamListeningBin
 {
 public:
-    gstDemuxDecodeBin(gstreamPipeline *parent,const char*mkvName,const char *demuxer, GstClockTime startAt=GST_CLOCK_TIME_NONE ,GstClockTime endAt=GST_CLOCK_TIME_NONE ,bool decode=true, const char *name="demuxDecodeBin"):
+    gstDemuxDecodeBin(gstreamPipeline *parent,const char*mkvName,const char *demuxer, GstClockTime startAt=GST_CLOCK_TIME_NONE ,GstClockTime endAt=GST_CLOCK_TIME_NONE ,bool decode=true, demuxInfo *cached=NULL, const char *name="demuxDecodeBin"):
         gstreamListeningBin(name,parent),
         m_videoStreams(0),m_subtitleStreams(0),m_audioStreams(0)
     {
         bool splitDemux=(demuxer=="splitmuxsrc");
 
-        // now build our demux pipeline based on what we know is there
-        // by creating a toy that exposes all available srcs
-        gstreamDemuxExamineDiscrete examine(mkvName,demuxer);
-        demuxInfo streamInfo=examine.m_info;
+        demuxInfo streamInfo;
+        if(!cached || cached->isEmpty())
+        {
+            // now build our demux pipeline based on what we know is there
+            // by creating a toy that exposes all available srcs
+            gstreamDemuxExamineDiscrete examine(mkvName,demuxer);
+            streamInfo=examine.m_info;
+            // store it forward
+            if(cached)
+                *cached=examine.m_info;
+        }
+        else
+        {
+            streamInfo=*cached;
+        }
 
         m_videoStreams=streamInfo.numVideoStreams();
         m_subtitleStreams=streamInfo.numSubtitleStreams();
@@ -381,8 +392,8 @@ public:
 class gstMP4DemuxDecodeBin : public gstDemuxDecodeBin
 {
 public:
-    gstMP4DemuxDecodeBin(gstreamPipeline *parent,const char*location,GstClockTime startAt=GST_CLOCK_TIME_NONE ,GstClockTime endAt=GST_CLOCK_TIME_NONE ,const char *name="demuxMP4DecodeBin"):
-        gstDemuxDecodeBin(parent,location,"qtdemux",startAt,endAt,name)
+    gstMP4DemuxDecodeBin(gstreamPipeline *parent,const char*location,GstClockTime startAt=GST_CLOCK_TIME_NONE ,GstClockTime endAt=GST_CLOCK_TIME_NONE ,bool decode=true,demuxInfo *info=NULL,const char *name="demuxMP4DecodeBin"):
+        gstDemuxDecodeBin(parent,location,"qtdemux",startAt,endAt,decode,info,name)
         {
 
         }
@@ -394,8 +405,8 @@ public:
 class gstMP4DemuxDecodeSparseBin : public gstDemuxDecodeBin
 {
 public:
-    gstMP4DemuxDecodeSparseBin(gstreamPipeline *parent,const char*location,GstClockTime startAt=GST_CLOCK_TIME_NONE ,GstClockTime endAt=GST_CLOCK_TIME_NONE ,bool decode=true,const char *name="demuxMP4DecodeSparseBin"):
-        gstDemuxDecodeBin(parent,location,"splitmuxsrc",startAt,endAt,decode,name)
+    gstMP4DemuxDecodeSparseBin(gstreamPipeline *parent,const char*location,GstClockTime startAt=GST_CLOCK_TIME_NONE ,GstClockTime endAt=GST_CLOCK_TIME_NONE ,bool decode=true,demuxInfo *info=NULL,const char *name="demuxMP4DecodeSparseBin"):
+        gstDemuxDecodeBin(parent,location,"splitmuxsrc",startAt,endAt,decode,info,name)
         {
 
         }
