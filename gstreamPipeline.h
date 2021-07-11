@@ -509,8 +509,6 @@ public:
             return false;
         }
 
-//        IterateThruAllChildren();
-
         GST_INFO_OBJECT (m_pipeline, "PLAY");
         DumpGraph("Playing");
 
@@ -613,31 +611,6 @@ public:
         
         return stateChangeSuccess;
     }
-
-    static void eachChild(const GValue * item, gpointer user_data)
-    {
-/*        
-        GstElement *child=(GstElement*)g_value_get_object(item);
-        GstClockTime baseTime=gst_element_get_base_time(child);
-        GstClockTime startTime=gst_element_get_start_time(child);
-
-        g_print("child %20s basetime: %" GST_TIME_FORMAT " starttime %" GST_TIME_FORMAT "\n",gst_element_get_name(child),GST_TIME_ARGS(baseTime),GST_TIME_ARGS(startTime));
-*/
-    }
-
-    void IterateThruAllChildren()
-    {
-        GstIterator *allKids=gst_bin_iterate_recurse(GST_BIN(m_pipeline));
-
-        if(!allKids)
-        {
-            return;
-        }
-
-        gst_iterator_foreach(allKids,eachChild,this);
-
-    }
-
 
     void DumpGraph(const char *toFile)
     {
