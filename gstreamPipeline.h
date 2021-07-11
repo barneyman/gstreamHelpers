@@ -1102,6 +1102,12 @@ protected:
         return netClock?true:false;
     }
 
+    void setRealtimeClock()
+    {
+        GstClock* gstSystemClk = gst_system_clock_obtain();
+        g_object_set(gstSystemClk, "clock-type", GST_CLOCK_TYPE_REALTIME, NULL);
+    }
+
 protected:
 
     // virtual message handlers
