@@ -526,10 +526,7 @@ public:
 
     GstState CurrentPipelineState() 
     {
-        GstState currentState=GST_STATE_VOID_PENDING;
-        gst_element_get_state((GstElement*)m_pipeline, &currentState, NULL, 2*GST_SECOND);
-
-        return (currentState);
+        return (m_pipelineState);
     }
 
     bool AwaitState(GstState newState, GstClockTime waitFor=2*GST_SECOND)
