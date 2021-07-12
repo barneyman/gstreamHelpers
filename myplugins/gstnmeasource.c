@@ -376,23 +376,6 @@ gst_nmeasource_get_times (GstBaseSrc * src, GstBuffer * buffer,
     *end = -1;
   }
 
-/*
-  GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
-
-  GST_INFO_OBJECT (nmeasource, "get_times");
-
-  GstClock *myClock=GST_ELEMENT_CLOCK (src);
-
-  if(myClock)
-  {
-    // TODO - fix this
-    //gst_clock_gemake servert_time(myClock);;
-    GstClockTime now=nmeasource->threadInfo.sample.pts;
-    *start=now;
-    *end=now+((GST_SECOND/30)-1);
-    nmeasource->threadInfo.sample.pts=now+(GST_SECOND/30);
-  }
-*/
 
 }
 

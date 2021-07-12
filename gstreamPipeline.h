@@ -843,7 +843,9 @@ protected:
 
     GstClockTime GetRunningTime()
     {
-        // TODO check state of pipeline
+        if(CurrentPipelineState()!=GST_STATE_PLAYING)
+            return GST_CLOCK_TIME_NONE;
+
         GstClockTime baseTime=gst_element_get_base_time(GST_ELEMENT(m_pipeline));        
         GstClockTime currentTime=gst_clock_get_time(gst_pipeline_get_clock(GST_PIPELINE(m_pipeline)));
 
