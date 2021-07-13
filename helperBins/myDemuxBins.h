@@ -108,10 +108,12 @@ public:
 
     }
 
-    void Run(gstreamPipeline *parent)
+    bool Run(gstreamPipeline *parent)
     {
 
-        parent->PreRoll();
+        if(!parent->PreRoll())
+            return false;
+
         // spin until the demux has prerolled into the queue - this should probably timeout, probably ...
         while(!m_demuxerFinished) 
         {
@@ -144,6 +146,8 @@ public:
 
         }
         parent->Stop();
+
+        return true;
 
     }
 
@@ -183,6 +187,9 @@ public:
 
     demuxInfo m_info;
 
+    bool isValid() { return !m_info.isEmpty(); }
+
+
 };
 
 
@@ -194,7 +201,7 @@ class gstDemuxDecodeBin : public gstreamListeningBin
 public:
     gstDemuxDecodeBin(gstreamPipeline *parent,const char*mkvName,const char *demuxer, GstClockTime startAt=GST_CLOCK_TIME_NONE ,GstClockTime endAt=GST_CLOCK_TIME_NONE ,bool decode=true, demuxInfo *cached=NULL, const char *name="demuxDecodeBin"):
         gstreamListeningBin(name,parent),
-        m_videoStreams(0),m_subtitleStreams(0),m_audioStreams(0)
+        m_videoStreams(0),m_subtitleStreams(0),m_audioStreams(0),m_fatal(false)
     {
         bool splitDemux=(demuxer=="splitmuxsrc");
 
@@ -204,14 +211,25 @@ public:
             // now build our demux pipeline based on what we know is there
             // by creating a toy that exposes all available srcs
             gstreamDemuxExamineDiscrete examine(mkvName,demuxer);
-            streamInfo=examine.m_info;
-            // store it forward
-            if(cached)
-                *cached=examine.m_info;
+            if(examine.isValid())
+            {
+                streamInfo=examine.m_info;
+                // store it forward
+                if(cached)
+                    *cached=examine.m_info;
+            }
         }
         else
         {
             streamInfo=*cached;
+        }
+
+        // check
+        if(streamInfo.isEmpty())
+        {
+            GST_ERROR_OBJECT (m_parent, "Failed to get demux stream information");            
+            m_fatal=true;
+            return;
         }
 
         m_videoStreams=streamInfo.numVideoStreams();
@@ -357,11 +375,14 @@ public:
     {
     }
 
+
     unsigned numSrcStreams() { return numVideoStreams()+numAudioStreams()+numSubtitleStreams(); }
     unsigned numVideoStreams() { return m_videoStreams; }
     unsigned numAudioStreams() { return m_audioStreams; }
     unsigned numSubtitleStreams() { return m_subtitleStreams; }
     GstClockTime muxerDuration() { return m_binDuration; }
+
+    bool fatalError() { return m_fatal; }
 
 protected:
 
@@ -377,6 +398,8 @@ protected:
     unsigned m_videoStreams, m_audioStreams, m_subtitleStreams;
 
     gint64 m_binDuration;
+
+    bool m_fatal;
 
 
 };
