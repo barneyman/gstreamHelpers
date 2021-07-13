@@ -199,13 +199,16 @@ public:
 class gstDemuxDecodeBin : public gstreamListeningBin
 {
 public:
+
+    demuxInfo streamInfo;
+
+public:
     gstDemuxDecodeBin(gstreamPipeline *parent,const char*mkvName,const char *demuxer, GstClockTime startAt=GST_CLOCK_TIME_NONE ,GstClockTime endAt=GST_CLOCK_TIME_NONE ,bool decode=true, demuxInfo *cached=NULL, const char *name="demuxDecodeBin"):
         gstreamListeningBin(name,parent),
-        m_videoStreams(0),m_subtitleStreams(0),m_audioStreams(0),m_fatal(false)
+        m_fatal(false)
     {
         bool splitDemux=(demuxer=="splitmuxsrc");
 
-        demuxInfo streamInfo;
         if(!cached || cached->isEmpty())
         {
             // now build our demux pipeline based on what we know is there
@@ -232,16 +235,9 @@ public:
             return;
         }
 
-        m_videoStreams=streamInfo.numVideoStreams();
-        m_subtitleStreams=streamInfo.numSubtitleStreams();
-        m_audioStreams=streamInfo.numAudioStreams();
-
-        m_binDuration=streamInfo.muxerDuration();
-
         std::vector<GstCaps*> demuxSrcs=streamInfo.m_demuxSrcs;
 
         bool seeking=(startAt!=GST_CLOCK_TIME_NONE  && endAt!=GST_CLOCK_TIME_NONE)?true:false;
-
 
         pluginContainer<GstElement>::AddPlugin(demuxer,"demuxer");
 
@@ -376,12 +372,6 @@ public:
     }
 
 
-    unsigned numSrcStreams() { return numVideoStreams()+numAudioStreams()+numSubtitleStreams(); }
-    unsigned numVideoStreams() { return m_videoStreams; }
-    unsigned numAudioStreams() { return m_audioStreams; }
-    unsigned numSubtitleStreams() { return m_subtitleStreams; }
-    GstClockTime muxerDuration() { return m_binDuration; }
-
     bool fatalError() { return m_fatal; }
 
 protected:
@@ -395,9 +385,6 @@ protected:
 
     }
 
-    unsigned m_videoStreams, m_audioStreams, m_subtitleStreams;
-
-    gint64 m_binDuration;
 
     bool m_fatal;
 
