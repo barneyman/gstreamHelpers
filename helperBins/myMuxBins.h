@@ -62,8 +62,14 @@ public:
 
 class gstH264MuxOutBin :  public gstreamBin
 {
+protected:
+
+    gstH264encoderBin m_encoder;
+
 public:
-    gstH264MuxOutBin(gstreamPipeline *parent,const char*location,const char *muxer, const char *name="muxh264OutBin"):gstreamBin(name,parent)
+    gstH264MuxOutBin(gstreamPipeline *parent,const char*location,const char *muxer, const char *name="muxh264OutBin"):
+        gstreamBin(name,parent),
+        m_encoder(parent)
     {
         pluginContainer<GstElement>::AddPlugin("filesink");
 
@@ -75,7 +81,9 @@ public:
     }
 
 
-    gstH264MuxOutBin(gstreamPipeline *parent,FILE *fhandle,const char *muxer, const char *name="muxh264OutBin"):gstreamBin(name,parent)
+    gstH264MuxOutBin(gstreamPipeline *parent,FILE *fhandle,const char *muxer, const char *name="muxh264OutBin"):
+        gstreamBin(name,parent),
+        m_encoder(parent)
     {
         pluginContainer<GstElement>::AddPlugin("fdsink","filesink");
 
@@ -90,33 +98,12 @@ protected:
 
     void lateCtor(const char *muxer)
     {
-        // don't complain
-        if(pluginContainer<GstElement>::AddPlugin("vaapih264enc","encoder",NULL,false))
-        {
-            pluginContainer<GstElement>::AddPlugin("identity","pre-encoder");    
-
-            GST_WARNING_OBJECT (m_parent, "Failed to create vaapih264enc, trying v4l2h264enc");
-            if(pluginContainer<GstElement>::AddPlugin("v4l2h264enc","encoder",NULL,false))
-            {
-                GST_WARNING_OBJECT (m_parent, "Failed to create v4l2h264enc, trying x264enc");
-                if(pluginContainer<GstElement>::AddPlugin("x264enc","encoder"))
-                {
-                    GST_ERROR_OBJECT (m_parent, "Failed to create x264enc, pretty fatal");
-                }
-            }
-        }
-        else
-        {
-            pluginContainer<GstElement>::AddPlugin("identity","pre-encoder");    
-        }
-
 
         pluginContainer<GstElement>::AddPlugin("h264parse");
         pluginContainer<GstElement>::AddPlugin(muxer,"muxer");
 
         if(!gst_element_link_many(  
-            pluginContainer<GstElement>::FindNamedPlugin("pre-encoder"),
-            pluginContainer<GstElement>::FindNamedPlugin("encoder"),
+            pluginContainer<GstElement>::FindNamedPlugin(m_encoder),
             pluginContainer<GstElement>::FindNamedPlugin("h264parse"),
             pluginContainer<GstElement>::FindNamedPlugin("muxer"),
             pluginContainer<GstElement>::FindNamedPlugin("filesink"),

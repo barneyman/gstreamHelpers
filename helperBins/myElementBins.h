@@ -492,4 +492,71 @@ public:
 
 };
 
+
+class gstH264encoderBin : public gstreamBin
+{
+public:
+    gstH264encoderBin(pluginContainer<GstElement> *parent,const char *name="encoderBin"):
+        gstreamBin(name,parent)
+    {
+        if(pluginContainer<GstElement>::AddPlugin("vaapih264enc","encoder",NULL,false))
+        {
+            GST_WARNING_OBJECT (m_parent, "Failed to create vaapih264enc, trying v4l2h264enc");
+            if(pluginContainer<GstElement>::AddPlugin("v4l2h264enc","encoder",NULL,false))
+            {
+                GST_WARNING_OBJECT (m_parent, "Failed to create v4l2h264enc, trying x264enc");
+                if(pluginContainer<GstElement>::AddPlugin("x264enc","encoder"))
+                {
+                    GST_ERROR_OBJECT (m_parent, "Failed to create x264enc, pretty fatal");
+                }
+            }
+        }
+
+        pluginContainer<GstElement>::AddPlugin("h264parse");
+
+
+        gst_element_link_many( pluginContainer<GstElement>::FindNamedPlugin("encoder"), 
+            pluginContainer<GstElement>::FindNamedPlugin("h264parse"), 
+            NULL);
+
+        AddGhostPads("encoder","h264parse");
+
+    }
+
+
+};
+
+class gstTestSourceBin : public gstreamBin
+{
+protected:
+
+    gstH264encoderBin m_encoder;
+
+public:
+    gstTestSourceBin(pluginContainer<GstElement> *parent,unsigned framerate, const char *name="TestSrcBin"):
+        gstreamBin(name,parent),
+        m_encoder(this)
+    {
+        pluginContainer<GstElement>::AddPlugin("videotestsrc");
+
+        pluginContainer<GstElement>::AddPlugin("capsfilter");
+
+        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
+            "caps", gst_caps_new_simple("video/x-raw","framerate",GST_TYPE_FRACTION, framerate,1 , NULL), NULL);
+
+
+        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("videotestsrc"), 
+            "is-live",TRUE,
+            "pattern",18,   // ball
+            NULL);
+
+        gst_element_link_many( pluginContainer<GstElement>::FindNamedPlugin("videotestsrc"), 
+            pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
+            pluginContainer<GstElement>::FindNamedPlugin(m_encoder), 
+            NULL);
+
+        AddGhostPads(m_encoder);
+    }
+};
+
 #endif // _myelementbins_guard
