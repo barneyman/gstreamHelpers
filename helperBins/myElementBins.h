@@ -531,14 +531,16 @@ class gstTestSourceBin : public gstreamBin
 protected:
 
     gstH264encoderBin m_encoder;
+    gstFrameBufferProgress m_progress;
 
 public:
     gstTestSourceBin(pluginContainer<GstElement> *parent,unsigned framerate, const char *name="TestSrcBin"):
         gstreamBin(name,parent),
-        m_encoder(this)
+        m_encoder(this),
+        m_progress(this)
     {
         pluginContainer<GstElement>::AddPlugin("videotestsrc");
-
+        
         pluginContainer<GstElement>::AddPlugin("capsfilter");
 
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
@@ -552,10 +554,11 @@ public:
 
         gst_element_link_many( pluginContainer<GstElement>::FindNamedPlugin("videotestsrc"), 
             pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
+            pluginContainer<GstElement>::FindNamedPlugin(m_progress),
             pluginContainer<GstElement>::FindNamedPlugin(m_encoder), 
             NULL);
 
-        AddGhostPads(m_encoder);
+        AddGhostPads(NULL,m_encoder);
     }
 };
 

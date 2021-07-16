@@ -69,7 +69,7 @@ protected:
 public:
     gstH264MuxOutBin(gstreamPipeline *parent,const char*location,const char *muxer, const char *name="muxh264OutBin"):
         gstreamBin(name,parent),
-        m_encoder(parent)
+        m_encoder(this)
     {
         pluginContainer<GstElement>::AddPlugin("filesink");
 
@@ -83,7 +83,7 @@ public:
 
     gstH264MuxOutBin(gstreamPipeline *parent,FILE *fhandle,const char *muxer, const char *name="muxh264OutBin"):
         gstreamBin(name,parent),
-        m_encoder(parent)
+        m_encoder(this)
     {
         pluginContainer<GstElement>::AddPlugin("fdsink","filesink");
 
@@ -99,12 +99,10 @@ protected:
     void lateCtor(const char *muxer)
     {
 
-        pluginContainer<GstElement>::AddPlugin("h264parse");
         pluginContainer<GstElement>::AddPlugin(muxer,"muxer");
 
         if(!gst_element_link_many(  
             pluginContainer<GstElement>::FindNamedPlugin(m_encoder),
-            pluginContainer<GstElement>::FindNamedPlugin("h264parse"),
             pluginContainer<GstElement>::FindNamedPlugin("muxer"),
             pluginContainer<GstElement>::FindNamedPlugin("filesink"),
             NULL
@@ -113,7 +111,7 @@ protected:
             GST_ERROR_OBJECT (m_parent, "Failed to link output bin!");
         }
 
-        AddGhostPads("pre-encoder",NULL);
+        AddGhostPads(m_encoder,NULL);
     }
 
 };
