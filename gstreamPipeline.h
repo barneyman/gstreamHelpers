@@ -1063,9 +1063,11 @@ protected:
         return 1;
     }    
 
+public:
+
     // start a net clock up
     // https://archive.fosdem.org/2016/schedule/event/synchronised_gstreamer/attachments/slides/889/export/events/attachments/synchronised_gstreamer/slides/889/synchronised_multidevice_media_playback_with_GStreamer.pdf
-    bool ProvideNetworkClock(unsigned port, GstClock *theClock)
+    bool ProvideNTPv4Clock(unsigned port, GstClock *theClock)
     {
         if(m_networkClock)
             return false;
@@ -1075,9 +1077,13 @@ protected:
         return m_networkClock?true:false;
     }
 
-    bool UseNetworkClock(const char *host, unsigned port)
+    bool UseNTPv4Clock(const char *host, unsigned port)
     {
         GstClock *netClock=gst_net_client_clock_new("networkClock", host, port, 0);
+        if(netClock)
+        {
+            gst_pipeline_use_clock ((GstPipeline*)m_pipeline, netClock);
+        }
 
         return netClock?true:false;
     }
