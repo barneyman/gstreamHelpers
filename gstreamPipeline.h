@@ -1077,12 +1077,30 @@ public:
         return m_networkClock?true:false;
     }
 
-    bool UseNTPv4Clock(const char *host, unsigned port)
+    bool UseNTPv4Clock(const char *host, unsigned port, bool waitForSync=true, int timeoutS=-1)
     {
-        GstClock *netClock=gst_net_client_clock_new("networkClock", host, port, 0);
+
+        GstClock* gstSystemClk = gst_system_clock_obtain();
+        g_object_set(gstSystemClk, "clock-type", GST_CLOCK_TYPE_REALTIME, NULL);
+
+
+        GstClock *netClock=gst_ntp_clock_new("networkClock", host, port, gst_clock_get_time(gstSystemClk));
         if(netClock)
         {
             gst_pipeline_use_clock ((GstPipeline*)m_pipeline, netClock);
+            if(waitForSync)
+            {
+                if(!gst_clock_wait_for_sync (netClock,timeoutS==-1?GST_CLOCK_TIME_NONE:GST_SECOND*timeoutS))
+                {
+                    GST_ERROR_OBJECT (m_pipeline, "Failed to NTP sync from %s:%u",host,port);
+                    return false;
+                }
+                return true;
+            }
+        }
+        else
+        {
+            GST_ERROR_OBJECT (m_pipeline, "Failed to NTP from %s:%u",host,port);
         }
 
         return netClock?true:false;
@@ -1091,7 +1109,14 @@ public:
     void setRealtimeClock()
     {
         GstClock* gstSystemClk = gst_system_clock_obtain();
-        g_object_set(gstSystemClk, "clock-type", GST_CLOCK_TYPE_REALTIME, NULL);
+        // if we've already set a clock 
+        GstClock *pipeclock=gst_pipeline_get_clock((GstPipeline*)m_pipeline);
+        if(pipeclock)
+        {
+            g_object_set(pipeclock, "clock-type", GST_CLOCK_TYPE_REALTIME, NULL);
+        }
+        else
+            g_object_set(gstSystemClk, "clock-type", GST_CLOCK_TYPE_REALTIME, NULL);
     }
 
 protected:
