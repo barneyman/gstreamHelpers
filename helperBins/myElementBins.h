@@ -534,7 +534,7 @@ protected:
     gstFrameBufferProgress m_progress;
 
 public:
-    gstTestSourceBin(pluginContainer<GstElement> *parent,unsigned framerate, const char *name="TestSrcBin"):
+    gstTestSourceBin(pluginContainer<GstElement> *parent,unsigned framerate,unsigned width=1280, unsigned height=960, const char *name="TestSrcBin"):
         gstreamBin(name,parent),
         m_encoder(this),
         m_progress(this)
@@ -544,7 +544,11 @@ public:
         pluginContainer<GstElement>::AddPlugin("capsfilter");
 
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
-            "caps", gst_caps_new_simple("video/x-raw","framerate",GST_TYPE_FRACTION, framerate,1 , NULL), NULL);
+            "caps", gst_caps_new_simple("video/x-raw",
+                    "framerate",GST_TYPE_FRACTION, framerate,1, 
+                    "width",G_TYPE_INT,width,
+                    "height",G_TYPE_INT,height,
+                    NULL), NULL);
 
 
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("videotestsrc"), 
