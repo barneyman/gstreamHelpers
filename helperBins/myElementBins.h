@@ -215,6 +215,52 @@ protected:
 
 };
 
+// generally used to late bind to a demux
+class gstMultiQueueWithTailBin : public gstMultiQueueBin
+{
+public:
+    gstMultiQueueWithTailBin(pluginContainer<GstElement> *parent,const char *tailelement):
+        gstMultiQueueBin(parent,0,false,0,false,"multiQTailed")
+    {
+        m_tailname=tailelement;
+        // and advertise the q
+        advertiseElementsPadTemplates("multiqueueDemux");
+    }
+
+
+    virtual GstPad *request_new_pad (GstElement * element,GstPadTemplate * templ,const gchar * name,const GstCaps * caps)
+    {
+        GstPad *retPad=NULL;
+        // ask the mq src for it, ghost it, join the new mq sink to the tail - profit
+        GstPad *newPad=gst_element_request_pad(
+            pluginContainer<GstElement>::FindNamedPlugin("multiqueueDemux"),
+            templ,
+            NULL,NULL);
+        if(newPad)
+        {
+            char tailDisguise[28];
+            snprintf(tailDisguise,sizeof(tailDisguise),"mq%lu",m_padsToBeReleased.size());
+
+            pluginContainer<GstElement>::AddPlugin(m_tailname.c_str(),tailDisguise);
+            addPadToBeReleased(pluginContainer<GstElement>::FindNamedPlugin("multiqueueDemux"),newPad);
+
+            gst_element_link(pluginContainer<GstElement>::FindNamedPlugin("multiqueueDemux"),
+                pluginContainer<GstElement>::FindNamedPlugin(tailDisguise)
+                );
+
+            retPad=GhostSingleSinkPad(newPad);
+        }
+
+        return retPad;
+
+    }
+
+protected:
+
+    std::string m_tailname;
+
+};
+
 
 class gstCapsFilterSimple : public gstreamBin
 {

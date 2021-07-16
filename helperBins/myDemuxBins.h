@@ -76,11 +76,16 @@ protected:
 // opens it up to a demux then counts what that finds
 class gstDemuxDecodeBinExamine : public gstreamListeningBin, public demuxInfo
 {
+protected:
+
+    gstMultiQueueWithTailBin m_faketail;
+
 public:
 
 
     gstDemuxDecodeBinExamine(gstreamPipeline *parent,const char*mkvName,const char *demuxer,const char *name="gstDemuxDecodeBinExamine"):
-        gstreamListeningBin(name,parent)
+        gstreamListeningBin(name,parent),
+        m_faketail(this,"fakesink")
     {
         // we always need a demux
         AddPlugin(demuxer,"demuxer");
@@ -102,8 +107,7 @@ public:
         }
 
 
-        AddPlugin("multiqueue");
-        ConnectLate("demuxer", "multiqueue");
+        ConnectLate("demuxer", m_faketail);
 
 
     }
@@ -119,6 +123,8 @@ public:
         {
             sched_yield();
         }
+
+        parent->DumpGraph("gstDemuxDecodeBinExamine");
 
         // can we query the muxsrc for duration?
         if(gst_element_query_duration (pluginContainer<GstElement>::FindNamedPlugin("demuxer"),GST_FORMAT_TIME, &m_binDuration))
