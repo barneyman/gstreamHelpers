@@ -781,6 +781,27 @@ protected:
 
     volatile bool *m_exitOnBool;
 
+    void sendEOStoEnd()
+    {
+        GstIterator *sources=gst_bin_iterate_sources (GST_BIN(m_pipeline));
+        if(sources)
+        {
+            GValue item = G_VALUE_INIT;
+            while (gst_iterator_next (sources, &item)==GST_ITERATOR_OK) 
+            {
+                GST_INFO_OBJECT (m_pipeline, "Sending EOS to '%s' ... ",gst_element_get_name((GstElement*)g_value_get_object(&item)));
+
+                bool result=gst_element_send_event((GstElement*)g_value_get_object(&item),gst_event_new_eos());
+
+                if(!result)
+                    GST_ERROR_OBJECT (m_pipeline, " Sending EOS FAILED");
+
+                g_value_reset(&item);
+            }
+            gst_iterator_free(sources);        
+        }
+    }
+
     void internalRun(unsigned long timeoutSeconds=0)
     {
         time_t startTime=time(NULL);
@@ -804,27 +825,8 @@ protected:
                     
                     if(sendEOS)
                     {
-                        GstIterator *sources=gst_bin_iterate_sources (GST_BIN(m_pipeline));
-                        if(sources)
-                        {
-                            GValue item = G_VALUE_INIT;
-                            while (gst_iterator_next (sources, &item)==GST_ITERATOR_OK) 
-                            {
-                                GST_INFO_OBJECT (m_pipeline, "Sending EOS to '%s' ... ",gst_element_get_name((GstElement*)g_value_get_object(&item)));
-
-                                bool result=gst_element_send_event((GstElement*)g_value_get_object(&item),gst_event_new_eos());
-
-                                if(!result)
-                                    GST_ERROR_OBJECT (m_pipeline, " Sending EOS FAILED");
-
-
-                                g_value_reset(&item);
-                            }
-                            eosSent=true;
-
-                            gst_iterator_free(sources);
-                        }
-                        
+                        sendEOStoEnd();
+                        eosSent=true;
                     }
 
                 }
