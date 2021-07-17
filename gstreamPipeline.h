@@ -1066,8 +1066,7 @@ protected:
 public:
 
     // start a net clock up
-    // https://archive.fosdem.org/2016/schedule/event/synchronised_gstreamer/attachments/slides/889/export/events/attachments/synchronised_gstreamer/slides/889/synchronised_multidevice_media_playback_with_GStreamer.pdf
-    bool ProvideNTPv4Clock(unsigned port, GstClock *theClock)
+    bool ProvideNetClock(unsigned port, GstClock *theClock)
     {
         if(m_networkClock)
             return false;
@@ -1084,9 +1083,11 @@ public:
         g_object_set(gstSystemClk, "clock-type", GST_CLOCK_TYPE_REALTIME, NULL);
 
 
-        GstClock *netClock=gst_ntp_clock_new("networkClock", host, port, gst_clock_get_time(gstSystemClk));
+        // https://archive.fosdem.org/2016/schedule/event/synchronised_gstreamer/attachments/slides/889/export/events/attachments/synchronised_gstreamer/slides/889/synchronised_multidevice_media_playback_with_GStreamer.pdf
+        GstClock *netClock=gst_ntp_clock_new("networkClock", host, port, 0);//gst_clock_get_time(gstSystemClk));
         if(netClock)
         {
+            g_object_set(netClock, "clock-type", GST_CLOCK_TYPE_REALTIME, NULL);
             gst_pipeline_use_clock ((GstPipeline*)m_pipeline, netClock);
             if(waitForSync)
             {
@@ -1094,6 +1095,11 @@ public:
                 {
                     GST_ERROR_OBJECT (m_pipeline, "Failed to NTP sync from %s:%u",host,port);
                     return false;
+                }
+                else
+                {
+                    GstClockTime now=gst_clock_get_time(netClock);
+                    GST_INFO_OBJECT (m_pipeline, "Sync'd at %" GST_TIME_FORMAT "",GST_TIME_ARGS(now));
                 }
                 return true;
             }
