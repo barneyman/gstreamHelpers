@@ -1067,6 +1067,49 @@ protected:
 
 public:
 
+    // ensure you check for GST_CLOCK_TIME_NONE coming back!
+    GstClockTime GetTimeSinceEpoch()
+    {
+        // systemclock returns time from 1970, NTPclock from 1900 ... so 
+        GstClock *pipeClock=gst_pipeline_get_clock(GST_PIPELINE(m_pipeline));
+        if(pipeClock)
+        {
+            // real time?
+            int clockType=0;
+            g_object_get(pipeClock, "clock-type", &clockType, NULL);
+
+            if(clockType!=(int)GST_CLOCK_TYPE_REALTIME)
+            {
+                return GST_CLOCK_TIME_NONE;
+            }
+
+            // clock type GST_TYPE_NTP_CLOCK
+            if(GST_IS_NTP_CLOCK(pipeClock))
+            {
+                GstClockTime ret=gst_clock_get_time(pipeClock);
+                // RFC868 has you fam
+                // https://datatracker.ietf.org/doc/html/rfc868 pp2
+                ret-=(2208988800L*GST_SECOND);
+                return ret;
+            }
+
+            if(GST_IS_NET_CLIENT_CLOCK(pipeClock))
+            {
+                // untested!
+                // TODO
+                exit(1);
+            }
+
+            if(GST_IS_SYSTEM_CLOCK(pipeClock))
+            {
+                return gst_clock_get_time(pipeClock);
+            }
+
+        }
+
+        return GST_CLOCK_TIME_NONE;
+    }
+
     // start a net clock up
     bool ProvideNetClock(unsigned port, GstClock *theClock)
     {
@@ -1080,9 +1123,6 @@ public:
 
     bool UseNTPv4Clock(const char *host, unsigned port, bool waitForSync=true, int timeoutS=-1)
     {
-
-        GstClock* gstSystemClk = gst_system_clock_obtain();
-        g_object_set(gstSystemClk, "clock-type", GST_CLOCK_TYPE_REALTIME, NULL);
 
 
         // https://archive.fosdem.org/2016/schedule/event/synchronised_gstreamer/attachments/slides/889/export/events/attachments/synchronised_gstreamer/slides/889/synchronised_multidevice_media_playback_with_GStreamer.pdf
