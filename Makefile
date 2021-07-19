@@ -17,6 +17,7 @@ HELPERLIB = libgstreamHelpers.a
 HELPERHEADERS = gstreamPipeline.h gstreamEdits.h gstreamBin.h
 
 MYPLUGINSSRC = myplugins/gstjsoninject.c myplugins/gstjsontopango.c myplugins/gstnmeasource.c myplugins/nmealoop.cpp myplugins/gstmybin.c myplugins/gstjsonparse.c
+MYPLUGINSHEAD = $(wildcard ./myplugins/*.h)
 MYPLUGINSAR = gstjsoninject.o gstjsontopango.o gstnmeasource.o nmealoop.o gstmybin.o gstjsonparse.o
 MYPLUGINSOBJ = $(MYPLUGINSSRC:.cc=.o)
 MYPLUGINSLIB = libmyplugins.a
@@ -48,7 +49,7 @@ $(NMEALIB) : $(NMEAOBJ)
 	$(CXX) $(LDFLAGS) -c $(NMEAOBJ) $(CPPFLAGS) $(NMEACXXFLAGS) -I $(NMEAINCLUDE)
 	ar rvs $(NMEALIB) GPSFix.o GPSService.o NMEACommand.o NMEAParser.o NumberConversion.o
 
-$(MYPLUGINSLIB) : $(MYPLUGINSOBJ)
+$(MYPLUGINSLIB) : $(MYPLUGINSOBJ) $(MYPLUGINSHEAD)
 	$(CXX) $(LDFLAGS) -c $(MYPLUGINSOBJ) $(CPPFLAGS) $(CXXFLAGS) $(GSTCONFIG) -I $(NMEAINCLUDE)
 	ar rvs $(MYPLUGINSLIB) $(MYPLUGINSAR)
 
