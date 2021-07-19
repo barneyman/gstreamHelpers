@@ -81,7 +81,8 @@ enum
 {
   PROP_0,
   PROP_FRAME_RATE,
-  PROP_USE_LOCALTIME
+  PROP_USE_LOCALTIME,
+  PROP_PARENT
 };
 
 #define DEFAULT_FRAMERATE 30
@@ -165,6 +166,12 @@ gst_nmeasource_class_init (GstNmeaSourceClass * klass)
           FALSE,
           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));  
 
+  g_object_class_install_property (gobject_class, PROP_PARENT,
+      g_param_spec_pointer ("parent", "parent",
+          "Parent gstPipeline ptr", 
+          (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));  
+
+
 
 }
 
@@ -176,6 +183,7 @@ gst_nmeasource_init (GstNmeaSource *nmeasource)
 #endif
 
   nmeasource->threadInfo.useLocalTime=false;
+  nmeasource->parent=NULL;
 
 
 }
@@ -195,6 +203,10 @@ gst_nmeasource_set_property (GObject * object, guint property_id,
     case PROP_USE_LOCALTIME:
       nmeasource->threadInfo.useLocalTime=g_value_get_boolean (value)?true:false;
       break;
+    case PROP_PARENT:
+      nmeasource->parent=(gstreamPipeline*)g_value_get_pointer (value);
+      break;
+
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
       break;
@@ -216,6 +228,10 @@ gst_nmeasource_get_property (GObject * object, guint property_id,
 
     case PROP_USE_LOCALTIME:
       g_value_set_boolean(value, nmeasource->threadInfo.useLocalTime);
+      break;
+
+    case PROP_PARENT:
+      g_value_set_pointer(value, nmeasource->parent);
       break;
 
     default:
@@ -535,7 +551,9 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 #define _USE_PIEPLINE_TIME
 
 #ifdef _USE_PIEPLINE_TIME
-  GstClockTime pts=gst_clock_get_time (myClock);
+GstClockTime pts=0;
+if(nmeasource->parent)
+  pts=nmeasource->parent->GetTimeSinceEpoch();
 
   struct tm *info; time_t nowsecs=pts/GST_SECOND;
   info = gmtime(&nowsecs);

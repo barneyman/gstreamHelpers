@@ -23,6 +23,9 @@
 #include <gst/base/gstbasesrc.h>
 #include "nmealoop.h"
 
+#include "../gstreamPipeline.h"
+
+
 G_BEGIN_DECLS
 
 #define GST_TYPE_NMEASOURCE   (gst_nmeasource_get_type())
@@ -34,6 +37,7 @@ G_BEGIN_DECLS
 typedef struct _GstNmeaSource GstNmeaSource;
 typedef struct _GstNmeaSourceClass GstNmeaSourceClass;
 
+
 struct _GstNmeaSource
 {
   GstBaseSrc base_nmeasource;
@@ -41,6 +45,8 @@ struct _GstNmeaSource
   struct nmea_threadInfo threadInfo;
 
   GstClockID waitId;
+
+  gstreamPipeline *parent;
 
 };
 
