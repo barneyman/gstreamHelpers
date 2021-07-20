@@ -1070,6 +1070,20 @@ public:
     // ensure you check for GST_CLOCK_TIME_NONE coming back!
     GstClockTime GetTimeSinceEpoch()
     {
+    
+        GstClock *pipeClock=gst_pipeline_get_clock(GST_PIPELINE(m_pipeline));
+        if(pipeClock)
+        {
+            // systemclock returns time from 1970, NTPclock from 1900 ... so 
+            return FixTimeForEpoch(gst_clock_get_time(pipeClock));
+        }
+
+        return GST_CLOCK_TIME_NONE;
+    }
+
+
+    GstClockTime FixTimeForEpoch(GstClockTime in)
+    {
         // systemclock returns time from 1970, NTPclock from 1900 ... so 
         GstClock *pipeClock=gst_pipeline_get_clock(GST_PIPELINE(m_pipeline));
         if(pipeClock)
@@ -1086,11 +1100,10 @@ public:
             // clock type GST_TYPE_NTP_CLOCK
             if(GST_IS_NTP_CLOCK(pipeClock))
             {
-                GstClockTime ret=gst_clock_get_time(pipeClock);
                 // RFC868 has you fam
                 // https://datatracker.ietf.org/doc/html/rfc868 pp2
-                ret-=(2208988800L*GST_SECOND);
-                return ret;
+                in-=(2208988800L*GST_SECOND);
+                return in;
             }
 
             if(GST_IS_NET_CLIENT_CLOCK(pipeClock))
@@ -1102,13 +1115,15 @@ public:
 
             if(GST_IS_SYSTEM_CLOCK(pipeClock))
             {
-                return gst_clock_get_time(pipeClock);
+                return in;
             }
 
         }
 
         return GST_CLOCK_TIME_NONE;
+
     }
+
 
     // start a net clock up
     bool ProvideNetClock(unsigned port, GstClock *theClock)
