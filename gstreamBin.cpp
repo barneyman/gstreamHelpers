@@ -25,6 +25,8 @@ gstreamBin::gstreamBin(const char *binName, pluginContainer<GstElement> *parent)
 
 gstreamBin::~gstreamBin()
 {
+    GST_INFO_OBJECT (m_myBin, "killing bin %s",Name());                
+
     // remove request pads
     for(auto each=m_padsToBeReleased.begin();each!=m_padsToBeReleased.end();each++)
     {
@@ -35,20 +37,12 @@ gstreamBin::~gstreamBin()
     // then unref the targets of ghosts
     for(auto each=m_ghostPadsSrcs.begin();each!=m_ghostPadsSrcs.end();each++)
     {
-        GstPad*targetPad=gst_ghost_pad_get_target((GstGhostPad*)*each);
-        if(targetPad)
-        {
-            gst_ghost_pad_set_target ((GstGhostPad*)*each, NULL);
-        }
+        gst_element_remove_pad(m_myBin,GST_PAD(*each));
     }
 
     for(auto each=m_ghostPadsSinks.begin();each!=m_ghostPadsSinks.end();each++)
     {
-        GstPad*targetPad=gst_ghost_pad_get_target((GstGhostPad*)*each);
-        if(targetPad)
-        {
-            gst_ghost_pad_set_target ((GstGhostPad*)*each, NULL);
-        }
+        gst_element_remove_pad(m_myBin,GST_PAD(*each));
     }
 
     // delete the static pads we use to advertise
@@ -333,6 +327,11 @@ bool gstreamListeningBin::ConnectSrcToSink(GstPad*srcPad, GstElement *sinkElemen
             gst_caps_unref(sinkCaps);
         }
     }
+    if(srcCaps)
+    {
+        gst_caps_unref(srcCaps);
+    }
+
     if(!succeeded)
     {
         // let's request the pad we need
