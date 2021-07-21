@@ -849,7 +849,9 @@ protected:
             return GST_CLOCK_TIME_NONE;
 
         GstClockTime baseTime=gst_element_get_base_time(GST_ELEMENT(m_pipeline));        
-        GstClockTime currentTime=gst_clock_get_time(gst_pipeline_get_clock(GST_PIPELINE(m_pipeline)));
+        GstClock *clock=gst_pipeline_get_clock(GST_PIPELINE(m_pipeline));
+        GstClockTime currentTime=gst_clock_get_time(clock);
+        g_object_unref(clock);
 
         return currentTime-baseTime;
     }
@@ -1075,7 +1077,9 @@ public:
         if(pipeClock)
         {
             // systemclock returns time from 1970, NTPclock from 1900 ... so 
-            return FixTimeForEpoch(gst_clock_get_time(pipeClock));
+            GstClockTime ret=FixTimeForEpoch(gst_clock_get_time(pipeClock));
+            g_object_unref(pipeClock);
+            return ret;
         }
 
         return GST_CLOCK_TIME_NONE;
@@ -1094,12 +1098,15 @@ public:
 
             if(clockType!=(int)GST_CLOCK_TYPE_REALTIME)
             {
+                g_object_unref(pipeClock);
                 return GST_CLOCK_TIME_NONE;
+
             }
 
             // clock type GST_TYPE_NTP_CLOCK
             if(GST_IS_NTP_CLOCK(pipeClock))
             {
+                g_object_unref(pipeClock);
                 // RFC868 has you fam
                 // https://datatracker.ietf.org/doc/html/rfc868 pp2
                 in-=(2208988800L*GST_SECOND);
@@ -1108,6 +1115,7 @@ public:
 
             if(GST_IS_NET_CLIENT_CLOCK(pipeClock))
             {
+                g_object_unref(pipeClock);
                 // untested!
                 // TODO
                 exit(1);
@@ -1115,9 +1123,10 @@ public:
 
             if(GST_IS_SYSTEM_CLOCK(pipeClock))
             {
+                g_object_unref(pipeClock);
                 return in;
             }
-
+            g_object_unref(pipeClock);
         }
 
         return GST_CLOCK_TIME_NONE;
@@ -1171,15 +1180,20 @@ public:
 
     void setRealtimeClock()
     {
-        GstClock* gstSystemClk = gst_system_clock_obtain();
+        
         // if we've already set a clock 
         GstClock *pipeclock=gst_pipeline_get_clock((GstPipeline*)m_pipeline);
         if(pipeclock)
         {
             g_object_set(pipeclock, "clock-type", GST_CLOCK_TYPE_REALTIME, NULL);
+            g_object_unref(pipeclock);
         }
         else
+        {
+            GstClock* gstSystemClk = gst_system_clock_obtain();
             g_object_set(gstSystemClk, "clock-type", GST_CLOCK_TYPE_REALTIME, NULL);
+            g_object_unref(gstSystemClk);
+        }
     }
 
 protected:

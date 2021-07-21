@@ -697,7 +697,7 @@ void pushJson(GstjsonInject *filter, nlohmann::json &jsonData)
 
     // release the mutex
     }
-
+    g_object_unref(currentClock);
 }
 
 
