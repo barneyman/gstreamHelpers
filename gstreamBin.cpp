@@ -327,15 +327,13 @@ bool gstreamListeningBin::ConnectSrcToSink(GstPad*srcPad, GstElement *sinkElemen
             gst_caps_unref(sinkCaps);
         }
     }
-    if(srcCaps)
-    {
-        gst_caps_unref(srcCaps);
-    }
 
     if(!succeeded)
     {
         // let's request the pad we need
-        GstPad *newSinkPad=gst_element_request_pad(sinkElement,gst_pad_template_new("sink_%u",GST_PAD_SINK,GST_PAD_REQUEST,srcCaps),"sink_%u",srcCaps);
+        GstPadTemplate *padt=gst_pad_template_new("sink_%u",GST_PAD_SINK,GST_PAD_REQUEST,srcCaps);
+        GstPad *newSinkPad=gst_element_request_pad(sinkElement,padt,"sink_%u",srcCaps);
+        g_object_unref(padt);
         if(newSinkPad)
         {
             addPadToBeReleased(sinkElement,newSinkPad);
@@ -345,6 +343,11 @@ bool gstreamListeningBin::ConnectSrcToSink(GstPad*srcPad, GstElement *sinkElemen
                 succeeded=true;
             }
         }
+    }
+
+    if(srcCaps)
+    {
+        gst_caps_unref(srcCaps);
     }
 
     return succeeded;
