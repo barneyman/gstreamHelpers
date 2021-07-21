@@ -263,31 +263,64 @@ protected:
 
 };
 
+class gstCapsFilterBaseBin: public gstreamBin
+{
+protected:
+    gstCapsFilterBaseBin(pluginContainer<GstElement> *parent,const char*caps,const char *name="capsFilterBin"):
+        gstreamBin(name,parent),
+        m_filterCaps(NULL)
+    {
+        pluginContainer<GstElement>::AddPlugin("capsfilter");
+        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
+            "caps", m_filterCaps=gst_caps_new_simple(caps, NULL, NULL), NULL);
 
-class gstCapsFilterSimple : public gstreamBin
+    }
+
+    gstCapsFilterBaseBin(pluginContainer<GstElement> *parent,GstCaps*caps,const char *name="capsFilterBin"):
+        gstreamBin(name,parent),
+        m_filterCaps(caps)
+    {
+        pluginContainer<GstElement>::AddPlugin("capsfilter");
+        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
+            "caps", caps, NULL);
+
+    }
+
+
+    ~gstCapsFilterBaseBin()
+    {
+        if(m_filterCaps)
+            gst_caps_unref(m_filterCaps);
+    }
+
+protected:
+
+    GstCaps *m_filterCaps;
+
+};
+
+
+class gstCapsFilterSimple : public gstCapsFilterBaseBin
 {
 public:
     gstCapsFilterSimple(pluginContainer<GstElement> *parent,const char*caps,const char *name="capsFilterBin"):
-        gstreamBin(name,parent)
+        gstCapsFilterBaseBin(parent,caps,name)
     {
-        pluginContainer<GstElement>::AddPlugin("capsfilter");
-        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
-            "caps", gst_caps_new_simple(caps, NULL, NULL), NULL);
-
         AddGhostPads("capsfilter","capsfilter");
     }
+
+
+
 };
 
-class gstFakeSinkForCapsSimple : public gstreamBin
+
+class gstFakeSinkForCapsSimple : public gstCapsFilterBaseBin
 {
 public:    
     gstFakeSinkForCapsSimple(gstreamPipeline *parent,const char*caps,const char *name="fakeSinkBin"):
-        gstreamBin(name,parent)
+        gstCapsFilterBaseBin(parent,caps,name)
     {
         pluginContainer<GstElement>::AddPlugin("fakesink");
-        pluginContainer<GstElement>::AddPlugin("capsfilter");
-        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
-            "caps", gst_caps_new_simple(caps, NULL, NULL), NULL);
 
         gst_element_link(pluginContainer<GstElement>::FindNamedPlugin("capsfilter"),pluginContainer<GstElement>::FindNamedPlugin("fakesink"));
 
@@ -342,16 +375,13 @@ protected:
 };
 
 
-class gstFrameRateBin :  public gstreamBin
+class gstFrameRateBin :  public gstCapsFilterBaseBin
 {
 public:
-    gstFrameRateBin(gstreamPipeline *parent,unsigned framerate,const char *name="frameRateBin"):gstreamBin(name,parent)
+    gstFrameRateBin(gstreamPipeline *parent,unsigned framerate,const char *name="frameRateBin"):
+        gstCapsFilterBaseBin(parent,gst_caps_new_simple("video/x-raw","framerate",GST_TYPE_FRACTION, framerate,1 , NULL),name)
     {
         pluginContainer<GstElement>::AddPlugin("videorate");
-        pluginContainer<GstElement>::AddPlugin("capsfilter");
-
-        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
-            "caps", gst_caps_new_simple("video/x-raw","framerate",GST_TYPE_FRACTION, framerate,1 , NULL), NULL);
 
         if(gst_element_link(pluginContainer<GstElement>::FindNamedPlugin("videorate"),pluginContainer<GstElement>::FindNamedPlugin("capsfilter")))
         {
@@ -411,19 +441,16 @@ public:
 
 // all the videos into mixer need to have alpha added to them!!
 // not documented anywhere!
-class gstVideoScaleBin : public gstreamBin
+class gstVideoScaleBin : public gstCapsFilterBaseBin
 {
 public:
-    gstVideoScaleBin(pluginContainer<GstElement> *parent,int width, int height, int offsetTop=0, int offsetLeft=0, const char *name="vidbox"):gstreamBin(name,parent)
+    gstVideoScaleBin(pluginContainer<GstElement> *parent,int width, int height, int offsetTop=0, int offsetLeft=0, const char *name="vidbox"):
+        gstCapsFilterBaseBin(parent, gst_caps_new_simple("video/x-raw","width",G_TYPE_INT, width,"height",G_TYPE_INT,height, NULL),name)
     {
         // optimisation - if offsets==0 then exclude the videobox, it will make the pipeline a lot quicker
 
         // add a scaler
         pluginContainer<GstElement>::AddPlugin("videoscale");
-        // and the caps for it
-        pluginContainer<GstElement>::AddPlugin("capsfilter");
-        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
-            "caps", gst_caps_new_simple("video/x-raw","width",G_TYPE_INT, width,"height",G_TYPE_INT,height, NULL), NULL);
 
         if(offsetTop || offsetLeft)
         {
@@ -456,12 +483,13 @@ public:
 
 // zorder is VERY important here - basically, latest is higher
 // sink0 is lower, sinkN is higher
-class gstVideoMixerBin : public gstreamBin
+class gstVideoMixerBin : public gstCapsFilterBaseBin
 {
 public:
 
     // if we're doing composite mixing, and there is border-padding, we need to add an alpha channel to each incoming video
-    gstVideoMixerBin(pluginContainer<GstElement> *parent, unsigned numSinks,bool addAlpha=false, const char *name="videoMixerBin"):gstreamBin(name,parent)
+    gstVideoMixerBin(pluginContainer<GstElement> *parent, unsigned numSinks,bool addAlpha=false, const char *name="videoMixerBin"):
+        gstCapsFilterBaseBin(parent,gst_caps_new_simple("video/x-raw","format",G_TYPE_STRING, "RGB", NULL),name)
     {
         // add a multiqueueMixer at the front
         pluginContainer<GstElement>::AddPlugin("multiqueue","multiqueueMixer");
@@ -480,10 +508,6 @@ public:
         {
             // then remove alpha
             pluginContainer<GstElement>::AddPlugin("videoconvert");
-            pluginContainer<GstElement>::AddPlugin("capsfilter");
-
-            g_object_set (pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
-                "caps", gst_caps_new_simple("video/x-raw","format",G_TYPE_STRING, "RGB", NULL), NULL);
 
             gst_element_link_many (
                 pluginContainer<GstElement>::FindNamedPlugin("videomixer"),
@@ -525,6 +549,7 @@ public:
                     gst_element_link(pluginContainer<GstElement>::FindNamedPlugin("multiqueueMixer"),
                         pluginContainer<GstElement>::FindNamedPlugin("videomixer"));
                 }
+                gst_object_unref(sinkTemplate);
             }
         }
 
@@ -574,7 +599,7 @@ public:
 
 };
 
-class gstTestSourceBin : public gstreamBin
+class gstTestSourceBin : public gstCapsFilterBaseBin
 {
 protected:
 
@@ -583,22 +608,12 @@ protected:
 
 public:
     gstTestSourceBin(pluginContainer<GstElement> *parent,unsigned framerate,unsigned width=1280, unsigned height=960, const char *name="TestSrcBin"):
-        gstreamBin(name,parent),
+        gstCapsFilterBaseBin(parent,gst_caps_new_simple("video/x-raw","framerate",GST_TYPE_FRACTION, framerate,1, "width",G_TYPE_INT,width,"height",G_TYPE_INT,height,NULL),name),
         m_encoder(this),
         m_progress(this)
     {
         pluginContainer<GstElement>::AddPlugin("videotestsrc");
         
-        pluginContainer<GstElement>::AddPlugin("capsfilter");
-
-        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
-            "caps", gst_caps_new_simple("video/x-raw",
-                    "framerate",GST_TYPE_FRACTION, framerate,1, 
-                    "width",G_TYPE_INT,width,
-                    "height",G_TYPE_INT,height,
-                    NULL), NULL);
-
-
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("videotestsrc"), 
             "is-live",TRUE,
             "pattern",18,   // ball
