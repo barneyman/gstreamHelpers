@@ -179,7 +179,8 @@ public:
 
         for(auto each=0;each<numSinks;each++)
         {
-            GstPadTemplate *sinkTemplate=gst_pad_template_new("sink_%d",GST_PAD_SINK,GST_PAD_REQUEST,gst_caps_new_any());
+            GstCaps *tmp=gst_caps_new_any();
+            GstPadTemplate *sinkTemplate=gst_pad_template_new("sink_%d",GST_PAD_SINK,GST_PAD_REQUEST,tmp);
             GstPad *newPad=gst_element_request_pad(
                 pluginContainer<GstElement>::FindNamedPlugin("multiqueueDemux"),
                 sinkTemplate,
@@ -188,7 +189,8 @@ public:
             {
                 addPadToBeReleased(pluginContainer<GstElement>::FindNamedPlugin("multiqueueDemux"),newPad);
             }
-
+            gst_object_unref(sinkTemplate);
+            gst_caps_unref(tmp);
         }
 
         AddGhostPads("multiqueueDemux","multiqueueDemux");

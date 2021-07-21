@@ -608,6 +608,9 @@ gst_json_to_pango_subsink_chain (GstPad * pad, GstObject * parent, GstBuffer * b
   // set dts, pts and dur for our buffer
   gst_buffer_copy_into(textBuffer, buf, GST_BUFFER_COPY_TIMESTAMPS ,0,-1);
 
+  // then release the original buffer
+  gst_buffer_unref(textBuffer);
+
   return gst_pad_push(filter->pango_srcpad, textBuffer);
 
 }

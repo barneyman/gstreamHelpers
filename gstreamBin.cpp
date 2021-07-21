@@ -31,7 +31,10 @@ gstreamBin::~gstreamBin()
     for(auto each=m_padsToBeReleased.begin();each!=m_padsToBeReleased.end();each++)
     {
         gst_element_release_request_pad(each->first,each->second);
-        g_object_unref (each->first);
+        // we grabbed a ref when we asked
+        gst_object_unref (each->first);
+        // release the pad
+        gst_object_unref (each->second);
 
     }
     // then unref the targets of ghosts
@@ -333,7 +336,7 @@ bool gstreamListeningBin::ConnectSrcToSink(GstPad*srcPad, GstElement *sinkElemen
         // let's request the pad we need
         GstPadTemplate *padt=gst_pad_template_new("sink_%u",GST_PAD_SINK,GST_PAD_REQUEST,srcCaps);
         GstPad *newSinkPad=gst_element_request_pad(sinkElement,padt,"sink_%u",srcCaps);
-        g_object_unref(padt);
+        gst_object_unref(padt);
         if(newSinkPad)
         {
             addPadToBeReleased(sinkElement,newSinkPad);
