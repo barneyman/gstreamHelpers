@@ -1,7 +1,7 @@
 #ifndef _myjsonbins_guard
 #define _myjsonbins_guard
 
-#include "gstreamBin.h"
+#include "myElementBins.h"
 #include "myplugins/gstjsonparse.h"
 #include "json/json.hpp"
 
@@ -330,11 +330,11 @@ public:
 };
 
 
-class gstMultiJsonToPangoRenderBin2 : public gstreamBin
+class gstMultiJsonToPangoRenderBin2 : public gstCapsFilterBaseBin
 {
 public:    
     gstMultiJsonToPangoRenderBin2(pluginContainer<GstElement> *parent):
-        gstreamBin("multiPangoBin",parent),
+        gstCapsFilterBaseBin(parent,gst_caps_new_simple ("text/x-raw", "format", G_TYPE_STRING, "utf8", NULL),"multiPangoBin"),
         m_first(NULL), m_last(NULL)
     {
         // video -> pango1 video -> pango2 video
@@ -342,22 +342,15 @@ public:
         //                 \> mq -> pango2
 
 
-        // we expose this as a sink to grab subtitles
-        pluginContainer<GstElement>::AddPlugin("capsfilter","capsSub");
-        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("capsSub"), 
-            "caps", gst_caps_new_simple ("text/x-raw", "format", G_TYPE_STRING, "utf8", NULL), NULL);
-
         // the t is for splitting the subtitles up for the kids, video passes thru all of them
         pluginContainer<GstElement>::AddPlugin("tee");
         // so join them up
-        gst_element_link(pluginContainer<GstElement>::FindNamedPlugin("capsSub"),FindNamedPlugin("tee"));        
+        gst_element_link(pluginContainer<GstElement>::FindNamedPlugin("capsfilter"),FindNamedPlugin("tee"));        
         // every tee goes thru the mq, threads for free
         pluginContainer<GstElement>::AddPlugin("multiqueue");
 
-
-
         // ghost the subs magnet for now
-        AddGhostPads("capsSub");
+        AddGhostPads("capsfilter");
 
     }
 

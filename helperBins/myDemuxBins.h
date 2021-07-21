@@ -477,10 +477,11 @@ protected:
 
 
 
-class gstDemuxSubsOnlyDecodeBin : public gstreamBin
+class gstDemuxSubsOnlyDecodeBin : public gstCapsFilterBaseBin
 {
 public:
-    gstDemuxSubsOnlyDecodeBin(gstreamPipeline *parent,const char*mkvName,const char *demuxer, GstClockTime startAt=GST_CLOCK_TIME_NONE ,GstClockTime endAt=GST_CLOCK_TIME_NONE , const char *name="demuxDecodeBin"):gstreamBin(name,parent)
+    gstDemuxSubsOnlyDecodeBin(gstreamPipeline *parent,const char*mkvName,const char *demuxer, GstClockTime startAt=GST_CLOCK_TIME_NONE ,GstClockTime endAt=GST_CLOCK_TIME_NONE , const char *name="demuxDecodeBin"):
+        gstCapsFilterBaseBin(parent,gst_caps_new_simple("text/x-raw","format",G_TYPE_STRING, "utf8", NULL),name)
     {
         bool seeking=(startAt!=GST_CLOCK_TIME_NONE  && endAt!=GST_CLOCK_TIME_NONE)?true:false;
 
@@ -505,11 +506,6 @@ public:
 #ifdef _EXIT_THRU_MQ_GIFT_SHOP        
         pluginContainer<GstElement>::AddPlugin("multiqueue");
 #endif
-
-        pluginContainer<GstElement>::AddPlugin("capsfilter");
-
-        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
-            "caps", gst_caps_new_simple("text/x-raw","format",G_TYPE_STRING, "utf8", NULL), NULL);
 
         if(!splitDemux)
         {

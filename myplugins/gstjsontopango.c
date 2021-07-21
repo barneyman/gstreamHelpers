@@ -480,6 +480,8 @@ void negotiate_set_my_caps(GstMyFirstFilter *filter)
 
     filter->pango_srcpad_negotiated=true;
 
+    gst_caps_unref(caps);
+
   }
 
 }
