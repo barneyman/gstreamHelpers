@@ -138,12 +138,16 @@ bool gstreamBin::AddGhostPads(GstElement *sinkElement,GstElement*sourceElement, 
     {
         GstCaps *allowedCaps=sinkcaps?gst_caps_new_full(gst_structure_from_string(sinkcaps,NULL),NULL):NULL;
         IterateAndGhost(sinkElement->sinkpads,m_ghostPadsSinks,allowedCaps);
+        if(allowedCaps)
+            gst_caps_unref(allowedCaps);
     }
     // same with sources
     if(sourceElement)
     {
         GstCaps *allowedCaps=srccaps?gst_caps_new_full(gst_structure_from_string(srccaps,NULL),NULL):NULL;
         IterateAndGhost(sourceElement->srcpads,m_ghostPadsSrcs,allowedCaps);
+        if(allowedCaps)
+            gst_caps_unref(allowedCaps);
     }
 
     return true;

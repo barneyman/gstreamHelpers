@@ -235,11 +235,12 @@ gst_jsonparse_transform_caps (GstBaseTransform * trans, GstPadDirection directio
     GstCaps * caps, GstCaps * filter)
 {
   GstJsonparse *jsonparse = GST_JSONPARSE (trans);
-  GstCaps *othercaps;
+
+  //GstCaps *othercaps;
 
   GST_DEBUG_OBJECT (jsonparse, "transform_caps");
 
-  othercaps = gst_caps_copy (caps);
+  //othercaps = gst_caps_copy (caps);
 
 
   /* Copy other caps and modify as appropriate */
@@ -258,7 +259,7 @@ gst_jsonparse_transform_caps (GstBaseTransform * trans, GstPadDirection directio
    GstCaps *otherPadCaps=gst_pad_get_pad_template_caps (otherPad);
 
    return otherPadCaps;
-
+/*
   if (filter) {
     GstCaps *intersect;
 
@@ -269,6 +270,7 @@ gst_jsonparse_transform_caps (GstBaseTransform * trans, GstPadDirection directio
   } else {
     return othercaps;
   }
+*/
 }
 
 static GstCaps *

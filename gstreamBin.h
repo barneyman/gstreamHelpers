@@ -54,6 +54,10 @@ protected:
 
     void addPadToBeReleased(GstElement*el,GstPad*pad)
     {
+        // we don't add ghostpads, they get handled by the bin
+        if(GST_IS_GHOST_PAD(pad))
+            return;
+
         // grab a ref on the parent while we're here
         g_object_ref (el);
         m_padsToBeReleased.push_back(std::pair<GstElement*,GstPad*>(el,pad));
