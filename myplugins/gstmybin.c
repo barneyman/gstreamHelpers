@@ -137,7 +137,7 @@ gst_mybin_request_pad (GstElement * element,
   GstMyBin *mybin = GST_MYBIN (element);  
   if(mybin->myClassPointer)
   {
-    GST_WARNING_OBJECT (mybin, "%s asking for %s", GST_ELEMENT_NAME(element), templ->name_template);
+    GST_INFO_OBJECT (mybin, "%s asking for %s", GST_ELEMENT_NAME(element), templ->name_template);
     return mybin->myClassPointer->request_new_pad(element,templ,templ->name_template,templ->caps);
   }
   return NULL;
@@ -149,8 +149,8 @@ void gst_mybin_release_pad(GstElement *element, GstPad *pad)
   GstMyBin *mybin = GST_MYBIN (element);  
   if(mybin->myClassPointer)
   {
-    GST_WARNING_OBJECT (mybin, "%s releasing %s", GST_ELEMENT_NAME(element), GST_PAD_NAME(pad));
-    return mybin->myClassPointer->release_requested_pad(element,pad);
+    GST_INFO_OBJECT (mybin, "%s releasing %s", GST_ELEMENT_NAME(element), GST_PAD_NAME(pad));
+    mybin->myClassPointer->release_requested_pad(element,pad);
   }
 
 }
