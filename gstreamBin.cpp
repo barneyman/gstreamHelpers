@@ -103,7 +103,7 @@ GstPad *gstreamBin::request_new_pad (GstElement * element,GstPadTemplate * templ
         if(ret)
         {
             addPadToBeReleased(each->first,ret);
-            ret=GhostSinglePad(ret,m_requestedPadsGhosted);
+            ret=GhostSingleRequestPad(ret);
             return ret;
         }
     }

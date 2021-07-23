@@ -361,6 +361,7 @@ public:
 
 protected:
 
+    // TODO this is untested, and probs broken
     virtual GstPad *request_new_pad (GstElement * element,GstPadTemplate * templ,const gchar * name,const GstCaps * caps)
     {
         // this should be passed to the tee
