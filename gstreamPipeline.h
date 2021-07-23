@@ -62,7 +62,7 @@ public:
             GstElementFactory *factory=gst_element_factory_find (overridePlugin.c_str());
             if(!factory)
                 return 3;
-            g_object_unref(factory);
+            gst_object_unref(factory);
         }
 
         // create it
@@ -851,7 +851,7 @@ protected:
         GstClockTime baseTime=gst_element_get_base_time(GST_ELEMENT(m_pipeline));        
         GstClock *clock=gst_pipeline_get_clock(GST_PIPELINE(m_pipeline));
         GstClockTime currentTime=gst_clock_get_time(clock);
-        g_object_unref(clock);
+        gst_object_unref(clock);
 
         return currentTime-baseTime;
     }
@@ -1078,7 +1078,7 @@ public:
         {
             // systemclock returns time from 1970, NTPclock from 1900 ... so 
             GstClockTime ret=FixTimeForEpoch(gst_clock_get_time(pipeClock));
-            g_object_unref(pipeClock);
+            gst_object_unref(pipeClock);
             return ret;
         }
 
@@ -1098,7 +1098,7 @@ public:
 
             if(clockType!=(int)GST_CLOCK_TYPE_REALTIME)
             {
-                g_object_unref(pipeClock);
+                gst_object_unref(pipeClock);
                 return GST_CLOCK_TIME_NONE;
 
             }
@@ -1106,7 +1106,7 @@ public:
             // clock type GST_TYPE_NTP_CLOCK
             if(GST_IS_NTP_CLOCK(pipeClock))
             {
-                g_object_unref(pipeClock);
+                gst_object_unref(pipeClock);
                 // RFC868 has you fam
                 // https://datatracker.ietf.org/doc/html/rfc868 pp2
                 in-=(2208988800L*GST_SECOND);
@@ -1115,7 +1115,7 @@ public:
 
             if(GST_IS_NET_CLIENT_CLOCK(pipeClock))
             {
-                g_object_unref(pipeClock);
+                gst_object_unref(pipeClock);
                 // untested!
                 // TODO
                 exit(1);
@@ -1123,10 +1123,10 @@ public:
 
             if(GST_IS_SYSTEM_CLOCK(pipeClock))
             {
-                g_object_unref(pipeClock);
+                gst_object_unref(pipeClock);
                 return in;
             }
-            g_object_unref(pipeClock);
+            gst_object_unref(pipeClock);
         }
 
         return GST_CLOCK_TIME_NONE;
@@ -1186,13 +1186,13 @@ public:
         if(pipeclock)
         {
             g_object_set(pipeclock, "clock-type", GST_CLOCK_TYPE_REALTIME, NULL);
-            g_object_unref(pipeclock);
+            gst_object_unref(pipeclock);
         }
         else
         {
             GstClock* gstSystemClk = gst_system_clock_obtain();
             g_object_set(gstSystemClk, "clock-type", GST_CLOCK_TYPE_REALTIME, NULL);
-            g_object_unref(gstSystemClk);
+            gst_object_unref(gstSystemClk);
         }
     }
 
