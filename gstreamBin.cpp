@@ -23,30 +23,65 @@ gstreamBin::gstreamBin(const char *binName, pluginContainer<GstElement> *parent)
 }    
 
 
+// normally called by an owning class's dtor, so you can unlink from it
+void gstreamBin::releaseRequestedPads()
+{
+    for(auto each=m_padsToBeReleased.begin();each!=m_padsToBeReleased.end();each++)
+    {
+        GST_INFO_OBJECT (m_myBin, "Asking element '%s' to release pad '%s'",GST_ELEMENT_NAME(each->first),GST_PAD_NAME(each->second));
+
+
+        GstElementClass *oclass=GST_ELEMENT_GET_CLASS(each->first);
+        if (oclass->release_pad)
+        {
+            if(GST_PAD_PARENT(each->second))
+            {
+                GST_INFO_OBJECT (m_myBin, "owner is '%s'",GST_ELEMENT_NAME(GST_PAD_PARENT(each->second)));
+            }
+            else
+            {
+                GST_ERROR_OBJECT (m_myBin, "owner is NULL");
+            }
+
+        }
+
+        releaseSingleRequestedPin(each->first,each->second);
+
+
+    }    
+
+    m_padsToBeReleased.clear();
+}
+
+
 gstreamBin::~gstreamBin()
 {
     GST_INFO_OBJECT (m_myBin, "killing bin %s",Name());                
 
-    // remove request pads
-    for(auto each=m_padsToBeReleased.begin();each!=m_padsToBeReleased.end();each++)
+    // check
+    if(m_requestedPadsGhosted.size())
     {
-        gst_element_release_request_pad(each->first,each->second);
-        // we grabbed a ref when we asked
-        gst_object_unref (each->first);
-        // release the pad
-        gst_object_unref (each->second);
-
+        GST_ERROR_OBJECT (m_myBin, "bin %s has %lu unreleased request pins!! This is probably a leak",Name(),m_requestedPadsGhosted.size());                
+        
+        // remove request pads
+        releaseRequestedPads();
     }
+
+
+
     // then unref the targets of ghosts
     for(auto each=m_ghostPadsSrcs.begin();each!=m_ghostPadsSrcs.end();each++)
     {
+        GST_INFO_OBJECT (m_myBin, "releasing ghost '%s' from '%s'",GST_PAD_NAME(*each),GST_ELEMENT_NAME(m_myBin));
         gst_element_remove_pad(m_myBin,GST_PAD(*each));
     }
 
     for(auto each=m_ghostPadsSinks.begin();each!=m_ghostPadsSinks.end();each++)
     {
+        GST_INFO_OBJECT (m_myBin, "releasing ghost '%s' from '%s'",GST_PAD_NAME(*each),GST_ELEMENT_NAME(m_myBin));
         gst_element_remove_pad(m_myBin,GST_PAD(*each));
     }
+
 
     // delete the static pads we use to advertise
     for(auto each=m_advertised.begin();each!=m_advertised.end();each++)
@@ -68,13 +103,61 @@ GstPad *gstreamBin::request_new_pad (GstElement * element,GstPadTemplate * templ
         if(ret)
         {
             addPadToBeReleased(each->first,ret);
-            ret=GhostSinglePad(ret,m_ghostPadsSinks);
+            ret=GhostSinglePad(ret,m_requestedPadsGhosted);
             return ret;
         }
     }
  
     return NULL;
 }
+
+
+bool gstreamBin::release_requested_pad(GstElement*el, GstPad *pad)
+{
+    // what do we do here !?
+    bool ret=false;
+    // check it IS a ghostpin
+    if(GST_IS_GHOST_PAD(pad))
+    {
+        // all requested ghosts should be in m_requestedPadsGhosted
+        for(auto each=m_requestedPadsGhosted.begin();each!=m_requestedPadsGhosted.end() && !ret;)
+        {
+            if(*each==pad)
+            {
+                // found it
+                GstPad *target=gst_ghost_pad_get_target (GST_GHOST_PAD(*each));
+                // find the thing it's ghosting in padsToBeReleased
+                for(auto reqPad=m_padsToBeReleased.begin();reqPad!=m_padsToBeReleased.end() && !ret;)
+                {
+                    if(reqPad->second==target)
+                    {
+                        // and let go of them
+                        releaseSingleRequestedPin(reqPad->first,reqPad->second);
+                        // cull it
+                        reqPad=m_padsToBeReleased.erase(reqPad);
+                        // now, the ghost ?
+                        gst_element_remove_pad(m_myBin,GST_PAD(*each));
+                        // cull it
+                        each=m_requestedPadsGhosted.erase(each);
+                        ret=true;
+                    }
+                    else
+                    {
+                        reqPad++;
+                    }
+                }
+                // unref!
+                gst_object_unref(target);
+            }
+            else
+            {
+                each++;
+            }
+        }
+    }
+    return ret;
+}
+
 
 
 void gstreamBin::advertiseElementsPadTemplates(GstElement *element)
@@ -203,6 +286,7 @@ GstPad* gstreamBin::GhostSinglePad(GstPad *eachPad, std::vector<GstPad*> &result
 
 
     GstPad *ghostPad=gst_ghost_pad_new(NULL,eachPad);
+    //and tell it who owns it
 
     // ok - the logic here is this ...
     /// we've been called by a demuxer (probably) - current caps are it, the end.

@@ -22,6 +22,8 @@ void gst_mybin_get_property (GObject * object, guint property_id,GValue * value,
 void gst_mybin_dispose (GObject * object);
 void gst_mybin_finalize (GObject * object);
 GstPad * gst_mybin_request_pad (GstElement * element,GstPadTemplate * templ,const gchar * name,const GstCaps * caps);
+void gst_mybin_release_pad(GstElement *el, GstPad *pad);
+
 
 
 
@@ -53,6 +55,7 @@ gst_mybin_class_init (GstMyBinClass * klass)
     GstElementClass *element_class=GST_ELEMENT_CLASS(base_src_class);
 
     element_class->request_new_pad=gst_mybin_request_pad;
+    element_class->release_pad=gst_mybin_release_pad; 
 
 }
 
@@ -133,10 +136,24 @@ gst_mybin_request_pad (GstElement * element,
 {
   GstMyBin *mybin = GST_MYBIN (element);  
   if(mybin->myClassPointer)
-    return mybin->myClassPointer->request_new_pad(element,templ,name,caps);
+  {
+    GST_WARNING_OBJECT (mybin, "%s asking for %s", GST_ELEMENT_NAME(element), templ->name_template);
+    return mybin->myClassPointer->request_new_pad(element,templ,templ->name_template,templ->caps);
+  }
   return NULL;
 }
 
+
+void gst_mybin_release_pad(GstElement *element, GstPad *pad)
+{
+  GstMyBin *mybin = GST_MYBIN (element);  
+  if(mybin->myClassPointer)
+  {
+    GST_WARNING_OBJECT (mybin, "%s releasing %s", GST_ELEMENT_NAME(element), GST_PAD_NAME(pad));
+    return mybin->myClassPointer->release_requested_pad(element,pad);
+  }
+
+}
 
 static gboolean
 plugin_init (GstPlugin * plugin)

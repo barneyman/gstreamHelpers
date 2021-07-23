@@ -12,7 +12,7 @@ class gstreamBin : public pluginContainer<GstElement>
 public:
     gstreamBin(const char *binName, pluginContainer<GstElement> *parent);
 
-    ~gstreamBin();
+    virtual ~gstreamBin();
 
     const char *Name() { return m_binName.c_str(); }
     operator const char*() { return Name(); }
@@ -22,6 +22,11 @@ public:
 
 
     virtual GstPad *request_new_pad (GstElement * element,GstPadTemplate * templ,const gchar * name,const GstCaps * caps);
+    virtual bool release_requested_pad(GstElement*el, GstPad *pad);
+
+    // normally called by an owning class's dtor, so you can unlink from it
+    virtual void releaseRequestedPads();
+
 
     virtual void PeekBuffer(GstBuffer * buf, GstBuffer *bufOut)
     {}
@@ -33,6 +38,7 @@ public:
 
 protected:
 
+    GstPad*GhostSingleRequestPad(GstPad *eachPad) { return GhostSinglePad(eachPad,m_requestedPadsGhosted); }
     GstPad*GhostSingleSinkPad(GstPad *eachPad) { return GhostSinglePad(eachPad,m_ghostPadsSinks); }
     GstPad*GhostSingleSrcPad(GstPad *eachPad) { return GhostSinglePad(eachPad,m_ghostPadsSrcs); }
     GstPad*GhostSinglePad(GstPad *eachPad, std::vector<GstPad*> &results);
@@ -42,24 +48,34 @@ protected:
 
     std::vector<std::pair<GstElement*,GstStaticPadTemplate*>> m_advertised;
 
+
+    void releaseSingleRequestedPin(GstElement*element, GstPad *pad)
+    {
+        gst_element_release_request_pad(element,pad);
+        // we grabbed a ref when we asked
+        gst_object_unref (element);
+        // release the pad
+        gst_object_unref (pad);
+
+    }
+
+
 protected:
 
     pluginContainer<GstElement> *m_parent;
     std::string m_binName;
     GstElement* m_myBin;
 
-    std::vector<GstPad*> m_ghostPadsSinks,m_ghostPadsSrcs;
+    std::vector<GstPad*> m_ghostPadsSinks,m_ghostPadsSrcs,m_requestedPadsGhosted;
 
 protected:
 
     void addPadToBeReleased(GstElement*el,GstPad*pad)
     {
-        // we don't add ghostpads, they get handled by the bin
-        if(GST_IS_GHOST_PAD(pad))
-            return;
+        GST_INFO_OBJECT (m_myBin, "Adding pad '%s' to element '%s'",GST_PAD_NAME(pad),GST_ELEMENT_NAME(el));
 
         // grab a ref on the parent while we're here
-        g_object_ref (el);
+        gst_object_ref (el);
         m_padsToBeReleased.push_back(std::pair<GstElement*,GstPad*>(el,pad));
     }
 

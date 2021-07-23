@@ -222,7 +222,7 @@ class gstMultiQueueWithTailBin : public gstMultiQueueBin
 {
 public:
     gstMultiQueueWithTailBin(pluginContainer<GstElement> *parent,const char *tailelement):
-        gstMultiQueueBin(parent,0,false,0,false,"multiQTailed")
+        gstMultiQueueBin(parent,0,false,0,false,"multiQTailedBin")
     {
         m_tailname=tailelement;
         // and advertise the q
@@ -233,24 +233,27 @@ public:
     virtual GstPad *request_new_pad (GstElement * element,GstPadTemplate * templ,const gchar * name,const GstCaps * caps)
     {
         GstPad *retPad=NULL;
+        GstElement *mqDemux=pluginContainer<GstElement>::FindNamedPlugin("multiqueueDemux");
         // ask the mq src for it, ghost it, join the new mq sink to the tail - profit
         GstPad *newPad=gst_element_request_pad(
-            pluginContainer<GstElement>::FindNamedPlugin("multiqueueDemux"),
+            mqDemux,
             templ,
             NULL,NULL);
         if(newPad)
         {
+            addPadToBeReleased(mqDemux,newPad);
+
             char tailDisguise[28];
             snprintf(tailDisguise,sizeof(tailDisguise),"mq%lu",m_padsToBeReleased.size());
 
             pluginContainer<GstElement>::AddPlugin(m_tailname.c_str(),tailDisguise);
-            addPadToBeReleased(pluginContainer<GstElement>::FindNamedPlugin("multiqueueDemux"),newPad);
 
-            gst_element_link(pluginContainer<GstElement>::FindNamedPlugin("multiqueueDemux"),
+            gst_element_link(mqDemux,
                 pluginContainer<GstElement>::FindNamedPlugin(tailDisguise)
                 );
 
-            retPad=GhostSingleSinkPad(newPad);
+            // and ghost the mq sink pin 
+            retPad=GhostSingleRequestPad(newPad);
         }
 
         return retPad;

@@ -82,7 +82,6 @@ protected:
 
 public:
 
-
     gstDemuxDecodeBinExamine(gstreamPipeline *parent,const char*mkvName,const char *demuxer,const char *name="gstDemuxDecodeBinExamine"):
         gstreamListeningBin(name,parent),
         m_faketail(this,"fakesink")
@@ -159,7 +158,8 @@ public:
 
     ~gstDemuxDecodeBinExamine()
     {
-
+        // get my nails out of fakesink
+        releaseRequestedPads();
     }
 
 
