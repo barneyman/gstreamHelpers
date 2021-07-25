@@ -375,6 +375,7 @@ public:
 
     ~gstDemuxDecodeBin()
     {
+        releaseRequestedPads();
     }
 
 

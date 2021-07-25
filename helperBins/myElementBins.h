@@ -260,6 +260,11 @@ public:
 
     }
 
+    ~gstMultiQueueWithTailBin()
+    {
+        releaseRequestedPads();
+    }
+
 protected:
 
     std::string m_tailname;
@@ -357,6 +362,11 @@ public:
 
         advertiseElementsPadTemplates("tee");
 
+    }
+
+    ~gstTeeBin()
+    {
+        releaseRequestedPads();
     }
 
 protected:

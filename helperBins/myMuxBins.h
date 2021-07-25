@@ -57,6 +57,11 @@ public:
 
     }
 
+    ~gstMuxOutBin()
+    {
+        releaseRequestedPads();
+    }
+
 };
 
 

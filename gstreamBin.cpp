@@ -107,6 +107,7 @@ GstPad *gstreamBin::request_new_pad (GstElement * element,GstPadTemplate * templ
             return ret;
         }
     }
+    GST_ERROR_OBJECT (m_myBin, "Failed to get a request pad for '%s' in bin '%s'",(name),Name());
  
     return NULL;
 }
@@ -155,6 +156,12 @@ bool gstreamBin::release_requested_pad(GstElement*el, GstPad *pad)
             }
         }
     }
+
+    if(!ret)
+    {
+        GST_ERROR_OBJECT (m_myBin, "Could not find  '%s' pad from '%s' to release it",GST_PAD_NAME(pad),GST_ELEMENT_NAME(el));                
+    }
+
     return ret;
 }
 

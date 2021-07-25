@@ -36,6 +36,12 @@ public:
 
     }
 
+    ~rtspSourceBin()
+    {   
+        releaseRequestedPads();
+    }
+
+
 protected:
 
     gstQueue2 m_q2;
@@ -78,6 +84,12 @@ public:
         parent->DumpGraph("rtmp");
 
     }
+
+    ~rtmpSourceBin()
+    {   
+        releaseRequestedPads();
+    }
+
 
 protected:
 

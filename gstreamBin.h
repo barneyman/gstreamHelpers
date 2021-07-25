@@ -156,6 +156,10 @@ public:
         return gstreamListeningBin::ConnectLate(FindNamedPlugin(source),FindNamedPlugin(dest));
     }
 
+    ~gstreamListeningBinQueued()
+    {
+        releaseRequestedPads();   
+    }
 };
 
 
