@@ -2,10 +2,16 @@
 #define _mydemuxbins_guard
 
 #include "gstreamBin.h"
+#include <mutex>
 
 
-class demuxInfo
+class demuxInfo 
 {
+
+protected:
+
+    std::mutex m_mutex;
+
 public:
     demuxInfo():
         m_binDuration(0)
@@ -19,6 +25,17 @@ public:
         {
             gst_caps_unref(*each);
         }
+    }
+
+    bool lock()
+    {
+        m_mutex.lock();
+        return true;
+    }
+
+    void unlock()
+    {
+        m_mutex.unlock();
     }
 
     virtual demuxInfo& operator=(const demuxInfo &other)
@@ -215,7 +232,9 @@ public:
     {
         bool splitDemux=(demuxer=="splitmuxsrc");
 
-        if(!cached || cached->isEmpty())
+        // because this is shared, we need to lock it when first populating, in case
+        // another thread tries to do it simultaneously
+        if(!cached || (cached->lock() && cached->isEmpty()))
         {
             // now build our demux pipeline based on what we know is there
             // by creating a toy that exposes all available srcs
@@ -225,11 +244,15 @@ public:
                 streamInfo=examine.m_info;
                 // store it forward
                 if(cached)
+                {
                     *cached=examine.m_info;
+                    cached->unlock();
+                }
             }
         }
         else
         {
+            cached->unlock();
             streamInfo=*cached;
         }
 
