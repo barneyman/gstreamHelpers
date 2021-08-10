@@ -55,8 +55,8 @@ class rtmpSourceBin : public gstreamListeningBin
 {
 public:
 
-    rtmpSourceBin(gstreamPipeline *parent, const char*location, const char*name="rtmpSource"):gstreamListeningBin(name,parent),
-        m_q2(this,"q2"), m_progress(this)
+    rtmpSourceBin(gstreamPipeline *parent, const char*location, const char*name="rtmpSource", unsigned toSecs=30):gstreamListeningBin(name,parent),
+        m_q2(this,"q2forrtmpsrc"), m_progress(this)
     {
         pluginContainer<GstElement>::AddPlugin("rtmpsrc","rtmpsrc");
         pluginContainer<GstElement>::AddPlugin("flvdemux","depay2");
@@ -64,6 +64,7 @@ public:
 
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("rtmpsrc"), 
             "location",location,
+            "timeout",toSecs,
             NULL);
 
         ConnectLate(    pluginContainer<GstElement>::FindNamedPlugin("depay2"),
