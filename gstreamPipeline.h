@@ -1207,6 +1207,10 @@ protected:
         {
             m_eosSeen=true;
         }
+        else
+        {
+            GST_INFO_OBJECT (m_pipeline, "Saw EOS from %s",GST_ELEMENT_NAME(msg->src));
+        }
     }
 
     virtual void bufferMessageHandler(GstMessage*msg)
