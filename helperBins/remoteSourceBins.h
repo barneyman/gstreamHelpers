@@ -1,11 +1,28 @@
 #include "gstreamBin.h"
 
-// 
-class rtspSourceBin : public gstreamListeningBin
+
+class baseRemoteSourceBin : public gstreamListeningBin
 {
 public:
-    rtspSourceBin(gstreamPipeline *parent, const char*location, const char*name="rtspSource"):gstreamListeningBin(name,parent),
-        m_q2(this,"q2"),m_progress(this)
+    baseRemoteSourceBin(const char*name, gstreamPipeline *parent):
+        gstreamListeningBin(name,parent),
+        m_q2(this,"q2"),m_progress(this,0)
+    {
+
+    }
+
+protected:
+
+    gstQueue2 m_q2;
+    gstFrameBufferProgress m_progress;
+
+};
+
+// 
+class rtspSourceBin : public baseRemoteSourceBin
+{
+public:
+    rtspSourceBin(gstreamPipeline *parent, const char*location, const char*name="rtspSource"):baseRemoteSourceBin(name,parent)
     {
         pluginContainer<GstElement>::AddPlugin("rtspsrc","rtspsrc");
         pluginContainer<GstElement>::AddPlugin("rtph264depay","depay2");
@@ -42,21 +59,16 @@ public:
     }
 
 
-protected:
-
-    gstQueue2 m_q2;
-    gstFrameBufferProgress m_progress;
 
 };
 
 //
 
-class rtmpSourceBin : public gstreamListeningBin
+class rtmpSourceBin : public baseRemoteSourceBin
 {
 public:
 
-    rtmpSourceBin(gstreamPipeline *parent, const char*location, const char*name="rtmpSource", unsigned toSecs=30):gstreamListeningBin(name,parent),
-        m_q2(this,"q2forrtmpsrc"), m_progress(this)
+    rtmpSourceBin(gstreamPipeline *parent, const char*location, const char*name="rtmpSource", unsigned toSecs=30):baseRemoteSourceBin(name,parent)
     {
         pluginContainer<GstElement>::AddPlugin("rtmpsrc","rtmpsrc");
         pluginContainer<GstElement>::AddPlugin("flvdemux","depay2");
@@ -92,9 +104,5 @@ public:
     }
 
 
-protected:
-
-    gstQueue2 m_q2;
-    gstFrameBufferProgress m_progress;
 
 };

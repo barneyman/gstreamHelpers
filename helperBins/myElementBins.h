@@ -36,6 +36,7 @@ public:
 
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("progressreport"), 
             "update-freq", frequencyS, 
+            "silent", frequencyS?FALSE:TRUE,
             NULL);
 
         AddGhostPads("progressreport","progressreport");
