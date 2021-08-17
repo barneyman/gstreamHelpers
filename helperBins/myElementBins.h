@@ -143,6 +143,7 @@ public:
 
 };
 
+#define _DATA_PTS_PROBE
 
 
 // muxers need threads on their sinks, but they connect late
@@ -200,6 +201,44 @@ public:
         g_signal_connect (pluginContainer<GstElement>::FindNamedPlugin("multiqueueDemux"), "overrun", G_CALLBACK (staticBufferOverrun), this);
 
 
+#ifdef _DATA_PTS_PROBE
+
+        for(auto each=m_ghostPadsSinks.begin();each!=m_ghostPadsSinks.end();each++)
+        {
+            long probe=gst_pad_add_probe(GST_PAD(*each),GST_PAD_PROBE_TYPE_BUFFER,staticPTSprobeSINK,this,NULL);
+            if(probe)
+            {
+                m_padPTSprobes.push_back(std::pair<GstPad*,long>(GST_PAD(*each),probe));
+            }
+        }
+
+        for(auto each=m_ghostPadsSrcs.begin();each!=m_ghostPadsSrcs.end();each++)
+        {
+            long probe=gst_pad_add_probe(GST_PAD(*each),GST_PAD_PROBE_TYPE_BUFFER,staticPTSprobeSRC,this,NULL);
+            if(probe)
+            {
+                m_padPTSprobes.push_back(std::pair<GstPad*,long>(GST_PAD(*each),probe));
+            }
+        }
+
+
+#endif
+
+
+    }
+
+    ~gstMultiQueueBin()
+    {
+#ifdef _DATA_PTS_PROBE
+
+        for(auto each=m_padPTSprobes.begin();each!=m_padPTSprobes.end();each++)
+        {
+            gst_pad_remove_probe(each->first,each->second);
+        }
+
+
+#endif
+
     }
 
 
@@ -215,6 +254,41 @@ protected:
         // TODO find out which buffer is full
         GST_ERROR_OBJECT (this, "buffer exhausted %s", Name());
     }
+
+
+#ifdef _DATA_PTS_PROBE
+
+    std::vector<std::pair<GstPad*,long>> m_padPTSprobes;
+
+
+    static GstPadProbeReturn staticPTSprobeSINK (GstPad * pad,GstPadProbeInfo * info,gpointer user_data)
+    {
+        gstMultiQueueBin*ptr=(gstMultiQueueBin*)user_data;
+        return ptr->PTSprobe(pad,info, "sink");
+    }
+
+    static GstPadProbeReturn staticPTSprobeSRC (GstPad * pad,GstPadProbeInfo * info,gpointer user_data)
+    {
+        gstMultiQueueBin*ptr=(gstMultiQueueBin*)user_data;
+        return ptr->PTSprobe(pad,info, "src");
+    }
+
+
+
+    GstPadProbeReturn PTSprobe (GstPad * pad,GstPadProbeInfo * info, const char*direction)
+    {
+        GstBuffer *bf=gst_pad_probe_info_get_buffer (info);
+
+
+        GST_ERROR_OBJECT (this, "pad ptsprobe '%s:%s' PTS= %" GST_TIME_FORMAT " dur= %" GST_TIME_FORMAT "", direction, GST_ELEMENT_NAME(pad), GST_TIME_ARGS(bf->pts), GST_TIME_ARGS(bf->duration));
+
+
+        return GST_PAD_PROBE_OK ;
+    }
+
+
+#endif
+
 
 };
 
