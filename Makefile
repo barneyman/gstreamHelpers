@@ -16,9 +16,9 @@ HELPERAR = gstreamEdits.o gstreamBin.o gstreamPipeline.o
 HELPERLIB = libgstreamHelpers.a
 HELPERHEADERS = gstreamPipeline.h gstreamEdits.h gstreamBin.h
 
-MYPLUGINSSRC = myplugins/gstjsoninject.c myplugins/gstjsontopango.c myplugins/gstnmeasource.c myplugins/nmealoop.cpp myplugins/gstmybin.c myplugins/gstjsonparse.c
+MYPLUGINSSRC = $(wildcard ./myplugins/*.c)
 MYPLUGINSHEAD = $(wildcard ./myplugins/*.h)
-MYPLUGINSAR = gstjsoninject.o gstjsontopango.o gstnmeasource.o nmealoop.o gstmybin.o gstjsonparse.o
+MYPLUGINSAR = gstjsoninject.o gstjsontopango.o gstnmeasource.o nmealoop.o gstmybin.o gstjsonparse.o gstptsnormalise.o
 MYPLUGINSOBJ = $(MYPLUGINSSRC:.cc=.o)
 MYPLUGINSLIB = libmyplugins.a
 
