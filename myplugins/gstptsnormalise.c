@@ -178,11 +178,6 @@ gst_ptsnormalise_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
 {
   Gstptsnormalise *filter = GST_PTSNORMALISE (base);
 
-  if (GST_CLOCK_TIME_IS_VALID (GST_BUFFER_TIMESTAMP (outbuf)))
-    gst_object_sync_values (GST_OBJECT (filter), GST_BUFFER_TIMESTAMP (outbuf));
-
-  /* FIXME: do something interesting here.  This simply copies the source
-   * to the destination. */
 
   if(filter->normal==GST_CLOCK_TIME_NONE)
   {
@@ -190,7 +185,18 @@ gst_ptsnormalise_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
     filter->normal=outbuf->pts;
   }
 
-  outbuf->pts-=filter->normal;
+  //outbuf->dts=outbuf->pts-=filter->normal;
+
+
+  if (GST_CLOCK_TIME_IS_VALID (GST_BUFFER_TIMESTAMP (outbuf)))
+    gst_object_sync_values (GST_OBJECT (filter), GST_BUFFER_TIMESTAMP (outbuf));
+
+  /* FIXME: do something interesting here.  This simply copies the source
+   * to the destination. */
+
+  
+
+  GST_DEBUG_OBJECT (filter, "normalised PTS= %" GST_TIME_FORMAT " dts %" GST_TIME_FORMAT "" , GST_TIME_ARGS(outbuf->pts),GST_TIME_ARGS(outbuf->dts));
 
   return GST_FLOW_OK;
 }

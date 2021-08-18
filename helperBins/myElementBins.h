@@ -34,10 +34,19 @@ public:
     {
         pluginContainer<GstElement>::AddPlugin("progressreport");
 
-        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("progressreport"), 
-            "update-freq", frequencyS, 
-            "silent", frequencyS?FALSE:TRUE,
-            NULL);
+        if(frequencyS)
+        {
+            g_object_set (pluginContainer<GstElement>::FindNamedPlugin("progressreport"), 
+                "update-freq", frequencyS, 
+                NULL);
+        }
+        else
+        {
+            g_object_set (pluginContainer<GstElement>::FindNamedPlugin("progressreport"), 
+                "silent", TRUE,
+                NULL);
+            
+        }
 
         AddGhostPads("progressreport","progressreport");
 
@@ -173,8 +182,8 @@ public:
 
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("multiqueueDemux"), 
             "max-size-buffers", 0,
-            "max-size-bytes", numberOfSeconds*4000000,
-            "max-size-time", 0, //numberOfSeconds*GST_SECOND,
+            "max-size-bytes", 0,//numberOfSeconds*4000000,
+            "max-size-time", numberOfSeconds*GST_SECOND,
             "high-watermark", 0.75,
             NULL);
 
@@ -280,7 +289,7 @@ protected:
         GstBuffer *bf=gst_pad_probe_info_get_buffer (info);
 
 
-        GST_ERROR_OBJECT (this, "pad ptsprobe '%s:%s' PTS= %" GST_TIME_FORMAT " dur= %" GST_TIME_FORMAT "", direction, GST_ELEMENT_NAME(pad), GST_TIME_ARGS(bf->pts), GST_TIME_ARGS(bf->duration));
+        GST_DEBUG_OBJECT (this, "pad ptsprobe '%s:%s' PTS= %" GST_TIME_FORMAT " dur= %" GST_TIME_FORMAT "", direction, GST_ELEMENT_NAME(pad), GST_TIME_ARGS(bf->pts), GST_TIME_ARGS(bf->duration));
 
 
         return GST_PAD_PROBE_OK ;
