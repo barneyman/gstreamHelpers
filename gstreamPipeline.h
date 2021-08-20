@@ -1260,7 +1260,7 @@ protected:
         {
             GST_WARNING_OBJECT (m_pipeline, "%s (avg in %d out %d) Room used %d %% %lu ms",
                 GST_OBJECT_NAME (msg->src),
-                in, out, percent, left);
+                in, out, percent, left==GST_CLOCK_TIME_NONE?0:left);
         }
 
 
