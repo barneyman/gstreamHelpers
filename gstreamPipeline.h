@@ -550,7 +550,7 @@ public:
                     // worked
                     break;
                 case GST_STATE_CHANGE_FAILURE:
-                    GST_ERROR_OBJECT(m_pipeline, "Unable to get pipeline state.");
+                    GST_ERROR_OBJECT(m_pipeline, "GST_STATE_CHANGE_FAILURE in AwaitState");
                     DumpGraph("GetState Failed bailing");
                     return false;
                 case GST_STATE_CHANGE_ASYNC:
@@ -600,7 +600,7 @@ public:
                     // worked
                     break;
                 case GST_STATE_CHANGE_FAILURE:
-                    GST_ERROR_OBJECT(m_pipeline, "Unable to get pipeline state.");
+                    GST_ERROR_OBJECT(m_pipeline, "GST_STATE_CHANGE_FAILURE in ChangeStateAndWait");
                     DumpGraph("GetState Failed");
                     return false;
                 case GST_STATE_CHANGE_ASYNC:
