@@ -1248,12 +1248,12 @@ protected:
 
         if(percent==100)
         {
-            GST_WARNING_OBJECT (m_pipeline, "Queue %s is full",
+            GST_WARNING_OBJECT (m_pipeline, "Queue %s is empty",
                 GST_OBJECT_NAME (msg->src));
         }
         else if(!percent)
         {
-            GST_WARNING_OBJECT (m_pipeline, "Queue %s is empty",// - avail %.1f s left ( %d %d )\n",
+            GST_WARNING_OBJECT (m_pipeline, "Queue %s is full",// - avail %.1f s left ( %d %d )\n",
                 GST_OBJECT_NAME (msg->src));
         }
         else
