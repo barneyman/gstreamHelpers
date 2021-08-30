@@ -79,6 +79,13 @@ public:
             "timeout",toSecs,
             NULL);
 
+        // https://lists.freedesktop.org/archives/gstreamer-devel/2018-June/068076.html
+        // set it as a live source
+        gst_base_src_set_live(
+            GST_BASE_SRC(pluginContainer<GstElement>::FindNamedPlugin("rtmpsrc")), 
+            TRUE );
+
+
         ConnectLate(    pluginContainer<GstElement>::FindNamedPlugin("depay2"),
                         pluginContainer<GstElement>::FindNamedPlugin("parser2"));
 
