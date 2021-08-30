@@ -60,6 +60,18 @@ protected:
     }
 
 
+    GstClockTime GetRunningTime()
+    {
+
+        GstClockTime baseTime=gst_element_get_base_time(GST_ELEMENT(m_myBin));        
+        GstClock *clock=gst_element_get_clock(GST_ELEMENT(m_myBin));
+        GstClockTime currentTime=gst_clock_get_time(clock);
+        gst_object_unref(clock);
+
+        return currentTime-baseTime;
+    }
+
+
 protected:
 
     pluginContainer<GstElement> *m_parent;
