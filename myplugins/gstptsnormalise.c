@@ -85,6 +85,11 @@ static void gst_ptsnormalise_get_property (GObject * object,
 static GstFlowReturn gst_ptsnormalise_transform_ip (GstBaseTransform *
     base, GstBuffer * outbuf);
 
+static gboolean
+src_event (GstBaseTransform * trans,
+           GstEvent * event);
+
+
 /* GObject vmethod implementations */
 
 /* initialize the ptsnormalise's class */
@@ -113,6 +118,11 @@ gst_ptsnormalise_class_init (GstptsnormaliseClass * klass)
   GST_BASE_TRANSFORM_CLASS (klass)->transform_ip =
       GST_DEBUG_FUNCPTR (gst_ptsnormalise_transform_ip);
 
+  // looking for events
+  GST_BASE_TRANSFORM_CLASS (klass)->src_event =
+      GST_DEBUG_FUNCPTR (src_event);
+
+
   /* debug category for fltering log messages
    *
    * FIXME:exchange the string 'Template ptsnormalise' with your description
@@ -129,6 +139,7 @@ gst_ptsnormalise_init (Gstptsnormalise * filter)
 {
   filter->silent = FALSE;
   filter->normal = GST_CLOCK_TIME_NONE;
+  filter->segment_start = GST_CLOCK_TIME_NONE;
 
   GstBaseTransform *base=GST_BASE_TRANSFORM(filter);
 
@@ -171,6 +182,51 @@ gst_ptsnormalise_get_property (GObject * object, guint prop_id,
 
 /* GstBaseTransform vmethod implementations */
 
+
+static gboolean
+src_event (GstBaseTransform * trans,
+           GstEvent * event)
+{
+
+  Gstptsnormalise *filter = GST_PTSNORMALISE (trans);
+
+  gboolean ret;
+
+  GST_WARNING_OBJECT (trans, "handling event %p %" GST_PTR_FORMAT, event, event);
+
+  switch (GST_EVENT_TYPE (event)) {
+    case GST_EVENT_SEGMENT:
+      {
+          const GstSegment *seg=NULL;
+          gst_event_parse_segment (event,&seg) ;
+
+          GST_WARNING_OBJECT (trans, "Seg= %" GST_SEGMENT_FORMAT " ", seg);
+
+          filter->segment_start=seg->start;
+      }
+      break;
+    case GST_EVENT_SEEK:
+      break;
+    case GST_EVENT_NAVIGATION:
+      break;
+    case GST_EVENT_QOS:
+    {
+      gdouble proportion;
+      GstClockTimeDiff diff;
+      GstClockTime timestamp;
+
+      gst_event_parse_qos (event, NULL, &proportion, &diff, &timestamp);
+      gst_base_transform_update_qos (trans, proportion, diff, timestamp);
+      break;
+    }
+    default:
+      break;
+  }
+
+  ret = gst_pad_push_event (trans->sinkpad, event);
+
+  return ret;}           
+
 /* this function does the actual processing
  */
 static GstFlowReturn
@@ -178,14 +234,12 @@ gst_ptsnormalise_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
 {
   Gstptsnormalise *filter = GST_PTSNORMALISE (base);
 
-
-  if(filter->normal==GST_CLOCK_TIME_NONE)
+  if(filter->segment_start==GST_CLOCK_TIME_NONE)
   {
-    // first time round
-    filter->normal=outbuf->pts;
+    filter->segment_start=outbuf->pts;
   }
 
-  //outbuf->dts=outbuf->pts-=filter->normal;
+  // get running time
 
 
   if (GST_CLOCK_TIME_IS_VALID (GST_BUFFER_TIMESTAMP (outbuf)))
@@ -194,7 +248,15 @@ gst_ptsnormalise_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
   /* FIXME: do something interesting here.  This simply copies the source
    * to the destination. */
 
-  
+  GstElement *el=GST_ELEMENT(base);
+
+  GST_DEBUG_OBJECT (filter, "RAW PTS= %" GST_TIME_FORMAT " dts %" GST_TIME_FORMAT "" , GST_TIME_ARGS(outbuf->pts),GST_TIME_ARGS(outbuf->dts));
+
+  GstClockTime nowish=gst_clock_get_time(el->clock);
+  GstClockTime runningTime=nowish-gst_element_get_base_time(el);
+
+  outbuf->duration=GST_CLOCK_TIME_NONE;
+  outbuf->dts=outbuf->pts=filter->segment_start+runningTime;  
 
   GST_DEBUG_OBJECT (filter, "normalised PTS= %" GST_TIME_FORMAT " dts %" GST_TIME_FORMAT "" , GST_TIME_ARGS(outbuf->pts),GST_TIME_ARGS(outbuf->dts));
 

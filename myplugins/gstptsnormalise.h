@@ -37,7 +37,7 @@ struct _Gstptsnormalise {
 
   gboolean silent;
 
-  GstClockTime normal;
+  GstClockTime normal, segment_start;
 };
 
 void ptsnormalise_registerRunTimePlugin();

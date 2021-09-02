@@ -976,7 +976,7 @@ protected:
                     genericMessageHandler(msg,"StreamStatus");
                     break;
                 case GST_MESSAGE_NEW_CLOCK :
-                    genericMessageHandler(msg,"NewClock");
+                    newClockMessageHandler(msg);
                     break;
                 case GST_MESSAGE_LATENCY :
                     genericMessageHandler(msg,"Latency");
@@ -1098,6 +1098,7 @@ public:
 
             if(clockType!=(int)GST_CLOCK_TYPE_REALTIME)
             {
+                GST_WARNING_OBJECT (m_pipeline, "Could not fix clock for Epoch %s",GST_OBJECT_NAME (pipeClock));
                 gst_object_unref(pipeClock);
                 return GST_CLOCK_TIME_NONE;
 
@@ -1197,6 +1198,16 @@ public:
     }
 
 protected:
+
+    virtual void newClockMessageHandler(GstMessage*msg)
+    {
+        GstClock *clock;
+        gst_message_parse_new_clock (msg, &clock);
+        GST_WARNING_OBJECT (m_pipeline, "New clock %s",GST_OBJECT_NAME (clock));
+
+        //g_object_set(clock, "clock-type", GST_CLOCK_TYPE_REALTIME, NULL);        
+
+    }
 
     // virtual message handlers
     virtual void eosMessageHandler(GstMessage*msg)
