@@ -138,7 +138,7 @@ static void
 gst_ptsnormalise_init (Gstptsnormalise * filter)
 {
   filter->silent = FALSE;
-  filter->normal = GST_CLOCK_TIME_NONE;
+  filter->basetime = GST_CLOCK_TIME_NONE;
   filter->segment_start = GST_CLOCK_TIME_NONE;
 
   GstBaseTransform *base=GST_BASE_TRANSFORM(filter);
@@ -232,11 +232,15 @@ src_event (GstBaseTransform * trans,
 static GstFlowReturn
 gst_ptsnormalise_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
 {
+  
   Gstptsnormalise *filter = GST_PTSNORMALISE (base);
+  GstElement *el=GST_ELEMENT(base);
+
 
   if(filter->segment_start==GST_CLOCK_TIME_NONE)
   {
     filter->segment_start=outbuf->pts;
+    filter->basetime=gst_clock_get_time(el->clock);
   }
 
   // get running time
@@ -248,17 +252,22 @@ gst_ptsnormalise_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
   /* FIXME: do something interesting here.  This simply copies the source
    * to the destination. */
 
-  GstElement *el=GST_ELEMENT(base);
 
-  GST_DEBUG_OBJECT (filter, "RAW PTS= %" GST_TIME_FORMAT " dts %" GST_TIME_FORMAT "" , GST_TIME_ARGS(outbuf->pts),GST_TIME_ARGS(outbuf->dts));
+  if(!outbuf->offset || !(outbuf->offset_end%300))
+  {
+    GST_DEBUG_OBJECT (filter, "RAW PTS= %" GST_TIME_FORMAT " dts %" GST_TIME_FORMAT "" , GST_TIME_ARGS(outbuf->pts),GST_TIME_ARGS(outbuf->dts));
+  }
 
   GstClockTime nowish=gst_clock_get_time(el->clock);
-  GstClockTime runningTime=nowish-gst_element_get_base_time(el);
+  GstClockTime runningTime=nowish-filter->basetime;//gst_element_get_base_time(el);
 
   outbuf->duration=GST_CLOCK_TIME_NONE;
   outbuf->dts=outbuf->pts=filter->segment_start+runningTime;  
 
-  GST_DEBUG_OBJECT (filter, "normalised PTS= %" GST_TIME_FORMAT " dts %" GST_TIME_FORMAT "" , GST_TIME_ARGS(outbuf->pts),GST_TIME_ARGS(outbuf->dts));
+  if(!outbuf->offset || !(outbuf->offset_end%300))
+  {
+    GST_DEBUG_OBJECT (filter, "normalised PTS= %" GST_TIME_FORMAT " dts %" GST_TIME_FORMAT "" , GST_TIME_ARGS(outbuf->pts),GST_TIME_ARGS(outbuf->dts));
+  }
 
   return GST_FLOW_OK;
 }
