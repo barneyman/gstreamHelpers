@@ -3,7 +3,7 @@
 
 #include "gstreamPipeline.h"
 
-// TODO calls that leak
+// TODO calls that leak - https://gstreamer.freedesktop.org/documentation/coretracers/leaks.html?gi-language=c
 // gst_pad_query_caps
 // gst_element_request_pad
 
@@ -139,7 +139,7 @@ protected:
     virtual void noMoreToConnectTo(GstElement*);
 
 
-    // stollen from gstreamPipeline.h
+    // stolen from gstreamPipeline.h
     // TODO rationalise with gstreamPipeline.h
     bool ConnectSrcToSink(GstPad*srcPad, GstElement *sinkElement);
 
