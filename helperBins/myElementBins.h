@@ -208,8 +208,6 @@ public:
 
         AddGhostPads("multiqueueDemux","multiqueueDemux");
 
-        // connect to the overrun signal
-        g_signal_connect (pluginContainer<GstElement>::FindNamedPlugin("multiqueueDemux"), "overrun", G_CALLBACK (staticBufferOverrun), this);
 
 
 #ifdef _DATA_PTS_PROBE
