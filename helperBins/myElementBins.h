@@ -162,7 +162,9 @@ class gstMultiQueueBin : public gstreamBin
 
 public:
 
-    gstMultiQueueBin(pluginContainer<GstElement> *parent,unsigned numSinks, bool buffering=false, int numberOfSeconds=2, bool syncOnRunning=true, const char *name="multiQBin"):gstreamBin(name,parent)
+    gstMultiQueueBin(pluginContainer<GstElement> *parent,unsigned numSinks, bool buffering=false, int numberOfSeconds=2, bool syncOnRunning=true, const char *name="multiQBin"):
+        gstreamBin(name,parent),
+        m_owningPipeline(NULL)
     {
 
         // add a multiqueueMixer at the front
@@ -251,18 +253,17 @@ public:
     }
 
 
+
+
+
+    void setPipeline(gstreamPipeline *dad)
+    {
+        m_owningPipeline=dad;
+    }
+
+    gstreamPipeline *m_owningPipeline;
+
 protected:
-
-    static void staticBufferOverrun(GstElement *element,gpointer data)
-    {
-        return ((gstMultiQueueBin*)data)->bufferOverrun();
-    }
-
-    virtual void bufferOverrun()
-    {
-        // TODO find out which buffer is full
-        GST_ERROR_OBJECT (this, "buffer exhausted %s", Name());
-    }
 
 
 #ifdef _DATA_PTS_PROBE
