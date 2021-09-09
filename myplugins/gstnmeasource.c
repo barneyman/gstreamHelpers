@@ -578,7 +578,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 
   if(nmeasource->threadInfo.tsoffsetms)
   {
-    GstClockTime diff=abs(nmeasource->threadInfo.tsoffsetms)*(GST_SECOND/1000000);
+    GstClockTime diff=(GstClockTime)abs(nmeasource->threadInfo.tsoffsetms)*(GST_SECOND/1000);
     if(nmeasource->threadInfo.tsoffsetms>0)  
       pts+=(diff);
     else
