@@ -82,11 +82,12 @@ enum
   PROP_0,
   PROP_FRAME_RATE,
   PROP_USE_LOCALTIME,
-  PROP_PARENT
+  PROP_PARENT,
+  PROP_TS_OFFSET
 };
 
 #define DEFAULT_FRAMERATE 30
-
+#define DEFAULT_TSOFFSET  0
 
 
 /* pad templates */
@@ -159,19 +160,25 @@ gst_nmeasource_class_init (GstNmeaSourceClass * klass)
           1,30, DEFAULT_FRAMERATE,
           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));  
 
-
+/*
   g_object_class_install_property (gobject_class, PROP_USE_LOCALTIME,
       g_param_spec_boolean ("localtime", "localtime",
           "Use OS time", 
           FALSE,
           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));  
-
+*/
   g_object_class_install_property (gobject_class, PROP_PARENT,
       g_param_spec_pointer ("parent", "parent",
           "Parent gstPipeline ptr", 
           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));  
 
 
+
+  g_object_class_install_property (gobject_class, PROP_TS_OFFSET,
+      g_param_spec_int ("ts-offset-ms", "ts-offset-ms",
+          "ms to add to the subtitle meta", 
+          -10000,10000, DEFAULT_TSOFFSET,
+          (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));  
 
 }
 
@@ -184,6 +191,11 @@ gst_nmeasource_init (GstNmeaSource *nmeasource)
 
   nmeasource->threadInfo.useLocalTime=false;
   nmeasource->parent=NULL;
+  nmeasource->threadInfo.tsoffsetms=0;
+
+  nmeasource->threadInfo.frameRate=DEFAULT_FRAMERATE;
+  nmeasource->threadInfo.tsoffsetms=DEFAULT_TSOFFSET;
+  nmeasource->threadInfo.frameTimeDelta=(GST_SECOND/nmeasource->threadInfo.frameRate);
 
 
 }
@@ -197,6 +209,10 @@ gst_nmeasource_set_property (GObject * object, guint property_id,
   GST_INFO_OBJECT (nmeasource, "set_property");
 
   switch (property_id) {
+    case PROP_TS_OFFSET:
+      nmeasource->threadInfo.tsoffsetms= g_value_get_int (value);
+      break;
+
     case PROP_FRAME_RATE:
       nmeasource->threadInfo.frameRate= g_value_get_int (value);
       break;
@@ -222,6 +238,11 @@ gst_nmeasource_get_property (GObject * object, guint property_id,
   GST_INFO_OBJECT (nmeasource, "get_property");
 
   switch (property_id) {
+
+    case PROP_TS_OFFSET:
+      g_value_set_int (value, nmeasource->threadInfo.tsoffsetms);
+      break;
+
     case PROP_FRAME_RATE:
       g_value_set_int (value, nmeasource->threadInfo.frameRate);
       break;
@@ -333,8 +354,6 @@ gst_nmeasource_start (GstBaseSrc * src)
   nmeasource->threadInfo.sample.pts=0;
   nmeasource->threadInfo.framesFilled=0;
   nmeasource->threadInfo.runningTime=0;
-  nmeasource->threadInfo.frameRate=DEFAULT_FRAMERATE;
-  nmeasource->threadInfo.frameTimeDelta=(GST_SECOND/nmeasource->threadInfo.frameRate);
   nmeasource->waitId=NULL;
 
   // if i set this to true, i need to provide a clock to the pipeline
@@ -551,9 +570,20 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 #define _USE_PIEPLINE_TIME
 
 #ifdef _USE_PIEPLINE_TIME
-GstClockTime pts=0;
-if(nmeasource->parent)
-  pts=nmeasource->parent->GetTimeSinceEpoch();
+  GstClockTime pts=0;
+  if(nmeasource->parent)
+  {
+    pts=nmeasource->parent->GetTimeSinceEpoch();
+  }
+
+  if(nmeasource->threadInfo.tsoffsetms)
+  {
+    GstClockTime diff=abs(nmeasource->threadInfo.tsoffsetms)*(GST_SECOND/1000000);
+    if(nmeasource->threadInfo.tsoffsetms>0)  
+      pts+=(diff);
+    else
+      pts-=(diff);
+  }
 
   struct tm *info; time_t nowsecs=pts/GST_SECOND;
   info = gmtime(&nowsecs);
