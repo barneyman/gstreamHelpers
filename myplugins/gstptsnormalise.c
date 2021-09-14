@@ -209,6 +209,8 @@ src_event (GstBaseTransform * trans,
       break;
     case GST_EVENT_NAVIGATION:
       break;
+    case GST_EVENT_LATENCY:
+      return true;
     case GST_EVENT_QOS:
     {
       gdouble proportion;
