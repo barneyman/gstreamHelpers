@@ -478,6 +478,10 @@ public:
 
     }
 
+    void setLatency(GstClockTime lat)
+    {
+        gst_pipeline_set_latency(GST_PIPELINE(m_pipeline),lat);
+    }
 
 
     bool Run(unsigned long timeoutSeconds=0, bool doPreroll=true, bool doReady=true)
@@ -518,9 +522,18 @@ public:
         }
 
         GST_INFO_OBJECT (m_pipeline, "PLAY");
+
+        GstClockTime latency=gst_pipeline_get_latency(GST_PIPELINE(m_pipeline));
+
+        GST_WARNING_OBJECT (m_pipeline, "Pipeline Start Latency = %" GST_TIME_FORMAT "", GST_TIME_ARGS(latency));
+
         DumpGraph("Playing");
 
         internalRun(timeoutSeconds);
+
+        latency=gst_pipeline_get_latency(GST_PIPELINE(m_pipeline));
+
+        GST_WARNING_OBJECT (m_pipeline, "Pipeline End Latency = %" GST_TIME_FORMAT "", GST_TIME_ARGS(latency));
 
         return true;
     }
@@ -1204,8 +1217,6 @@ protected:
         GstClock *clock;
         gst_message_parse_new_clock (msg, &clock);
         GST_WARNING_OBJECT (m_pipeline, "New clock %s",GST_OBJECT_NAME (clock));
-
-        //g_object_set(clock, "clock-type", GST_CLOCK_TYPE_REALTIME, NULL);        
 
     }
 
