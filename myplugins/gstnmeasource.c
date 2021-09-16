@@ -578,7 +578,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 
   if(nmeasource->threadInfo.tsoffsetms)
   {
-    GstClockTime diff=(GstClockTime)abs(nmeasource->threadInfo.tsoffsetms)*(GST_SECOND/1000);
+    GstClockTime diff=(GstClockTime)abs(nmeasource->threadInfo.tsoffsetms)*(GST_MSECOND);
     if(nmeasource->threadInfo.tsoffsetms>0)  
       pts+=(diff);
     else
@@ -596,7 +596,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
     info->tm_hour,
     info->tm_min,
     info->tm_sec,
-    (pts-(nowsecs*GST_SECOND))/1000000);
+    (pts-(nowsecs*GST_SECOND))/GST_MSECOND);
   copyOfData=timebuf;
 #else
     // get the mutex for shortest time
