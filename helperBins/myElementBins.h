@@ -541,7 +541,7 @@ public:
 class gstVideoScaleBin : public gstCapsFilterBaseBin
 {
 public:
-    gstVideoScaleBin(pluginContainer<GstElement> *parent,int width, int height, int offsetTop=0, int offsetLeft=0, const char *name="vidbox"):
+    gstVideoScaleBin(pluginContainer<GstElement> *parent,int width, int height, int offsetTop=0, int offsetLeft=0, const char *name="vidScaleBox"):
         gstCapsFilterBaseBin(parent, gst_caps_new_simple("video/x-raw","width",G_TYPE_INT, width,"height",G_TYPE_INT,height, NULL),name)
     {
         // optimisation - if offsets==0 then exclude the videobox, it will make the pipeline a lot quicker
