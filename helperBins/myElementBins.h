@@ -153,6 +153,7 @@ public:
 };
 
 #define _DATA_PTS_PROBE
+#define _EVENT_PTS_PROBE
 
 
 // muxers need threads on their sinks, but they connect late
@@ -221,9 +222,22 @@ public:
             }
         }
 
+        // for(auto each=m_ghostPadsSrcs.begin();each!=m_ghostPadsSrcs.end();each++)
+        // {
+        //     long probe=gst_pad_add_probe(GST_PAD(*each),GST_PAD_PROBE_TYPE_BUFFER,staticPTSprobeSRC,this,NULL);
+        //     if(probe)
+        //     {
+        //         m_padPTSprobes.push_back(std::pair<GstPad*,long>(GST_PAD(*each),probe));
+        //     }
+        // }
+
+#endif
+
+#ifdef _EVENT_PTS_PROBE
+
         for(auto each=m_ghostPadsSrcs.begin();each!=m_ghostPadsSrcs.end();each++)
         {
-            long probe=gst_pad_add_probe(GST_PAD(*each),GST_PAD_PROBE_TYPE_BUFFER,staticPTSprobeSRC,this,NULL);
+            long probe=gst_pad_add_probe(GST_PAD(*each),GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM,staticPTSprobeEventSRC,this,NULL);
             if(probe)
             {
                 m_padPTSprobes.push_back(std::pair<GstPad*,long>(GST_PAD(*each),probe));
@@ -234,11 +248,13 @@ public:
 #endif
 
 
+
+
     }
 
     ~gstMultiQueueBin()
     {
-#ifdef _DATA_PTS_PROBE
+#if defined( _DATA_PTS_PROBE ) || defined(_EVENT_PTS_PROBE)
 
         for(auto each=m_padPTSprobes.begin();each!=m_padPTSprobes.end();each++)
         {
@@ -281,19 +297,93 @@ protected:
         return ptr->PTSprobe(pad,info, "src");
     }
 
+    static void printtag(const GstTagList * list,const gchar * tag, gpointer user_data)
+    {
+        gstMultiQueueBin*ptr=(gstMultiQueueBin*)user_data;
+        GST_DEBUG_OBJECT (ptr, "tag '%s'", tag);
+    }
+
+
+
+
+
+    GstClockTime m_deltaTime, m_sourceStreamTime;
 
 
     GstPadProbeReturn PTSprobe (GstPad * pad,GstPadProbeInfo * info, const char*direction)
     {
         GstBuffer *bf=gst_pad_probe_info_get_buffer (info);
 
+        // on the first frame ....
+        if(m_owningPipeline && !bf->offset)
+        {
+            //m_owningPipeline->setLatency((500*GST_MSECOND));
+            m_sourceStreamTime=bf->pts;
 
-        GST_DEBUG_OBJECT (this, "pad ptsprobe '%s:%s' PTS= %" GST_TIME_FORMAT " dur= %" GST_TIME_FORMAT "", direction, GST_ELEMENT_NAME(pad), GST_TIME_ARGS(bf->pts), GST_TIME_ARGS(bf->duration));
+            m_deltaTime=m_owningPipeline->GetTimeSinceEpoch()-bf->pts;
+
+            GST_WARNING_OBJECT (this, "time offset START - rtc to pts is %" GST_TIME_FORMAT "", GST_TIME_ARGS(m_deltaTime));
+
+        }
+
+        if(m_owningPipeline && !bf->offset || !(bf->offset_end%300))
+        {
+            
+            GstClockTime nowDelta=m_owningPipeline->GetTimeSinceEpoch()-bf->pts;
+            GstClockTime drift=nowDelta>m_deltaTime?(nowDelta-m_deltaTime):(m_deltaTime-nowDelta);
+
+            GST_DEBUG_OBJECT (this, "pad ptsprobe '%s:%s'@ %" GST_TIME_FORMAT " PTS= %" GST_TIME_FORMAT 
+                " stream= %" GST_TIME_FORMAT  
+                " off %lu end %lu dur= %" GST_TIME_FORMAT " drift= %" GST_TIME_FORMAT "",
+                direction, GST_ELEMENT_NAME(pad), 
+                GST_TIME_ARGS(GetRunningTime()),
+                GST_TIME_ARGS(bf->pts), 
+                GST_TIME_ARGS(bf->dts-m_sourceStreamTime), 
+                bf->offset, bf->offset_end,
+                GST_TIME_ARGS(bf->duration),
+                GST_TIME_ARGS(drift) );
+
+        }
 
 
         return GST_PAD_PROBE_OK ;
     }
 
+
+#endif
+
+
+#ifdef _EVENT_PTS_PROBE
+
+
+    static GstPadProbeReturn staticPTSprobeEventSRC(GstPad * pad,GstPadProbeInfo * info,gpointer user_data)
+    {
+        gstMultiQueueBin*ptr=(gstMultiQueueBin*)user_data;
+
+        GstEvent *ev=gst_pad_probe_info_get_event(info);
+
+        switch(GST_EVENT_TYPE(ev) )
+        {
+            case GST_EVENT_SEGMENT:
+                {
+                    const GstSegment *seg=NULL;
+                    gst_event_parse_segment (ev,&seg) ;
+
+                    GST_WARNING_OBJECT (ptr, "pad '%s' Seg= %" GST_SEGMENT_FORMAT " ", GST_ELEMENT_NAME(pad), seg);
+                }
+                break;
+
+            case GST_EVENT_TAG:
+                break;
+
+            default:
+                GST_DEBUG_OBJECT (ptr, "pad '%s' %s", GST_ELEMENT_NAME(pad), GST_EVENT_TYPE_NAME(ev));
+                break;
+        }
+
+        return GST_PAD_PROBE_OK ;
+
+    }
 
 #endif
 

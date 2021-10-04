@@ -993,6 +993,11 @@ protected:
                     break;
                 case GST_MESSAGE_LATENCY :
                     genericMessageHandler(msg,"Latency");
+                    if(!gst_bin_recalculate_latency(GST_BIN(m_pipeline)))
+                    {
+                        GST_ERROR_OBJECT (m_pipeline, "Could not force latency");                        
+                    }
+                    ;
                     break;
                 case GST_MESSAGE_STREAM_START :
                     genericMessageHandler(msg,"StreamStart");
@@ -1022,6 +1027,10 @@ protected:
                 case GST_MESSAGE_EOS:
                     // flag and out
                     eosMessageHandler(msg);
+                    break;
+
+                case GST_MESSAGE_SEGMENT_START:
+                    genericMessageHandler(msg,"Segment Start");
                     break;
 
                 case GST_MESSAGE_BUFFERING:
@@ -1315,13 +1324,14 @@ protected:
     virtual void stateChangeMessageHandler(GstMessage*msg)
     {
         GstState old_state, new_state;
+        GstClockTime ck=GetTimeSinceEpoch();
         gst_message_parse_state_changed(msg, &old_state, &new_state, NULL);
-        GST_DEBUG_OBJECT (m_pipeline, "State change '%s' from '%s' to '%s'",GST_OBJECT_NAME (msg->src), gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
+        GST_DEBUG_OBJECT (m_pipeline, "State change '%s' from '%s' to '%s' @ %" GST_TIME_FORMAT "",GST_OBJECT_NAME (msg->src), gst_element_state_get_name (old_state), gst_element_state_get_name (new_state), GST_TIME_ARGS(ck));
 
         // catch our source
         if((GstElement*)(msg->src)==(GstElement*)m_pipeline)
         {
-            GST_INFO_OBJECT (m_pipeline, "PIPELINE State change '%s' -> '%s'",gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
+            GST_DEBUG_OBJECT (m_pipeline, "PIPELINE State change '%s' -> '%s'@ %" GST_TIME_FORMAT "",gst_element_state_get_name (old_state), gst_element_state_get_name (new_state),GST_TIME_ARGS(ck));
             pipelineStateChangeMessageHandler(msg);
             m_pipelineState=new_state;
         }
@@ -1334,7 +1344,6 @@ protected:
     {
         genericMessageHandler(msg,"Element");
     }
-
 
 
     void genericMessageHandler(GstMessage*msg, const char*text)
