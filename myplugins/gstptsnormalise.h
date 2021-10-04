@@ -36,8 +36,11 @@ struct _Gstptsnormalise {
   GstBaseTransform element;
 
   gboolean silent;
+  int clip_ms;
 
-  GstClockTime basetime, segment_start;
+  GstClockTime basetime_first_packet, segment_start;
+
+  GstSegment clippedSegment;
 };
 
 void ptsnormalise_registerRunTimePlugin();
