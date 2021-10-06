@@ -26,6 +26,37 @@ public:
 
 };
 
+class gstSleepBin : public gstIdentityBin
+{
+public:
+
+    gstSleepBin(pluginContainer<GstElement> *parent, unsigned millis):gstIdentityBin(parent)
+    {
+        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("identity"), 
+            // MICRO, not milli
+            "sleep-time", millis*1000, 
+            NULL);
+    }
+
+};
+
+class gstTimeOffsetBin : public gstIdentityBin
+{
+public:
+
+    gstTimeOffsetBin(pluginContainer<GstElement> *parent, int millis):gstIdentityBin(parent)
+    {
+        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("identity"), 
+            // NANO, not milli
+            "ts-offset", millis*GST_MSECOND, 
+            NULL);
+    }
+
+};
+
+
+
+
 // adds a progress report
 class gstFrameBufferProgress : public gstreamBin
 {
