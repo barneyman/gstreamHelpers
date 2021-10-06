@@ -478,9 +478,9 @@ public:
 
     }
 
-    void setLatency(GstClockTime lat)
+    void setLatency(GstClockTime latMillis)
     {
-        gst_pipeline_set_latency(GST_PIPELINE(m_pipeline),lat);
+        gst_pipeline_set_latency(GST_PIPELINE(m_pipeline),latMillis*GST_MSECOND);
     }
 
 
