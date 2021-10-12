@@ -90,32 +90,61 @@ class gstQueue : public gstreamBin
 public:
     gstQueue(pluginContainer<GstElement> *parent,const char *name):gstreamBin(name,parent)
     {
-        pluginContainer<GstElement>::AddPlugin("queue",name);
-        AddGhostPads(name,name);
+        pluginContainer<GstElement>::AddPlugin("queue");
+        AddGhostPads("queue","queue");
     }
 
 };
 
-
+// queue min-threshold before pushing thru the src
 class gstQueueMinimum : public gstQueue
 {
 public:
-    gstQueueMinimum(pluginContainer<GstElement> *parent,const char *name, unsigned minSecs, unsigned maxSecs=0):
-        gstQueue(parent,name)
+    gstQueueMinimum(pluginContainer<GstElement> *parent,const char *name, unsigned minMSecs, unsigned maxMSecs=0):
+        gstQueue(parent,name),
+        m_blockSrc(true)
     {
-        if(minSecs)
+        if(minMSecs)
         {
-            if(maxSecs<minSecs)
-                maxSecs=minSecs+5;
-            g_object_set (pluginContainer<GstElement>::FindNamedPlugin(name), 
-                "max-size-time", maxSecs*GST_SECOND, 
+            g_object_set (pluginContainer<GstElement>::FindNamedPlugin("queue"), 
+                "max-size-time", maxMSecs*GST_MSECOND, 
                 "max-size-buffers", 0,
                 "max-size-bytes", 0,
-                "min-threshold-time", GST_SECOND*minSecs,
+                "min-threshold-time", GST_MSECOND*minMSecs,
                 NULL);
         }       
+        // attach to the src (to block) and the overrun (to release)
+        g_signal_connect(pluginContainer<GstElement>::FindNamedPlugin("queue"),"running", G_CALLBACK(staticBufferRunning), this);
+
+        
+        // GList *sourcePads=pluginContainer<GstElement>::FindNamedPlugin("queue")->srcpads;
+        // if(sourcePads)
+        // {
+        //     GstPad *eachSourcePad=(GstPad *)sourcePads->data;
+        //     //gst_pad_add_probe (eachSourcePad, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM, (GstPadProbeCallback) staticPadBlocked, this, NULL);
+        // }
 
     }
+
+    static void staticBufferRunning(GstElement * queue, gpointer data)
+    {
+        // release the lock
+        gstQueueMinimum* me=(gstQueueMinimum*)data;
+        me->m_blockSrc=false;
+    }
+
+    // static GstPadProbeReturn staticPadBlocked (GstPad *pad,GstPadProbeInfo *info, gpointer data)
+    // {
+    //     gstQueueMinimum* me=(gstQueueMinimum*)data;
+    //     if(!me->m_blockSrc)
+    //     {
+    //         return GST_PAD_PROBE_REMOVE;
+    //     }
+
+    //     return GST_PAD_PROBE_OK;
+    // }
+
+    volatile bool m_blockSrc;
 
 };
 
