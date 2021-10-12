@@ -625,8 +625,9 @@ protected:
 class gstFrameRateBin :  public gstCapsFilterBaseBin
 {
 public:
-    gstFrameRateBin(gstreamPipeline *parent,unsigned framerate,const char *name="frameRateBin"):
-        gstCapsFilterBaseBin(parent,gst_caps_new_simple("video/x-raw","framerate",GST_TYPE_FRACTION, framerate,1 , NULL),name)
+    // framerate 12 framerateDivisor 2 would be 12.5 fps
+    gstFrameRateBin(gstreamPipeline *parent,unsigned framerate, unsigned framerateDivisor=1,const char *name="frameRateBin"):
+        gstCapsFilterBaseBin(parent,gst_caps_new_simple("video/x-raw","framerate",GST_TYPE_FRACTION, framerate,framerateDivisor, NULL),name)
     {
         pluginContainer<GstElement>::AddPlugin("videorate");
 
