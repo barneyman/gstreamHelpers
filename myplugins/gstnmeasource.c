@@ -589,7 +589,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   info = gmtime(&nowsecs);
 
   char timebuf[128];
-  snprintf(timebuf,sizeof(timebuf)-1, "{\"utc\":\"%d-%02d-%02dT%02d:%02d:%02d.%03luZ\"}",
+  snprintf(timebuf,sizeof(timebuf)-1, "{\"data-type\":\"datetime\",\"utc\":\"%d-%02d-%02dT%02d:%02d:%02d.%03luZ\"}",
     info->tm_year+1900,
     info->tm_mon+1,
     info->tm_mday,
