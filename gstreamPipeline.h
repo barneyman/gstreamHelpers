@@ -859,7 +859,10 @@ protected:
     GstClockTime GetRunningTime()
     {
         if(CurrentPipelineState()!=GST_STATE_PLAYING)
+        {
+            GST_ERROR_OBJECT (m_pipeline, "Asked for running time before playing");
             return GST_CLOCK_TIME_NONE;
+        }
 
         GstClockTime baseTime=gst_element_get_base_time(GST_ELEMENT(m_pipeline));        
         GstClock *clock=gst_pipeline_get_clock(GST_PIPELINE(m_pipeline));
@@ -1103,7 +1106,7 @@ public:
             gst_object_unref(pipeClock);
             return ret;
         }
-
+        GST_ERROR_OBJECT (m_pipeline, "GetTimeSinceEpoch returning NONE");
         return GST_CLOCK_TIME_NONE;
     }
 
@@ -1120,7 +1123,7 @@ public:
 
             if(clockType!=(int)GST_CLOCK_TYPE_REALTIME)
             {
-                GST_WARNING_OBJECT (m_pipeline, "Could not fix clock for Epoch %s",GST_OBJECT_NAME (pipeClock));
+                GST_ERROR_OBJECT (m_pipeline, "Could not fix clock for Epoch %s",GST_OBJECT_NAME (pipeClock));
                 gst_object_unref(pipeClock);
                 return GST_CLOCK_TIME_NONE;
 
@@ -1151,7 +1154,7 @@ public:
             }
             gst_object_unref(pipeClock);
         }
-
+        GST_ERROR_OBJECT (m_pipeline, "FixTimeforEpoch returning NONE");
         return GST_CLOCK_TIME_NONE;
 
     }
@@ -1324,14 +1327,17 @@ protected:
     virtual void stateChangeMessageHandler(GstMessage*msg)
     {
         GstState old_state, new_state;
-        GstClockTime ck=GetTimeSinceEpoch();
         gst_message_parse_state_changed(msg, &old_state, &new_state, NULL);
-        GST_DEBUG_OBJECT (m_pipeline, "State change '%s' from '%s' to '%s' @ %" GST_TIME_FORMAT "",GST_OBJECT_NAME (msg->src), gst_element_state_get_name (old_state), gst_element_state_get_name (new_state), GST_TIME_ARGS(ck));
 
+#ifdef _DEBUG
         // catch our source
+        GstClockTime ck=GetTimeSinceEpoch();
+#endif        
         if((GstElement*)(msg->src)==(GstElement*)m_pipeline)
         {
+#ifdef _DEBUG
             GST_DEBUG_OBJECT (m_pipeline, "PIPELINE State change '%s' -> '%s'@ %" GST_TIME_FORMAT "",gst_element_state_get_name (old_state), gst_element_state_get_name (new_state),GST_TIME_ARGS(ck));
+#endif            
             pipelineStateChangeMessageHandler(msg);
             m_pipelineState=new_state;
         }
