@@ -85,7 +85,8 @@ enum
 {
   PROP_0,
   PROP_SILENT,
-  PROP_SUBTITLE_FORMAT
+  PROP_SUBTITLE_FORMAT,
+  PROP_TIMEOFFSET_NS
 };
 
 /* the capabilities of the inputs and outputs.
@@ -95,13 +96,13 @@ enum
 static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("vidsink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS ("video/x-h264")
+    GST_STATIC_CAPS ("video/x-raw")
     );
 
 static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("vidsrc",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS ("video/x-h264")
+    GST_STATIC_CAPS ("video/x-raw")
     );
 
 // unfortunately, the matroskamux will accept utf8, but the demuxer will spit out pango!
@@ -167,6 +168,9 @@ gst_json_inject_class_init (GstjsonInjectClass * klass)
       g_param_spec_boolean ("subformat", "SubFormat", "UTF8 TRUE, unknown FALSE",
           FALSE, G_PARAM_READWRITE));
 
+  g_object_class_install_property (gobject_class, PROP_TIMEOFFSET_NS,
+      g_param_spec_uint64 ("offset", "offset", "baseline offset",
+          0,-1,0, G_PARAM_READWRITE));
 
   gst_element_class_set_details_simple(gstelement_class,
     "jsonInject",
@@ -234,7 +238,7 @@ gst_json_inject_init (GstjsonInject * filter)
 
   filter->frameNumber=0;
 
-
+  filter->offset=0;
 
 
 
@@ -357,6 +361,9 @@ gst_json_inject_set_property (GObject * object, guint prop_id,
     case PROP_SILENT:
       filter->silent = g_value_get_boolean (value);
       break;
+    case PROP_TIMEOFFSET_NS:
+      filter->offset=g_value_get_uint64 (value);
+      break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
       break;
@@ -375,6 +382,9 @@ gst_json_inject_get_property (GObject * object, guint prop_id,
       break;
     case PROP_SILENT:
       g_value_set_boolean (value, filter->silent);
+      break;
+    case PROP_TIMEOFFSET_NS:
+      g_value_set_uint64 (value, filter->offset);
       break;
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, prop_id, pspec);
@@ -808,7 +818,9 @@ gst_json_inject_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   GstFlowReturn ret;
 
   std::string copyOfData;
-  GstClockTime pts;
+  GstClockTime pts=GST_BUFFER_PTS(buf);
+
+/*  
     // get the mutex for shortest time
   {
     std::lock_guard<std::mutex> guard(filter->threadInfo.gpsMutex);
@@ -818,6 +830,25 @@ gst_json_inject_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
 
     // releasd the mutex
   }
+*/
+
+pts+=filter->offset;
+struct tm *info; time_t nowsecs=(pts)/GST_SECOND;
+  info = gmtime(&nowsecs);
+
+  time_t millis=(pts-(nowsecs*GST_SECOND))/GST_MSECOND;
+
+  char timebuf[256];
+  snprintf(timebuf,sizeof(timebuf)-1, "{\"data-type\":\"datetime\",\"utc\":\"%d-%02d-%02dT%02d:%02d:%02d.%03luZ\"}",
+    info->tm_year+1900,
+    info->tm_mon+1,
+    info->tm_mday,
+    info->tm_hour,
+    info->tm_min,
+    info->tm_sec,
+    millis);
+  
+  copyOfData=timebuf;
 
   int len=copyOfData.length();
 
@@ -836,13 +867,13 @@ gst_json_inject_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
 
 
   //GST_INFO_OBJECT (filter, "pushing '%s' pts %lu video pts (%lu)", copyOfData.c_str(), pts, GST_BUFFER_PTS(buf));
-  g_print("pushing pts %" GST_TIME_FORMAT " video pts - duration %" GST_TIME_FORMAT " - base time %" GST_TIME_FORMAT " start time %" GST_TIME_FORMAT "\n", 
-    GST_TIME_ARGS(GST_BUFFER_PTS(buf)), 
-    GST_TIME_ARGS(GST_BUFFER_DURATION(buf)), 
-    GST_TIME_ARGS(gst_element_get_base_time (GST_ELEMENT(parent))),
-    GST_TIME_ARGS(gst_element_get_start_time (GST_ELEMENT(parent)))
-    );
-
+  // g_print("pushing pts %" GST_TIME_FORMAT " video pts - duration %" GST_TIME_FORMAT " - base time %" GST_TIME_FORMAT " start time %" GST_TIME_FORMAT "\n", 
+  //   GST_TIME_ARGS(GST_BUFFER_PTS(buf)), 
+  //   GST_TIME_ARGS(GST_BUFFER_DURATION(buf)), 
+  //   GST_TIME_ARGS(gst_element_get_base_time (GST_ELEMENT(parent))),
+  //   GST_TIME_ARGS(gst_element_get_start_time (GST_ELEMENT(parent)))
+  //   );
+  g_print("subs %s\n",timebuf);
 
   if(!NegotiateSubCaps(filter))
   {

@@ -82,6 +82,8 @@ struct _GstjsonInject
   // so we can express the linked pins
   GList *videoSources, *videoSinks;
 
+  GstClockTime offset;
+
   unsigned long frameNumber;
 
   struct nmea_threadInfo threadInfo;
