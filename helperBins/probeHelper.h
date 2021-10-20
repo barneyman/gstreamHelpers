@@ -6,16 +6,18 @@ class padProber
 protected:
 
     pluginContainer<GstElement> *m_parent;
+    GstPadProbeType m_probeType;
 
 public:
 
-    padProber(pluginContainer<GstElement> *parent):
-        m_parent(parent)
+    padProber(pluginContainer<GstElement> *parent, GstPadProbeType probeType=GST_PAD_PROBE_TYPE_DATA_DOWNSTREAM):
+        m_parent(parent),
+        m_probeType(probeType)
     {
 
     }
 
-    bool attachProbes(const char*elementName, unsigned probetype=GST_PAD_PROBE_TYPE_DATA_DOWNSTREAM, bool src=true)
+    bool attachProbes(const char*elementName, bool src=true)
     {
         // find the element
         GstElement *found=m_parent->FindNamedPlugin(elementName);
@@ -33,7 +35,7 @@ public:
             GstPad *eachSourcePad=(GstPad *)interestedPads->data;
             //GST_INFO_OBJECT (m_parent, "adding BLOCK to %s:%s",GST_ELEMENT_NAME(found),GST_ELEMENT_NAME(eachSourcePad));
             
-            gst_pad_add_probe(eachSourcePad,GST_PAD_PROBE_TYPE_DATA_DOWNSTREAM, staticPadProbe, this, NULL);
+            gst_pad_add_probe(eachSourcePad, m_probeType, staticPadProbe, this, NULL);
             // if(!parent->BlockPadForSeek(eachSourcePad))
             // {
             //     GST_ERROR_OBJECT (m_parent, "BlockPadForSeek failed for %s:%s", GST_ELEMENT_NAME(mq),GST_ELEMENT_NAME(eachSourcePad));                    
@@ -52,7 +54,7 @@ public:
     virtual GstPadProbeReturn padProbe(GstPad * pad,GstPadProbeInfo * info)
     {
 
-        switch(info->type & GST_PAD_PROBE_TYPE_DATA_DOWNSTREAM)
+        switch(info->type & (unsigned)m_probeType)
         {
             case GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM:
                 eventProbe(pad,info);
@@ -67,7 +69,7 @@ public:
                 break;
 
             default:
-                g_printerr ("padProbe unexpected probetype %0x\n", info->type & GST_PAD_PROBE_TYPE_DATA_DOWNSTREAM);                    
+                g_printerr ("padProbe unexpected probetype %0x\n", info->type & m_probeType);                    
                 break;
 
         }
@@ -103,13 +105,9 @@ class ptsPadProber : public padProber
 public:
    
     ptsPadProber(pluginContainer<GstElement> *parent):
-        padProber(parent),m_lastSeen(GST_CLOCK_TIME_NONE)
+        padProber(parent, GST_PAD_PROBE_TYPE_BUFFER),m_lastSeen(GST_CLOCK_TIME_NONE)
     {
 
-    }
-
-    virtual void eventProbe(GstPad * pad,GstPadProbeInfo * info)
-    {
     }
 
     virtual void bufferProbe(GstPad * pad,GstPadProbeInfo * info)
