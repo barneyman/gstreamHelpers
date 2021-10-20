@@ -240,6 +240,8 @@ gst_json_inject_init (GstjsonInject * filter)
 
   filter->offset=0;
 
+  filter->ptsSeenLast-GST_CLOCK_TIME_NONE;
+
 
 
 }
@@ -861,19 +863,28 @@ struct tm *info; time_t nowsecs=(pts)/GST_SECOND;
   // this locks us to the framerate of the video source
   gst_buffer_copy_into(textBuffer, buf, GST_BUFFER_COPY_TIMESTAMPS ,0,-1);
 
+  if(GST_BUFFER_PTS(buf)==filter->ptsSeenLast)
+  {
+    GST_ERROR_OBJECT (filter, "Seen a duplicated PTS %" GST_TIME_FORMAT " - this will generate a 'Buffer has no PTS.' error downstream\r", GST_TIME_ARGS(GST_BUFFER_PTS(buf)));
+  }
+
+  filter->ptsSeenLast=GST_BUFFER_PTS(buf);
+
+
   //textBuffer->offset=0;
   //textBuffer->duration= GST_CLOCK_TIME_NONE;
   //textBuffer->duration=GST_SECOND/5;
 
 
   //GST_INFO_OBJECT (filter, "pushing '%s' pts %lu video pts (%lu)", copyOfData.c_str(), pts, GST_BUFFER_PTS(buf));
-  // g_print("pushing pts %" GST_TIME_FORMAT " video pts - duration %" GST_TIME_FORMAT " - base time %" GST_TIME_FORMAT " start time %" GST_TIME_FORMAT "\n", 
+  // g_print("pushing pts %" GST_TIME_FORMAT " video pts - video dts %" GST_TIME_FORMAT " - duration %" GST_TIME_FORMAT " - base time %" GST_TIME_FORMAT " start time %" GST_TIME_FORMAT "\n", 
   //   GST_TIME_ARGS(GST_BUFFER_PTS(buf)), 
+  //   GST_TIME_ARGS(GST_BUFFER_DTS(buf)), 
   //   GST_TIME_ARGS(GST_BUFFER_DURATION(buf)), 
   //   GST_TIME_ARGS(gst_element_get_base_time (GST_ELEMENT(parent))),
   //   GST_TIME_ARGS(gst_element_get_start_time (GST_ELEMENT(parent)))
   //   );
-  g_print("subs %s\n",timebuf);
+  // g_print("subs %s\n",timebuf);
 
   if(!NegotiateSubCaps(filter))
   {

@@ -83,6 +83,7 @@ struct _GstjsonInject
   GList *videoSources, *videoSinks;
 
   GstClockTime offset;
+  GstClockTime ptsSeenLast;
 
   unsigned long frameNumber;
 
