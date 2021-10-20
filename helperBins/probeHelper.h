@@ -94,3 +94,39 @@ public:
     }
 
 };
+
+class ptsPadProber : public padProber
+{
+
+    GstClockTime m_lastSeen;
+
+public:
+   
+    ptsPadProber(pluginContainer<GstElement> *parent):
+        padProber(parent),m_lastSeen(GST_CLOCK_TIME_NONE)
+    {
+
+    }
+
+    virtual void eventProbe(GstPad * pad,GstPadProbeInfo * info)
+    {
+    }
+
+    virtual void bufferProbe(GstPad * pad,GstPadProbeInfo * info)
+    {
+        GstBuffer *bf=gst_pad_probe_info_get_buffer (info);
+        if(bf->pts==GST_CLOCK_TIME_NONE)
+        {
+            g_printerr("Saw GST_TIME_NONE on pad %s - previous pts was %" GST_TIME_FORMAT "\n", GST_PAD_NAME(pad), GST_TIME_ARGS(m_lastSeen));
+        }
+        else if(bf->pts==m_lastSeen)
+        {
+            g_printerr("Saw duplicated pts %" GST_TIME_FORMAT " on pad %s\n",GST_TIME_ARGS(bf->pts), GST_PAD_NAME(pad));
+        }
+        m_lastSeen=bf->pts;
+    }
+
+
+
+
+};
