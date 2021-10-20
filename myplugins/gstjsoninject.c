@@ -865,6 +865,7 @@ struct tm *info; time_t nowsecs=(pts)/GST_SECOND;
 
   if(GST_BUFFER_PTS(buf)==filter->ptsSeenLast)
   {
+    // https://community.nxp.com/t5/i-MX-Processors/appsrc-mp4mux-get-err-Buffer-has-no-PTS/m-p/1177648
     GST_ERROR_OBJECT (filter, "Seen a duplicated PTS %" GST_TIME_FORMAT " - this will generate a 'Buffer has no PTS.' error downstream\r", GST_TIME_ARGS(GST_BUFFER_PTS(buf)));
   }
 
