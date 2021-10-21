@@ -117,7 +117,7 @@ public:
         {
             g_printerr("Saw GST_TIME_NONE on pad %s - previous pts was %" GST_TIME_FORMAT "\n", GST_PAD_NAME(pad), GST_TIME_ARGS(m_lastSeen));
         }
-        else if(bf->pts==m_lastSeen)
+        else if(bf->pts<=m_lastSeen)
         {
             g_printerr("Saw duplicated pts %" GST_TIME_FORMAT " on pad %s\n",GST_TIME_ARGS(bf->pts), GST_PAD_NAME(pad));
         }

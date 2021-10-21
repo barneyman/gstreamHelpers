@@ -169,7 +169,7 @@ gst_json_inject_class_init (GstjsonInjectClass * klass)
           FALSE, G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class, PROP_TIMEOFFSET_NS,
-      g_param_spec_uint64 ("offset", "offset", "baseline offset",
+      g_param_spec_uint64 ("offset", "offset", "baseline offset nanoseconds",
           0,-1,0, G_PARAM_READWRITE));
 
   gst_element_class_set_details_simple(gstelement_class,
@@ -834,8 +834,8 @@ gst_json_inject_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   }
 */
 
-pts+=filter->offset;
-struct tm *info; time_t nowsecs=(pts)/GST_SECOND;
+  pts+=filter->offset;
+  struct tm *info; time_t nowsecs=(pts)/GST_SECOND;
   info = gmtime(&nowsecs);
 
   time_t millis=(pts-(nowsecs*GST_SECOND))/GST_MSECOND;
@@ -863,10 +863,10 @@ struct tm *info; time_t nowsecs=(pts)/GST_SECOND;
   // this locks us to the framerate of the video source
   gst_buffer_copy_into(textBuffer, buf, GST_BUFFER_COPY_TIMESTAMPS ,0,-1);
 
-  if(GST_BUFFER_PTS(buf)==filter->ptsSeenLast)
+  if(GST_BUFFER_PTS(buf)<=filter->ptsSeenLast)
   {
     // https://community.nxp.com/t5/i-MX-Processors/appsrc-mp4mux-get-err-Buffer-has-no-PTS/m-p/1177648
-    GST_ERROR_OBJECT (filter, "Seen a duplicated PTS %" GST_TIME_FORMAT " - this will generate a 'Buffer has no PTS.' error downstream\r", GST_TIME_ARGS(GST_BUFFER_PTS(buf)));
+    GST_ERROR_OBJECT (filter, "Seen a broken PTS %" GST_TIME_FORMAT ", previous %" GST_TIME_FORMAT " - this will generate a 'Buffer has no PTS.' error downstream\r", GST_TIME_ARGS(GST_BUFFER_PTS(buf)),GST_TIME_ARGS(filter->ptsSeenLast));
   }
 
   filter->ptsSeenLast=GST_BUFFER_PTS(buf);
