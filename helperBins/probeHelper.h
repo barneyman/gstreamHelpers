@@ -113,13 +113,21 @@ public:
     virtual void bufferProbe(GstPad * pad,GstPadProbeInfo * info)
     {
         GstBuffer *bf=gst_pad_probe_info_get_buffer (info);
-        if(bf->pts==GST_CLOCK_TIME_NONE)
+        if(m_lastSeen!=GST_CLOCK_TIME_NONE)
         {
-            g_printerr("Saw GST_TIME_NONE on pad %s - previous pts was %" GST_TIME_FORMAT "\n", GST_PAD_NAME(pad), GST_TIME_ARGS(m_lastSeen));
-        }
-        else if(bf->pts<=m_lastSeen)
-        {
-            g_printerr("Saw duplicated pts %" GST_TIME_FORMAT " on pad %s\n",GST_TIME_ARGS(bf->pts), GST_PAD_NAME(pad));
+            if(bf->pts==GST_CLOCK_TIME_NONE)
+            {
+                g_printerr("Saw GST_TIME_NONE on pad %s - previous pts was %" GST_TIME_FORMAT "\n", GST_PAD_NAME(pad), GST_TIME_ARGS(m_lastSeen));
+            }
+            else if(bf->pts<=m_lastSeen)
+            {
+                g_printerr("Saw duplicated pts %" GST_TIME_FORMAT "  - previous pts was %" GST_TIME_FORMAT " on pad %s\n",GST_TIME_ARGS(bf->pts),GST_TIME_ARGS(m_lastSeen), GST_PAD_NAME(pad));
+            }
+
+            if(GST_BUFFER_IS_DISCONT(bf) )
+            {
+                g_printerr("DISCONT seen at %" GST_TIME_FORMAT "\n",GST_TIME_ARGS(bf->pts));
+            }
         }
         m_lastSeen=bf->pts;
     }

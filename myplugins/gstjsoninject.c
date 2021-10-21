@@ -868,6 +868,13 @@ gst_json_inject_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
     // https://community.nxp.com/t5/i-MX-Processors/appsrc-mp4mux-get-err-Buffer-has-no-PTS/m-p/1177648
     GST_ERROR_OBJECT (filter, "Seen a broken PTS %" GST_TIME_FORMAT ", previous %" GST_TIME_FORMAT " - this will generate a 'Buffer has no PTS.' error downstream\r", GST_TIME_ARGS(GST_BUFFER_PTS(buf)),GST_TIME_ARGS(filter->ptsSeenLast));
   }
+  if(GST_BUFFER_IS_DISCONT(buf) )
+  {
+    GST_ERROR_OBJECT (filter, "Seen a DISCONT PTS %" GST_TIME_FORMAT ", previous %" GST_TIME_FORMAT " - this will generate a 'Buffer has no PTS.' error downstream\r", GST_TIME_ARGS(GST_BUFFER_PTS(buf)),GST_TIME_ARGS(filter->ptsSeenLast));    
+  }
+  unsigned long flags=(unsigned long)gst_buffer_get_flags (buf);
+  if(flags)
+    g_print("buffer flags 0x%lx\n",flags);
 
   filter->ptsSeenLast=GST_BUFFER_PTS(buf);
 
