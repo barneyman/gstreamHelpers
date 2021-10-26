@@ -506,16 +506,7 @@ protected:
 
 class gstCapsFilterBaseBin: public gstreamBin
 {
-protected:
-    gstCapsFilterBaseBin(pluginContainer<GstElement> *parent,const char*caps,const char *name="capsFilterBin"):
-        gstreamBin(name,parent),
-        m_filterCaps(NULL)
-    {
-        pluginContainer<GstElement>::AddPlugin("capsfilter");
-        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
-            "caps", m_filterCaps=gst_caps_new_simple(caps, NULL, NULL), NULL);
-
-    }
+public:
 
     gstCapsFilterBaseBin(pluginContainer<GstElement> *parent,GstCaps*caps,const char *name="capsFilterBin"):
         gstreamBin(name,parent),
@@ -526,6 +517,18 @@ protected:
             "caps", caps, NULL);
 
     }
+
+
+    gstCapsFilterBaseBin(pluginContainer<GstElement> *parent,const char*caps,const char *name="capsFilterBin"):
+        gstreamBin(name,parent),
+        m_filterCaps(NULL)
+    {
+        pluginContainer<GstElement>::AddPlugin("capsfilter");
+        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
+            "caps", m_filterCaps=gst_caps_new_simple(caps, NULL, NULL), NULL);
+
+    }
+
 
 
     ~gstCapsFilterBaseBin()
