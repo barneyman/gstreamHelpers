@@ -147,6 +147,7 @@ gst_ptsnormalise_init (Gstptsnormalise * filter)
   filter->basetime_first_packet = GST_CLOCK_TIME_NONE;
   filter->segment_start = GST_CLOCK_TIME_NONE;
   filter->clip_ms=0;
+  filter->lastSeenPts=GST_CLOCK_TIME_NONE;
 
   memset(&filter->clippedSegment, 0, sizeof(GstSegment));
 
@@ -216,29 +217,28 @@ gst_ptsnormalise_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
     filter->segment_start=outbuf->pts;
     filter->basetime_first_packet=gst_clock_get_time(el->clock);
 
+    GstSegment *startSegment=gst_segment_new();
+    startSegment->rate=startSegment->applied_rate=1;
+    startSegment->format=GST_FORMAT_TIME;
+
+    startSegment->base=startSegment->offset=0;
+
+    GstClockTime newPts=startSegment->start=outbuf->pts;
+
     // and clip the first x ms
     if(filter->clip_ms)
     {
-
-      GstSegment *startSegment=gst_segment_new();
-      startSegment->rate=startSegment->applied_rate=1;
-      startSegment->format=GST_FORMAT_TIME;
-
-      startSegment->base=startSegment->offset=0;
-
-      startSegment->time=startSegment->position=startSegment->start=outbuf->pts+(GST_MSECOND*filter->clip_ms);
-      
-
-      startSegment->stop=startSegment->duration=GST_CLOCK_TIME_NONE;
-
-      memcpy(&filter->clippedSegment, startSegment, sizeof(GstSegment));
-
-      GstEvent *ev=gst_event_new_segment(startSegment);
-
-      gst_pad_send_event(base->sinkpad,ev);
-
-
+      newPts+=(GST_MSECOND*filter->clip_ms);
     }
+
+    startSegment->stop=startSegment->duration=GST_CLOCK_TIME_NONE;
+
+    memcpy(&filter->clippedSegment, startSegment, sizeof(GstSegment));
+
+    GstEvent *ev=gst_event_new_segment(startSegment);
+
+    gst_pad_send_event(base->sinkpad,ev);
+
 
   }
 
@@ -258,7 +258,25 @@ gst_ptsnormalise_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
 
   outbuf->duration=GST_CLOCK_TIME_NONE;
   // fake the pts by applying the running time to the segment start 
-  outbuf->dts=outbuf->pts=filter->segment_start+runningTime;  
+  outbuf->dts=GST_CLOCK_TIME_NONE;
+  
+  // this was the original 'just brand it with "now"'
+  outbuf->pts=filter->segment_start+runningTime;  
+
+  // now, fake the pts based on frame number
+  //outbuf->pts=filter->segment_start+((outbuf->offset_end-1)*(GST_SECOND/25));
+
+  // if(!outbuf->offset || !(outbuf->offset_end%250))
+  //   g_print("buffer pts %" GST_TIME_FORMAT " current pts %" GST_TIME_FORMAT"\n", GST_TIME_ARGS(outbuf->pts),GST_TIME_ARGS(filter->segment_start+runningTime));
+
+  if(filter->lastSeenPts!=GST_CLOCK_TIME_NONE)
+  {
+    GstClockTime diff=outbuf->pts-filter->lastSeenPts;
+    if(diff<(33*GST_MSECOND))
+      g_print("normalise dur problem %" GST_TIME_FORMAT "\n", GST_TIME_ARGS(diff));
+  }
+
+  filter->lastSeenPts=outbuf->pts;
 
   if(!outbuf->offset || !(outbuf->offset_end%300))
   {

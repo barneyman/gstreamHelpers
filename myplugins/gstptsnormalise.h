@@ -41,6 +41,8 @@ struct _Gstptsnormalise {
   GstClockTime basetime_first_packet, segment_start;
 
   GstSegment clippedSegment;
+
+  GstClockTime lastSeenPts;
 };
 
 void ptsnormalise_registerRunTimePlugin();
