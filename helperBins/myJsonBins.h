@@ -329,7 +329,7 @@ public:
             if(jsondata.contains("utcmillis"))
                 millis=jsondata["utcmillis"];
 
-            snprintf(msg,sizeof(msg)-1, "%d-%02d-%02d %02d:%02d:%02d.%03lu BANG %s",
+            snprintf(msg,sizeof(msg)-1, "%d-%02d-%02d %02d:%02d:%02d.%03lu %s",
                 info->tm_year+1900,
                 info->tm_mon+1,
                 info->tm_mday,
