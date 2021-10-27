@@ -842,7 +842,7 @@ gst_json_inject_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   time_t millis=(pts-(nowsecs*GST_SECOND))/GST_MSECOND;
 
   char timebuf[512];
-  snprintf(timebuf,sizeof(timebuf)-1, "{\"data-type\":\"datetime\",\"utc\":\"%d-%02d-%02dT%02d:%02d:%02d.%03luZ\",\"localtime\":\"%d-%02d-%02d %02d:%02d:%02d.%03lu %s\"}",
+  snprintf(timebuf,sizeof(timebuf)-1, "{\"data-type\":\"datetime\",\"utc\":\"%d-%02d-%02dT%02d:%02d:%02d.%03luZ\",\"utcsecs\":%ld, \"utcmillis\":%ld}",
     info->tm_year+1900,
     info->tm_mon+1,
     info->tm_mday,
@@ -850,14 +850,8 @@ gst_json_inject_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
     info->tm_min,
     info->tm_sec,
     millis,
-    info->tm_year+1900,
-    info->tm_mon+1,
-    info->tm_mday,
-    info->tm_hour,
-    info->tm_min,
-    info->tm_sec,
-    millis,
-    tzname[info->tm_isdst]
+    nowsecs,
+    millis
     );
   
   copyOfData=timebuf;

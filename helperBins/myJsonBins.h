@@ -4,6 +4,7 @@
 #include "myElementBins.h"
 #include "myplugins/gstjsonparse.h"
 #include "json/json.hpp"
+#include <time.h>
 
 // uses the myplugin 'jsonparse' - peeks the utf stream, via a callback, tries to parse the json, and passes it up the vtable
 class gstJsonParseBin : public gstreamBin
@@ -316,25 +317,48 @@ public:
         char msg[PANGO_BUFFER];
         int len=0;
 
-        if(jsondata.contains("localtime"))
+        std::string output;
+
+        if(jsondata.contains("utcsecs"))
         {
-            len=snprintf(msg, sizeof(msg), "<span foreground=\"white\" size=\"small\">%s</span>",
-                jsondata["localtime"].get<std::string>().c_str()
+            /// oooh - we can localise!
+            time_t nowsecs=jsondata["utcsecs"];
+            struct tm *info = localtime(&nowsecs);
+
+            time_t millis=0;
+            if(jsondata.contains("utcmillis"))
+                millis=jsondata["utcmillis"];
+
+            snprintf(msg,sizeof(msg)-1, "%d-%02d-%02d %02d:%02d:%02d.%03lu BANG %s",
+                info->tm_year+1900,
+                info->tm_mon+1,
+                info->tm_mday,
+                info->tm_hour,
+                info->tm_min,
+                info->tm_sec,
+                millis,
+                tzname[info->tm_isdst]
                 );
 
-            return msg;  
+            output=msg;
+
+
         }
 
-        if(jsondata.contains("utc"))
+        else if(jsondata.contains("utc"))
         {
-            len=snprintf(msg, sizeof(msg), "<span foreground=\"white\" size=\"small\">%s</span>",
-                jsondata["utc"].get<std::string>().c_str()
-                );
-
-            return msg;  
+            output=jsondata["utc"].get<std::string>();
+        }
+        else
+        {
+            output="Subtitle error";
         }
 
-        return "Subtitle Error";
+        len=snprintf(msg, sizeof(msg), "<span foreground=\"white\" size=\"small\">%s</span>",
+            output.c_str()
+            );
+
+        return msg;
     }
 };
 
