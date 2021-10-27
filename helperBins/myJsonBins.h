@@ -316,6 +316,15 @@ public:
         char msg[PANGO_BUFFER];
         int len=0;
 
+        if(jsondata.contains("localtime"))
+        {
+            len=snprintf(msg, sizeof(msg), "<span foreground=\"white\" size=\"small\">%s</span>",
+                jsondata["localtime"].get<std::string>().c_str()
+                );
+
+            return msg;  
+        }
+
         if(jsondata.contains("utc"))
         {
             len=snprintf(msg, sizeof(msg), "<span foreground=\"white\" size=\"small\">%s</span>",

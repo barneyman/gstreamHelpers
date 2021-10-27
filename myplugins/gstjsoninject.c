@@ -836,19 +836,29 @@ gst_json_inject_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
 
   pts+=filter->offset;
   struct tm *info; time_t nowsecs=(pts)/GST_SECOND;
-  info = gmtime(&nowsecs);
+  //info = gmtime(&nowsecs);
+  info = localtime(&nowsecs);
 
   time_t millis=(pts-(nowsecs*GST_SECOND))/GST_MSECOND;
 
-  char timebuf[256];
-  snprintf(timebuf,sizeof(timebuf)-1, "{\"data-type\":\"datetime\",\"utc\":\"%d-%02d-%02dT%02d:%02d:%02d.%03luZ\"}",
+  char timebuf[512];
+  snprintf(timebuf,sizeof(timebuf)-1, "{\"data-type\":\"datetime\",\"utc\":\"%d-%02d-%02dT%02d:%02d:%02d.%03luZ\",\"localtime\":\"%d-%02d-%02d %02d:%02d:%02d.%03lu %s\"}",
     info->tm_year+1900,
     info->tm_mon+1,
     info->tm_mday,
     info->tm_hour,
     info->tm_min,
     info->tm_sec,
-    millis);
+    millis,
+    info->tm_year+1900,
+    info->tm_mon+1,
+    info->tm_mday,
+    info->tm_hour,
+    info->tm_min,
+    info->tm_sec,
+    millis,
+    tzname[info->tm_isdst]
+    );
   
   copyOfData=timebuf;
 
