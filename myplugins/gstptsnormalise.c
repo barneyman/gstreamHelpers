@@ -211,7 +211,7 @@ gst_ptsnormalise_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
   Gstptsnormalise *filter = GST_PTSNORMALISE (base);
   GstElement *el=GST_ELEMENT(base);
 
-
+  // first time thru grab the segment ...
   if(filter->segment_start==GST_CLOCK_TIME_NONE)
   {
     filter->segment_start=outbuf->pts;
@@ -266,14 +266,20 @@ gst_ptsnormalise_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
   // now, fake the pts based on frame number
   //outbuf->pts=filter->segment_start+((outbuf->offset_end-1)*(GST_SECOND/25));
 
+  auto gt20Framecount=outbuf->offset_end-1;
+  auto ntpFramecount=runningTime/(GST_SECOND/25);
+
+  
+  //g_print("gt20 %ld ntp %ld (%ld)\r",gt20Framecount,ntpFramecount, (gt20Framecount-ntpFramecount));
+
   // if(!outbuf->offset || !(outbuf->offset_end%250))
   //   g_print("buffer pts %" GST_TIME_FORMAT " current pts %" GST_TIME_FORMAT"\n", GST_TIME_ARGS(outbuf->pts),GST_TIME_ARGS(filter->segment_start+runningTime));
 
   if(filter->lastSeenPts!=GST_CLOCK_TIME_NONE)
   {
     GstClockTime diff=outbuf->pts-filter->lastSeenPts;
-    if(diff<(33*GST_MSECOND))
-      g_print("normalise dur problem %" GST_TIME_FORMAT "\n", GST_TIME_ARGS(diff));
+    // if(diff<(33*GST_MSECOND))
+    //   g_print("normalise dur problem %" GST_TIME_FORMAT "\n", GST_TIME_ARGS(diff));
   }
 
   filter->lastSeenPts=outbuf->pts;
