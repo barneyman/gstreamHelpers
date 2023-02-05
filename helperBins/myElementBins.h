@@ -518,14 +518,15 @@ public:
 
     }
 
-
+    // ie "video/x-h264,stream-format=(string)avc,alignment=(string)au"
     gstCapsFilterBaseBin(pluginContainer<GstElement> *parent,const char*caps,const char *name="capsFilterBin"):
         gstreamBin(name,parent),
         m_filterCaps(NULL)
     {
+        m_filterCaps=gst_caps_from_string(caps);
         pluginContainer<GstElement>::AddPlugin("capsfilter");
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
-            "caps", m_filterCaps=gst_caps_new_simple(caps, NULL, NULL), NULL);
+            "caps", m_filterCaps, NULL);
 
     }
 
