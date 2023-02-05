@@ -1,5 +1,6 @@
-#include "gstreamBin.h"
-
+#include "../gstreamBin.h"
+#include "myElementBins.h"
+#include <gst/base/gstbasesrc.h>
 
 class baseRemoteSourceBin : public gstreamListeningBin
 {

@@ -6,7 +6,7 @@ bins that wrap elements, so complex property behaviour is easier to reuse
 #ifndef _myelementbins_guard
 #define _myelementbins_guard
 
-#include "gstreamBin.h"
+#include "../gstreamBin.h"
 
 
 

@@ -4,15 +4,17 @@ PRODFLAGS = -O3 -g0
 
 GSTCONFIG = `pkg-config --cflags --libs gstreamer-1.0`
 GSTGESCONFIG = `pkg-config --cflags --libs gstreamer-1.0 gst-editing-services-1.0`
-GSTGETBASECONFIG = `pkg-config --cflags --libs gstreamer-1.0 gst-editing-services-1.0 gstreamer-base-1.0`
+GSTGETBASECONFIG = `pkg-config --cflags --libs gstreamer-1.0 gstreamer-base-1.0`
 
 CXXFLAGS = -Wno-psabi  
 LDFLAGS = 
 #INCLUDE = myplugins/NemaTode/include
 
-HELPERSRC = gstreamEdits.cpp gstreamBin.cpp gstreamPipeline.cpp
+#HELPERSRC = gstreamEdits.cpp gstreamBin.cpp gstreamPipeline.cpp
+HELPERSRC = gstreamBin.cpp gstreamPipeline.cpp myplugins/gstmybin.c
 HELPEROBJ = $(HELPERSRC:.cc=.o)
-HELPERAR = gstreamEdits.o gstreamBin.o gstreamPipeline.o
+#HELPERAR = gstreamEdits.o gstreamBin.o gstreamPipeline.o
+HELPERAR = gstreamBin.o gstreamPipeline.o
 HELPERLIB = libgstreamHelpers.a
 HELPERHEADERS = gstreamPipeline.h gstreamEdits.h gstreamBin.h
 
@@ -42,7 +44,7 @@ nmealib: $(NMEALIB)
 # ld only looks in ar files once, in the order they're quoted, and only uses symbols in it that are unfulfilled *at the point it opens the ar*
 $(HELPERLIB): $(HELPEROBJ) $(HELPERHEADERS)
 #	$(CXX) $(LDFLAGS) -o $@ $(OBJ) $(MYPLUGINSLIB) $(NMEALIB) $(CPPFLAGS) $(CXXFLAGS) $(GSTGESCONFIG) -I $(NMEAINCLUDE)
-	$(CXX) $(LDFLAGS) -c $(HELPEROBJ) $(CPPFLAGS) $(CXXFLAGS) $(GSTGESCONFIG)
+	$(CXX) $(LDFLAGS) -c $(HELPEROBJ) $(CPPFLAGS) $(CXXFLAGS) $(GSTGETBASECONFIG)
 	ar rvs $(HELPERLIB) $(HELPERAR)
 
 $(NMEALIB) : $(NMEAOBJ)
