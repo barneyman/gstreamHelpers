@@ -507,7 +507,7 @@ protected:
 class gstCapsFilterBaseBin: public gstreamBin
 {
 public:
-
+    // takes ownership of the passed caps
     gstCapsFilterBaseBin(pluginContainer<GstElement> *parent,GstCaps*caps,const char *name="capsFilterBin"):
         gstreamBin(name,parent),
         m_filterCaps(caps)

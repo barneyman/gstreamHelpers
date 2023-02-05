@@ -630,6 +630,7 @@ public:
         return stateChangeSuccess;
     }
 
+    // requires GST_DEBUG_DUMP_DOT_DIR to be set
     void DumpGraph(const char *toFile)
     {
         GST_DEBUG_BIN_TO_DOT_FILE_WITH_TS(GST_BIN (m_pipeline), GST_DEBUG_GRAPH_SHOW_VERBOSE, toFile);
