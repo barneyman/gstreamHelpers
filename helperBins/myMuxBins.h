@@ -67,7 +67,7 @@ public:
 class gstSplitMuxOutBin : public gstreamBin
 {
 public:
-    gstSplitMuxOutBin(gstreamPipeline *parent, unsigned time_seconds):gstreamBin("splitMuxOutBin",parent)
+    gstSplitMuxOutBin(gstreamPipeline *parent, unsigned time_seconds, const char*out="out_%05d.mp4"):gstreamBin("splitMuxOutBin",parent)
     {
 
         pluginContainer<GstElement>::AddPlugin("splitmuxsink");
@@ -80,7 +80,7 @@ public:
             "max-size-time", time_seconds * GST_SECOND, NULL);
 
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"), 
-            "location", "out_%05d.mp4", NULL);
+            "location", out, NULL);
 
 
     }
