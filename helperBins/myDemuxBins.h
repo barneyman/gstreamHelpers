@@ -1,7 +1,7 @@
 #ifndef _mydemuxbins_guard
 #define _mydemuxbins_guard
 
-#include "gstreamBin.h"
+#include "myElementBins.h"
 #include <mutex>
 
 
@@ -458,9 +458,9 @@ public:
 
     // ctor that know about multiple files (needs gstreamer 1.8)
     gstMP4DemuxDecodeSparseBin(gstreamPipeline *parent,std::vector<std::string> &locations,GstClockTime startAt=GST_CLOCK_TIME_NONE ,GstClockTime endAt=GST_CLOCK_TIME_NONE ,const char *name="demuxMP4DecodeSparseBin"):
-        gstDemuxDecodeBin(parent,"tmp","splitmuxsrc",startAt,endAt,name)
+        gstDemuxDecodeBin(parent,locations[0].c_str(),"splitmuxsrc",startAt,endAt,name)
         {
-            g_signal_connect (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsrc"), "format-location", G_CALLBACK (staticFormatLocation), this);
+            g_signal_connect (pluginContainer<GstElement>::FindNamedPlugin("demuxer"), "format-location", G_CALLBACK (staticFormatLocation), this);
             m_locations=locations;
         }
 
@@ -476,22 +476,16 @@ protected:
     GStrv *formatLocation(GstElement *element)
     {
         //GStrvBuilder *builder=g_strv_builder_new();
-        auto builder=g_ptr_array_new_with_free_func (g_free);
+        auto builder=g_ptr_array_new ();
 
         for(auto each=m_locations.begin();each!=m_locations.end();each++)
         {
-            //g_strv_builder_add (builder, each->c_str());
             g_ptr_array_add (builder, g_strdup (each->c_str()));
         }
 
-        //GStrv *array=g_strv_builder_end(builder);
         g_ptr_array_add (builder, NULL);
-        //auto array=g_ptr_array_steal (builder, NULL);
 
-        //g_strv_builder_unref (builder);
-        //g_object_unref(builder);
-
-        return (GStrv*)builder;
+        return (GStrv*)g_ptr_array_free (builder, FALSE);;
     }
 
     std::vector<std::string> m_locations;
