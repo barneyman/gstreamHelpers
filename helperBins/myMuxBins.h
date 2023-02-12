@@ -64,6 +64,35 @@ public:
 
 };
 
+class gstSplitMuxOutBin : public gstreamBin
+{
+public:
+    gstSplitMuxOutBin(gstreamPipeline *parent, unsigned time_seconds):gstreamBin("splitMuxOutBin",parent)
+    {
+
+        pluginContainer<GstElement>::AddPlugin("splitmuxsink");
+
+        AddGhostPads("splitmuxsink",NULL);
+
+        advertiseElementsPadTemplates("splitmuxsink");
+
+        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"), 
+            "max-size-time", time_seconds * GST_SECOND, NULL);
+
+        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"), 
+            "location", "out_%05d.mp4", NULL);
+
+
+    }
+
+    ~gstSplitMuxOutBin()
+    {
+        releaseRequestedPads();
+    }
+
+};
+
+
 
 class gstH264MuxOutBin :  public gstreamBin
 {
