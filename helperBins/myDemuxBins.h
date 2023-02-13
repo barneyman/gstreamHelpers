@@ -366,7 +366,18 @@ public:
             }
             else
             {
-                GST_ERROR_OBJECT (m_parent, "Connecting '%s' pad not yet impl'd", gst_caps_to_string(*each));
+                GST_WARNING_OBJECT (m_parent, "Connecting '%s' pad not yet impl'd - sinking to /dev/null", gst_caps_to_string(*each));
+
+                gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),NULL);
+
+                // hijack the parent's late linking framework
+                ConnectLate(pluginContainer<GstElement>::FindNamedPlugin("demuxer"),pluginContainer<GstElement>::FindNamedPlugin(capsFilterName));
+
+                char sinkFilterName[20];
+                snprintf(sinkFilterName,sizeof(capsFilterName)-1,"fakesink_%u",padCount);
+                pluginContainer<GstElement>::AddPlugin("fakesink",sinkFilterName);
+                gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),pluginContainer<GstElement>::FindNamedPlugin(sinkFilterName),NULL);
+
             }
         }
 
