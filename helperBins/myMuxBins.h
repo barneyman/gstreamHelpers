@@ -99,10 +99,12 @@ class gstH264MuxOutBin :  public gstreamBin
 protected:
 
     gstH264encoderBin m_encoder;
+    gstFrameBufferProgress m_progress;
 
 public:
     gstH264MuxOutBin(gstreamPipeline *parent,const char*location,const char *muxer, const char *name="muxh264OutBin"):
         gstreamBin(name,parent),
+        m_progress(this),
         m_encoder(this)
     {
         pluginContainer<GstElement>::AddPlugin("filesink");
@@ -117,6 +119,7 @@ public:
 
     gstH264MuxOutBin(gstreamPipeline *parent,FILE *fhandle,const char *muxer, const char *name="muxh264OutBin"):
         gstreamBin(name,parent),
+        m_progress(parent),
         m_encoder(this)
     {
         pluginContainer<GstElement>::AddPlugin("fdsink","filesink");
@@ -137,6 +140,7 @@ protected:
 
         if(!gst_element_link_many(  
             pluginContainer<GstElement>::FindNamedPlugin(m_encoder),
+            pluginContainer<GstElement>::FindNamedPlugin(m_progress),
             pluginContainer<GstElement>::FindNamedPlugin("muxer"),
             pluginContainer<GstElement>::FindNamedPlugin("filesink"),
             NULL
