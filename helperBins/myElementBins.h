@@ -881,4 +881,21 @@ public:
     }
 };
 
+class gstFilesrc : public gstreamBin
+{
+public:
+    gstFilesrc(pluginContainer<GstElement> *parent,const char *location):gstreamBin("filesrc",parent)
+    {
+        pluginContainer<GstElement>::AddPlugin("filesrc");
+        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("filesrc"), 
+            // MICRO, not milli
+            "location", location, 
+            NULL);
+
+        AddGhostPads(NULL,"filesrc");
+
+    }
+
+};
+
 #endif // _myelementbins_guard
