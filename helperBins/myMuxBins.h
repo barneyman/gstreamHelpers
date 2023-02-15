@@ -119,7 +119,7 @@ public:
 
     gstH264MuxOutBin(gstreamPipeline *parent,FILE *fhandle,const char *muxer, const char *name="muxh264OutBin"):
         gstreamBin(name,parent),
-        m_progress(parent),
+        m_progress(this),
         m_encoder(this)
     {
         pluginContainer<GstElement>::AddPlugin("fdsink","filesink");
