@@ -230,7 +230,7 @@ public:
         gstreamListeningBin(name,parent),
         m_fatal(false)
     {
-        bool splitDemux=(demuxer=="splitmuxsrc");
+        bool splitDemux=(std::string(demuxer)==std::string("splitmuxsrc"));
 
         // because this is shared, we need to lock it when first populating, in case
         // another thread tries to do it simultaneously
@@ -316,20 +316,24 @@ public:
                     // this will implicitly get the video stream
                     pluginContainer<GstElement>::AddPlugin("h264parse",parserName);
 
-    //                if(pluginContainer<GstElement>::AddPlugin("vaapih264dec",decoderName))
+                    const char *decoders[]={"vaapih264dec","v4l2h264dec","avdec_h264",NULL};
+                    bool decoderAdded=false;
+                    for(int decoder=0;decoders[decoder];decoder++)
                     {
-    //                    GST_DEBUG_OBJECT (m_parent, "Failed to create vaapih264dec, trying v4l2h264dec");
-
                         // don't complain to logs if this fails
-                        if(pluginContainer<GstElement>::AddPlugin("v4l2h264dec",decoderName,NULL,false))
+                        if(!pluginContainer<GstElement>::AddPlugin(decoders[decoder],decoderName,NULL,false))
                         {
-                            GST_DEBUG_OBJECT (m_parent, "Failed to create v4l2h264dec, trying avdec_h264");
-
-                            if(pluginContainer<GstElement>::AddPlugin("avdec_h264",decoderName))
-                            {
-                                GST_ERROR_OBJECT (m_parent, "Failed to create avdec_h264 - no decoder - pretty fatal");
-                            }
+                            decoderAdded=true;
+                            break;
                         }
+                        GST_DEBUG_OBJECT (m_parent, "Failed to create %s",decoders[decoder]);
+                    }
+
+                    if(!decoderAdded)
+                    {
+                        m_fatal=true;
+                        GST_ERROR_OBJECT (m_parent, "Failed to add a decoder");
+                        return;
                     }
 
                     gst_element_link_many(  pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),

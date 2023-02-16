@@ -824,21 +824,26 @@ public:
     gstH264encoderBin(pluginContainer<GstElement> *parent,const char *name="encoderBin"):
         gstreamBin(name,parent)
     {
-        if(pluginContainer<GstElement>::AddPlugin("vaapih264enc","encoder",NULL,false))
+        const char *encoders[]={"vaapih264enc","v4l2h264enc","x264enc",NULL};
+
+        bool encoderAdded=false;
+        for(unsigned encoder=0;encoders[encoder];encoder++)
         {
-            GST_WARNING_OBJECT (m_parent, "Failed to create vaapih264enc, trying v4l2h264enc");
-            if(pluginContainer<GstElement>::AddPlugin("v4l2h264enc","encoder",NULL,false))
+            if(!pluginContainer<GstElement>::AddPlugin(encoders[encoder],"encoder",NULL,false))
             {
-                GST_WARNING_OBJECT (m_parent, "Failed to create v4l2h264enc, trying x264enc");
-                if(pluginContainer<GstElement>::AddPlugin("x264enc","encoder"))
-                {
-                    GST_ERROR_OBJECT (m_parent, "Failed to create x264enc, pretty fatal");
-                }
+                encoderAdded=true;
             }
+            GST_DEBUG_OBJECT (m_parent, "Failed to create %s",encoders[encoder]);
+        }
+
+        if(!encoderAdded)
+        {
+            //m_fatal=true;
+            GST_ERROR_OBJECT (m_parent, "Failed to add an encoder");
+            return;
         }
 
         pluginContainer<GstElement>::AddPlugin("h264parse");
-
 
         gst_element_link_many( pluginContainer<GstElement>::FindNamedPlugin("encoder"), 
             pluginContainer<GstElement>::FindNamedPlugin("h264parse"), 
