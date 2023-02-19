@@ -1,5 +1,51 @@
 # Helperbins #
-a bunch of bins that aggregate elements to be easier to link
+a bunch of bins that aggregate elements to be easier to link - the basic idea is that they do all the hard work of plumbing and negotiating pads and you can just slam them together ... for example, this code will join the 6 mp4 sources, decode them, re-encode them and write them to combined.mp4 
+
+```
+class joinVidsPipeline : public gstreamPipeline
+{
+public:
+    joinVidsPipeline(std::vector<std::string> &files, const char*destination):
+        gstreamPipeline("joinVidsPipeline"),
+        m_multisrc(this,files),
+        m_out(this,destination)
+    {
+        ConnectPipeline(m_multisrc,m_out);
+    }
+
+protected:
+
+        gstMP4DemuxDecodeSparseBin m_multisrc;
+        gstMP4OutBin m_out;
+
+};
+
+void main()
+{
+    std::vector<std::string> files;
+    
+    files.push_back("/workspaces/dashcam/out_00000.mp4");
+    files.push_back("/workspaces/dashcam/out_00001.mp4");
+    files.push_back("/workspaces/dashcam/out_00002.mp4");
+    files.push_back("/workspaces/dashcam/out_00003.mp4");
+    files.push_back("/workspaces/dashcam/out_00004.mp4");
+    files.push_back("/workspaces/dashcam/out_00005.mp4");
+
+    joinVidsPipeline joiner(files,"/workspaces/dashcam/combined.mp4");
+    joiner.Run();
+
+}
+
+```
+Creates the following pipeline
+
+![Complex Pipeline](https://github.com/barneyman/gstreamHelpers/blob/master/helperBins/twinStreamsMultiSrcJoin.svg)
+
+That may not render well in Github - use `graphviz` to render the dot file.
+
+The observant will notice the sources have two video streams and only one is being decoded and re-encoded; I'll fix that with an additional helperbin at some point
+
+
 
 ## myDemuxBins ##
 ### `demuxInfo` ###
