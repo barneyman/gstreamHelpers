@@ -61,8 +61,6 @@ gstreamBin::~gstreamBin()
     // check
     if(m_requestedPadsGhosted.size())
     {
-        GST_ERROR_OBJECT (m_myBin, "bin %s has %lu unreleased request pins!! This is probably a leak",Name(),m_requestedPadsGhosted.size());                
-        
         // remove request pads
         releaseRequestedPads();
     }
