@@ -5,7 +5,7 @@
 class baseRemoteSourceBin : public gstreamListeningBin
 {
 public:
-    baseRemoteSourceBin(const char*name, gstreamPipeline *parent):
+    baseRemoteSourceBin(const char*name, pluginContainer<GstElement> *parent):
         gstreamListeningBin(name,parent),
         m_q2(this,"q2"),m_progress(this,0)
     {
@@ -23,7 +23,7 @@ protected:
 class rtspSourceBin : public baseRemoteSourceBin
 {
 public:
-    rtspSourceBin(gstreamPipeline *parent, const char*location, const char*name="rtspSource"):baseRemoteSourceBin(name,parent)
+    rtspSourceBin(pluginContainer<GstElement> *parent, const char*location, const char*name="rtspSource"):baseRemoteSourceBin(name,parent)
     {
         pluginContainer<GstElement>::AddPlugin("rtspsrc","rtspsrc");
         pluginContainer<GstElement>::AddPlugin("rtph264depay","depay2");
@@ -49,7 +49,7 @@ public:
                 NULL
             );
 
-        // add ghost - only src, no sink
+        // add ghost - only src, no sinkgstreamPipeline
         AddGhostPads(NULL,m_progress);
 
     }
@@ -69,7 +69,7 @@ class rtmpSourceBin : public baseRemoteSourceBin
 {
 public:
 
-    rtmpSourceBin(gstreamPipeline *parent, const char*location, const char*name="rtmpSource", unsigned toSecs=30):baseRemoteSourceBin(name,parent)
+    rtmpSourceBin(pluginContainer<GstElement> *parent, const char*location, const char*name="rtmpSource", unsigned toSecs=30):baseRemoteSourceBin(name,parent)
     {
         pluginContainer<GstElement>::AddPlugin("rtmpsrc","rtmpsrc");
         pluginContainer<GstElement>::AddPlugin("flvdemux","depay2");
@@ -102,7 +102,6 @@ public:
         // add ghost - only src, no sink
         AddGhostPads(NULL,m_progress);
 
-        parent->DumpGraph("rtmp");
 
     }
 
@@ -112,5 +111,53 @@ public:
     }
 
 
+
+};
+
+template <class TremoteSource>
+class multiRemoteSourceBin : public gstreamBin
+{
+public:
+
+    multiRemoteSourceBin(pluginContainer<GstElement>*parent, std::vector<std::string> sources, const char *simple_caps):
+        gstreamBin("multiRemoteSourceBin",parent)
+    {
+        int i=0;
+        for(auto each=sources.begin();each!=sources.end();each++,i++)
+        {
+            char capsFilterName[20];
+            snprintf(capsFilterName,sizeof(capsFilterName)-1,"capsfilt_%u",i);
+            char sourceName[20];
+            snprintf(sourceName,sizeof(sourceName)-1,"remote%u",i);
+
+
+            TremoteSource *eachSourceBin=new TremoteSource(this,each->c_str(),sourceName);
+            gstCapsFilterSimple *eachSourceCaps=new gstCapsFilterSimple(this,simple_caps,capsFilterName);
+            // connect them
+            gst_element_link_many(  pluginContainer<GstElement>::FindNamedPlugin(*eachSourceBin),
+                                    pluginContainer<GstElement>::FindNamedPlugin(*eachSourceCaps),
+                                    NULL);
+            // and ghost it
+            AddGhostPads(NULL,*eachSourceCaps);
+            
+
+            m_remoteSources.push_back(std::pair<TremoteSource*,gstCapsFilterSimple*>(eachSourceBin,eachSourceCaps));   
+        }
+
+    }
+
+    ~multiRemoteSourceBin()
+    {
+        for(auto each=m_remoteSources.begin();each!=m_remoteSources.end();each++)
+        {
+            delete std::get<0>(*each);
+            delete std::get<1>(*each);
+        }
+        m_remoteSources.clear();
+    }
+
+protected:
+
+    std::vector<std::pair<TremoteSource*,gstCapsFilterSimple*>> m_remoteSources;
 
 };

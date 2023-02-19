@@ -99,6 +99,7 @@ protected:
 #include <tuple>
 
 // as above, but listens for pad-added and no-more pads
+// normally sent by a demuxer when preroll works out what's there
 class gstreamListeningBin : public gstreamBin
 {
 public:
