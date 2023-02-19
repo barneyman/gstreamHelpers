@@ -61,7 +61,7 @@ joins a mux to a `filesink` or a `FILE` handle
 ### `gstSplitMuxOutBin` ###
 As above but to a `splitmuxsink`
 ### gstH264MuxOutBin ###
-`Creates an h264 `gstMuxOutBin`, trying various encoders via `gstH264encoderBin`
+Creates an h264 `gstMuxOutBin`, trying various encoders via `gstH264encoderBin`
 ### `gstMatroskaOutBin` ###
 Uses above and uses `matroskamux`
 ### `gstMP4OutBin` ###
