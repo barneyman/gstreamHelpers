@@ -99,7 +99,7 @@ protected:
 
 public:
 
-    gstDemuxDecodeBinExamine(gstreamPipeline *parent,const char*mkvName,const char *demuxer,const char *name="gstDemuxDecodeBinExamine"):
+    gstDemuxDecodeBinExamine(gstreamPipeline *parent,const char*muxedFileName,const char *demuxer,const char *name="gstDemuxDecodeBinExamine"):
         gstreamListeningBin(name,parent),
         m_faketail(this,"fakesink")
     {
@@ -113,13 +113,13 @@ public:
         {
             AddPlugin("filesrc");
             g_object_set (pluginContainer<GstElement>::FindNamedPlugin("filesrc"), 
-                "location", mkvName, NULL);
+                "location", muxedFileName, NULL);
             gst_element_link(pluginContainer<GstElement>::FindNamedPlugin("filesrc"),pluginContainer<GstElement>::FindNamedPlugin("demuxer"));
         }
         else
         {
             g_object_set (pluginContainer<GstElement>::FindNamedPlugin("demuxer"), 
-                "location", mkvName, NULL);
+                "location", muxedFileName, NULL);
         }
 
 
@@ -196,11 +196,11 @@ class gstreamDemuxExamineDiscrete
 {
 public:
 
-    gstreamDemuxExamineDiscrete(const char*mkvName,const char *demuxer)
+    gstreamDemuxExamineDiscrete(const char*muxedFileName,const char *demuxer)
     {
         // create a pipeline
         gstreamPipeline quickPipe("DiscreteQuickPipe");
-        gstDemuxDecodeBinExamine examine(&quickPipe, mkvName, demuxer);
+        gstDemuxDecodeBinExamine examine(&quickPipe, muxedFileName, demuxer);
 
         examine.Run(&quickPipe);
 
@@ -226,7 +226,7 @@ public:
     demuxInfo streamInfo;
 
 public:
-    gstDemuxDecodeBin(gstreamPipeline *parent,const char*mkvName,const char *demuxer, GstClockTime startAt=GST_CLOCK_TIME_NONE ,GstClockTime endAt=GST_CLOCK_TIME_NONE ,bool decode=true, demuxInfo *cached=NULL, const char *name="demuxDecodeBin"):
+    gstDemuxDecodeBin(gstreamPipeline *parent,const char*muxedFileName,const char *demuxer, GstClockTime startAt=GST_CLOCK_TIME_NONE ,GstClockTime endAt=GST_CLOCK_TIME_NONE ,bool decode=true, demuxInfo *cached=NULL, const char *name="demuxDecodeBin"):
         gstreamListeningBin(name,parent),
         m_fatal(false)
     {
@@ -238,7 +238,7 @@ public:
         {
             // now build our demux pipeline based on what we know is there
             // by creating a toy that exposes all available srcs
-            gstreamDemuxExamineDiscrete examine(mkvName,demuxer);
+            gstreamDemuxExamineDiscrete examine(muxedFileName,demuxer);
             if(examine.isValid())
             {
                 streamInfo=examine.m_info;
@@ -274,12 +274,12 @@ public:
         {
             pluginContainer<GstElement>::AddPlugin("filesrc");
             g_object_set (pluginContainer<GstElement>::FindNamedPlugin("filesrc"), 
-                "location", mkvName, NULL);
+                "location", muxedFileName, NULL);
         }
         else
         {
             g_object_set (pluginContainer<GstElement>::FindNamedPlugin("demuxer"), 
-                "location", mkvName, NULL);
+                "location", muxedFileName, NULL);
 
         }
 
@@ -513,7 +513,7 @@ protected:
 class gstDemuxSubsOnlyDecodeBin : public gstCapsFilterBaseBin
 {
 public:
-    gstDemuxSubsOnlyDecodeBin(gstreamPipeline *parent,const char*mkvName,const char *demuxer, GstClockTime startAt=GST_CLOCK_TIME_NONE ,GstClockTime endAt=GST_CLOCK_TIME_NONE , const char *name="demuxDecodeBin"):
+    gstDemuxSubsOnlyDecodeBin(gstreamPipeline *parent,const char*muxedFileName,const char *demuxer, GstClockTime startAt=GST_CLOCK_TIME_NONE ,GstClockTime endAt=GST_CLOCK_TIME_NONE , const char *name="demuxDecodeBin"):
         gstCapsFilterBaseBin(parent,gst_caps_new_simple("text/x-raw","format",G_TYPE_STRING, "utf8", NULL),name)
     {
         bool seeking=(startAt!=GST_CLOCK_TIME_NONE  && endAt!=GST_CLOCK_TIME_NONE)?true:false;
@@ -525,7 +525,7 @@ public:
         {
             pluginContainer<GstElement>::AddPlugin("filesrc");
             g_object_set (pluginContainer<GstElement>::FindNamedPlugin("filesrc"), 
-                "location", mkvName, NULL);
+                "location", muxedFileName, NULL);
         }
 
         pluginContainer<GstElement>::AddPlugin(demuxer,"demuxer");
@@ -533,7 +533,7 @@ public:
         if(splitDemux)
         {
             g_object_set (pluginContainer<GstElement>::FindNamedPlugin("demuxer"), 
-                "location", mkvName, NULL);
+                "location", muxedFileName, NULL);
         }
 
 #ifdef _EXIT_THRU_MQ_GIFT_SHOP        
