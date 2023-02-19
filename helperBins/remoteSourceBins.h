@@ -9,7 +9,7 @@ public:
         gstreamListeningBin(name,parent),
         m_q2(this,"q2"),m_progress(this,0)
     {
-
+        setBinFlags(GST_ELEMENT_FLAG_SOURCE);
     }
 
 protected:
@@ -143,6 +143,7 @@ public:
 
             m_remoteSources.push_back(std::pair<TremoteSource*,gstCapsFilterSimple*>(eachSourceBin,eachSourceCaps));   
         }
+        setBinFlags(GST_ELEMENT_FLAG_SOURCE);
 
     }
 

@@ -55,6 +55,8 @@ public:
 
         advertiseElementsPadTemplates("muxer");
 
+        setBinFlags(GST_ELEMENT_FLAG_SINK);
+
     }
 
     ~gstMuxOutBin()
@@ -82,6 +84,7 @@ public:
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"), 
             "location", out, NULL);
 
+        setBinFlags(GST_ELEMENT_FLAG_SINK);
 
     }
 
@@ -150,6 +153,9 @@ protected:
         }
 
         AddGhostPads(m_encoder,NULL);
+
+        setBinFlags(GST_ELEMENT_FLAG_SINK);
+
     }
 
 };

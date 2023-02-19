@@ -71,6 +71,10 @@ protected:
         return currentTime-baseTime;
     }
 
+    void setBinFlags(unsigned flags)
+    {
+        GST_OBJECT_FLAG_SET(m_myBin, flags);
+    }
 
 protected:
 
