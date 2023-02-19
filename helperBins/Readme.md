@@ -1,4 +1,4 @@
-# Helperbins #
+# HelperBins #
 a bunch of bins that aggregate elements to be easier to link - the basic idea is that they do all the hard work of plumbing and negotiating pads and you can just slam them together ... for example, this code will join the 6 mp4 sources, decode them, re-encode them and write them to combined.mp4 
 
 ```
@@ -51,7 +51,7 @@ The observant will notice the sources have two video streams and only one is bei
 ### `demuxInfo` ###
 Used by `gstDemuxDecodeBinExamine` to cache demux information - i.e. what media streams does this file have.
 ### `gstDemuxDecodeBinExamine` ###
-Examines a muxed file to work out wehat streams it has - useful if you're continually re-encoding the same file 'types' and you don't want the 2-3 second overhead of re-examining the files
+Examines a muxed file to work out what streams it has - useful if you're continually re-encoding the same file 'types' and you don't want the 2-3 second overhead of re-examining the files
 ### `gstreamDemuxExamineDiscrete` ###
 As above, but lives on its own ephemeral pipeline 
 ### `gstDemuxDecodeBin` ###
@@ -106,7 +106,7 @@ wraps `filesrc`
 joins a mux to a `filesink` or a `FILE` handle
 ### `gstSplitMuxOutBin` ###
 As above but to a `splitmuxsink`
-### gstH264MuxOutBin ###
+### `gstH264MuxOutBin` ###
 Creates an h264 `gstMuxOutBin`, trying various encoders via `gstH264encoderBin`
 ### `gstMatroskaOutBin` ###
 Uses above and uses `matroskamux`
