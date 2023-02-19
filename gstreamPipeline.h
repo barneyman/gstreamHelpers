@@ -797,23 +797,26 @@ protected:
 
     void sendEOStoEnd()
     {
-        GstIterator *sources=gst_bin_iterate_sources (GST_BIN(m_pipeline));
-        if(sources)
-        {
-            GValue item = G_VALUE_INIT;
-            while (gst_iterator_next (sources, &item)==GST_ITERATOR_OK) 
-            {
-                GST_INFO_OBJECT (m_pipeline, "Sending EOS to '%s' ... ",gst_element_get_name((GstElement*)g_value_get_object(&item)));
+        bool result=gst_element_send_event(GST_ELEMENT(m_pipeline),gst_event_new_eos());
 
-                bool result=gst_element_send_event((GstElement*)g_value_get_object(&item),gst_event_new_eos());
+        // GstIterator *sources=gst_bin_iterate_sources (GST_BIN(m_pipeline));
+        // if(sources)
+        // {
+        //     GValue item = G_VALUE_INIT;
+        //     while (gst_iterator_next (sources, &item)==GST_ITERATOR_OK) 
+        //     {
+        //         GST_INFO_OBJECT (m_pipeline, "Sending EOS to '%s' ... ",gst_element_get_name((GstElement*)g_value_get_object(&item)));
 
-                if(!result)
-                    GST_ERROR_OBJECT (m_pipeline, " Sending EOS FAILED");
+        //         bool result=gst_element_send_event((GstElement*)g_value_get_object(&item),gst_event_new_eos());
+        //         bool result=gst_element_send_event(GST_ELEMENT(m_pipeline),gst_event_new_eos());
 
-                g_value_reset(&item);
-            }
-            gst_iterator_free(sources);        
-        }
+        //         if(!result)
+        //             GST_ERROR_OBJECT (m_pipeline, " Sending EOS FAILED");
+
+        //         g_value_reset(&item);
+        //     }
+        //     gst_iterator_free(sources);        
+        // }
     }
 
     void internalRun(unsigned long timeoutSeconds=0)
