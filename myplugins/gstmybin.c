@@ -137,7 +137,7 @@ gst_mybin_request_pad (GstElement * element,
   GstMyBin *mybin = GST_MYBIN (element);  
   if(mybin->myClassPointer)
   {
-    GST_INFO_OBJECT (mybin, "%s asking for %s", GST_ELEMENT_NAME(element), templ->name_template);
+    GST_INFO_OBJECT (mybin, "%s being asked for %s", GST_ELEMENT_NAME(element), templ->name_template);
     return mybin->myClassPointer->request_new_pad(element,templ,templ->name_template,templ->caps);
   }
   return NULL;

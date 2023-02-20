@@ -91,12 +91,20 @@ gstreamBin::~gstreamBin()
 
 GstPad *gstreamBin::request_new_pad (GstElement * element,GstPadTemplate * templ,const gchar * name,const GstCaps * caps)
 {
+    gchar *capsString=gst_caps_to_string(caps);
+    GST_INFO_OBJECT (m_myBin, "Looking for pad '%s' in bin '%s' caps '%s'",(name),Name(), capsString);
+    g_free((gpointer)capsString);
+
     // find this template
     for(auto each=m_advertised.begin();each!=m_advertised.end();each++)
     {
         // static to template
         GstPadTemplate *advertisedTemplate=gst_static_pad_template_get(each->second);
         
+        capsString=gst_caps_to_string(GST_PAD_TEMPLATE_CAPS(advertisedTemplate));
+        GST_INFO_OBJECT (m_myBin, "Looking at template caps '%s'", capsString);
+        g_free((gpointer)capsString);
+
         // see if the request and requested caps are viable
         if(!gst_caps_can_intersect(caps,GST_PAD_TEMPLATE_CAPS(advertisedTemplate)))
         {
