@@ -2,11 +2,12 @@
 #define _myjsonbins_guard
 
 #include "myElementBins.h"
-#include "myplugins/gstjsonparse.h"
-#include "json/json.hpp"
+#include "../myplugins/gstjsonparse.h"
+#include "../json/json.hpp"
 #include <time.h>
 
 // uses the myplugin 'jsonparse' - peeks the utf stream, via a callback, tries to parse the json, and passes it up the vtable
+// a derived bin will overload PeekJson to work out what push out the src pad
 class gstJsonParseBin : public gstreamBin
 {
 
@@ -73,54 +74,12 @@ public:
 
 };
 
-// toy parser i was using to create sections ... dead now - but an example
-class gstJsonParseSatellitesBin : public gstJsonParseBin
-{
-public:
-    gstJsonParseSatellitesBin(pluginContainer<GstElement> *parent):gstJsonParseBin(parent),
-        m_capturing(false)
-    {
 
-    }
-
-    virtual void PeekJson(GstBuffer *buf, nlohmann::json &jsondata,GstBuffer *outbuf)
-    {
-        // check for number of satellites
-        if(jsondata.contains("satelliteCount"))
-        {
-            unsigned numSats=jsondata["satelliteCount"].get<unsigned>();
-            if(!(numSats %2))
-            {
-                if(!m_capturing)
-                {
-                    m_capturing=true;
-                    // save the seek time
-                    m_findings.push_back(std::pair<GstClockTime, unsigned>(buf->pts,numSats));
-
-                    //g_print("pushing %u %" GST_TIME_FORMAT "\n", numSats, GST_TIME_ARGS(buf->pts));
-                }
-            }
-            else
-            {
-                m_capturing=false;
-            }
-        }
-
-        // then call the base - that will do a simple in -> out copy
-        gstJsonParseBin::PeekJson(buf, jsondata, outbuf);
-
-    }
-
-
-    std::vector<std::pair<GstClockTime, unsigned>> m_findings;
-
-    bool m_capturing;
-
-};
 
 
 
 // base class for turning json into pango
+// overload TurnJsonToPango
 class gstJsonToPangoBin : public gstJsonParseBin
 {
 public:
@@ -151,12 +110,20 @@ public:
 
     virtual std::string TurnJsonToPango(nlohmann::json &jsondata,GstBuffer *)
     {
-        return "Steve";
+        return "overload TurnJsonToPango";
     }
 
 };
 
 
+
+
+
+
+
+
+
+#define PANGO_BUFFER  200
 
 
 
@@ -205,8 +172,9 @@ Absolute position (5) – absolute
         gst_element_link(   pluginContainer<GstElement>::FindNamedPlugin(m_jsonPeek),
                             pluginContainer<GstElement>::FindNamedPlugin("textoverlay"));
 
-
+        // ghost my sink for json / utf-8
         AddGhostPads(m_jsonPeek, NULL);
+        // ghost the video/raw pad for text overlay
         AddGhostPads("textoverlay", "textoverlay");
 
     }
@@ -218,155 +186,11 @@ private:
 
 
 
-
-#define PANGO_BUFFER  200
-
-// 
-class gstJsonNMEAtoSpeed : public gstJsonToPangoBin
+// build a chain of pango renderers 
+class gstMultiJsonToPangoRenderBin : public gstCapsFilterBaseBin
 {
 public:    
-    gstJsonNMEAtoSpeed(pluginContainer<GstElement> *parent):gstJsonToPangoBin(parent)
-    {
-    }
-
-    virtual std::string TurnJsonToPango(nlohmann::json &jsondata,GstBuffer *)
-    {
-        char msg[PANGO_BUFFER];
-        int len=0;
-
-        if(jsondata.contains("speedKMH") && jsondata.contains("bearingDeg") && jsondata.contains("satelliteCount"))
-        {
-
-            len=snprintf(msg, sizeof(msg), "<span foreground=\"white\" size=\"small\">%d km/h %.1f° %2d sats</span>",
-                jsondata["speedKMH"].get<int>(),
-                jsondata["bearingDeg"].get<float>(),
-                jsondata["satelliteCount"].get<int>());
-
-            return msg;  
-        }
-
-        return "Subtitle Error";
-    }
-};
-
-
-class gstJsonFrameNumber : public gstJsonToPangoBin
-{
-public:    
-    gstJsonFrameNumber(pluginContainer<GstElement> *parent):gstJsonToPangoBin(parent)
-    {
-    }
-
-    virtual std::string TurnJsonToPango(nlohmann::json &,GstBuffer *inbuf)
-    {
-        char msg[PANGO_BUFFER];
-        int len=0;
-
-        len=snprintf(msg, sizeof(msg), "<span foreground=\"white\" size=\"small\">DTS %" GST_TIME_FORMAT " PTS %" GST_TIME_FORMAT " Dur %" GST_TIME_FORMAT "</span>",
-        //len=snprintf(msg, sizeof(msg), "<span foreground=\"white\" size=\"small\">Frame %lu DTS %" GST_TIME_FORMAT " PTS %" GST_TIME_FORMAT " Dur %" GST_TIME_FORMAT "</span>",
-        //    inbuf->offset,
-            GST_TIME_ARGS(inbuf->dts),
-            GST_TIME_ARGS(inbuf->pts),
-            GST_TIME_ARGS(inbuf->duration)
-            );
-
-        return msg;  
-    }
-};
-
-
-
-
-class gstJsonNMEAtoLongLat : public gstJsonToPangoBin
-{
-public:    
-    gstJsonNMEAtoLongLat(pluginContainer<GstElement> *parent):gstJsonToPangoBin(parent)
-    {
-    }
-
-    virtual std::string TurnJsonToPango(nlohmann::json &jsondata,GstBuffer *)
-    {
-        char msg[PANGO_BUFFER];
-        int len=0;
-
-        if(jsondata.contains("longitudeE") && jsondata.contains("latitudeN"))
-        {
-
-            len=snprintf(msg, sizeof(msg), "<span foreground=\"white\" size=\"small\">Long:%.4f Lat:%.4f</span>",
-                jsondata["longitudeE"].get<float>(),
-                jsondata["latitudeN"].get<float>()
-                );
-
-            return msg;  
-        }
-
-        return "Subtitle Error";
-    }
-};
-
-
-class gstJsonNMEAtoUTC : public gstJsonToPangoBin
-{
-public:    
-    gstJsonNMEAtoUTC(pluginContainer<GstElement> *parent):gstJsonToPangoBin(parent)
-    {
-    }
-
-    virtual std::string TurnJsonToPango(nlohmann::json &jsondata,GstBuffer *)
-    {
-        char msg[PANGO_BUFFER];
-        int len=0;
-
-        std::string output;
-
-        if(jsondata.contains("utcsecs"))
-        {
-            /// oooh - we can localise!
-            time_t nowsecs=jsondata["utcsecs"];
-            struct tm *info = localtime(&nowsecs);
-
-            time_t millis=0;
-            if(jsondata.contains("utcmillis"))
-                millis=jsondata["utcmillis"];
-
-            snprintf(msg,sizeof(msg)-1, "%d-%02d-%02d %02d:%02d:%02d.%03lu %s",
-                info->tm_year+1900,
-                info->tm_mon+1,
-                info->tm_mday,
-                info->tm_hour,
-                info->tm_min,
-                info->tm_sec,
-                millis,
-                tzname[info->tm_isdst]
-                );
-
-            output=msg;
-
-
-        }
-
-        else if(jsondata.contains("utc"))
-        {
-            output=jsondata["utc"].get<std::string>();
-        }
-        else
-        {
-            output="Subtitle error";
-        }
-
-        len=snprintf(msg, sizeof(msg), "<span foreground=\"white\" size=\"small\">%s</span>",
-            output.c_str()
-            );
-
-        return msg;
-    }
-};
-
-
-class gstMultiJsonToPangoRenderBin2 : public gstCapsFilterBaseBin
-{
-public:    
-    gstMultiJsonToPangoRenderBin2(pluginContainer<GstElement> *parent):
+    gstMultiJsonToPangoRenderBin(pluginContainer<GstElement> *parent):
         gstCapsFilterBaseBin(parent,gst_caps_new_simple ("text/x-raw", "format", G_TYPE_STRING, "utf8", NULL),"multiPangoBin"),
         m_first(NULL), m_last(NULL)
     {
@@ -387,7 +211,7 @@ public:
 
     }
 
-    ~gstMultiJsonToPangoRenderBin2()
+    ~gstMultiJsonToPangoRenderBin()
     {
         for(auto each=m_pangoBins.begin();each!=m_pangoBins.end();each++)
         {
@@ -412,6 +236,7 @@ public:
         if(!m_first)
         {
             m_last=m_first=newone;
+            // ghost the raw video and raw text pins of the first pango renderer
             AddGhostPads(*m_first);
         }
         else
@@ -438,60 +263,7 @@ protected:
 
 };
 
-#define _PANGO_SPEED    1
-#define _PANGO_LONGLAG  2
-#define _PANGO_UTC      4
-#define _PANGO_FRAME    8
-class gstMultiJsonToPangoRenderBin : public gstMultiJsonToPangoRenderBin2
-{
-public:
-    gstMultiJsonToPangoRenderBin(pluginContainer<GstElement> *parent, unsigned mask = 0x0f):
-        gstMultiJsonToPangoRenderBin2(parent)
-    {
-        if(mask&_PANGO_SPEED)
-            add<gstJsonNMEAtoSpeed>("pangoBin1", 2, 1);
-        if(mask&_PANGO_LONGLAG)
-            add<gstJsonNMEAtoLongLat>("pangoBin2", 0, 1);
-        if(mask&_PANGO_UTC)
-            add<gstJsonNMEAtoUTC>("pangoBin3", 1, 2);
-        if(mask&_PANGO_FRAME)
-            add<gstJsonFrameNumber>("pangobin4", 1, 4);
 
-        finished();
-    }
-
-
-};
-
-
-// a toy - dead now i think
-class jsonParserExamine : public gstreamBin
-{
-public:
-
-    jsonParserExamine(gstreamPipeline *parent,const char *source):gstreamBin("jsonParseBin",parent),
-        m_source(parent,source),
-        m_progress(parent),
-        m_jsonParser(parent)
-    {
-        // no clock sync, and pull the data - fast
-        parent->AddPlugin("fakesink","fakesink_subs");
-        g_object_set (parent->pluginContainer<GstElement>::FindNamedPlugin("fakesink_subs"), 
-            "sync",FALSE,NULL);//"can-activate-pull",TRUE,"can-activate-push",FALSE,NULL);
-
-        parent->ConnectPipeline(m_source,m_jsonParser);
-        parent->ConnectPipeline(m_jsonParser,"fakesink_subs", m_progress);
-
-        parent->Run();
-
-    }
-
-    gstJsonParseSatellitesBin m_jsonParser;
-    gstFrameBufferProgress m_progress;
-    gstDemuxMP4SubsOnlyDecodeBin m_source;
-
-
-};
 
 
 #endif //_myjsonbins_guard
