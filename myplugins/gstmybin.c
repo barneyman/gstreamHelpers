@@ -137,7 +137,9 @@ gst_mybin_request_pad (GstElement * element,
   GstMyBin *mybin = GST_MYBIN (element);  
   if(mybin->myClassPointer)
   {
-    GST_INFO_OBJECT (mybin, "%s being asked for %s", GST_ELEMENT_NAME(element), templ->name_template);
+    gchar *capsString=gst_caps_to_string(caps);
+    GST_INFO_OBJECT (mybin, "%s being asked for %s with caps %s", GST_ELEMENT_NAME(element), templ->name_template,capsString);
+    g_free((gpointer)capsString);
     return mybin->myClassPointer->request_new_pad(element,templ,templ->name_template,templ->caps);
   }
   return NULL;
