@@ -206,6 +206,10 @@ gst_nmeasource_init (GstNmeaSource *nmeasource)
   nmeasource->threadInfo.tsoffsetms=DEFAULT_TSOFFSET;
   nmeasource->threadInfo.frameTimeDelta=(GST_SECOND/nmeasource->threadInfo.frameRate);
 
+  // if i set this to true, i need to provide a clock to the pipeline
+  // GST_MESSAGE_CLOCK_PROVIDE
+  gst_base_src_set_live(GST_BASE_SRC(nmeasource), TRUE);
+  gst_base_src_set_format(GST_BASE_SRC(nmeasource), GST_FORMAT_TIME );
 
 }
 
@@ -371,10 +375,6 @@ gst_nmeasource_start (GstBaseSrc * src)
   nmeasource->threadInfo.runningTime=0;
   nmeasource->waitId=NULL;
 
-  // if i set this to true, i need to provide a clock to the pipeline
-  // GST_MESSAGE_CLOCK_PROVIDE
-  gst_base_src_set_live(src, TRUE);
-  gst_base_src_set_format(src, GST_FORMAT_TIME );
 
 
   return TRUE;
@@ -405,16 +405,20 @@ static void
 gst_nmeasource_get_times (GstBaseSrc * src, GstBuffer * buffer,
     GstClockTime * start, GstClockTime * end)
 {
+  GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
   // stolen from gsttestvieosrc
   /* for live sources, sync on the timestamp of the buffer */
   if (gst_base_src_is_live (src)) {
+    /* get duration to calculate end time */
+    GstClockTime duration = GST_BUFFER_DURATION (buffer);
+    GstClockTime pts = GST_BUFFER_PTS (buffer);
+    GST_INFO_OBJECT (nmeasource, "PTS %" GST_TIME_FORMAT ".",GST_TIME_ARGS(pts));
+
     // add a duration to this sync time so the basesrc works out what my latency is
-    GstClockTime timestamp = GST_BUFFER_PTS (buffer)+GST_BUFFER_DURATION (buffer);
+    GstClockTime timestamp = pts+duration;
 
     if (GST_CLOCK_TIME_IS_VALID (timestamp)) {
-      /* get duration to calculate end time */
-      GstClockTime duration = GST_BUFFER_DURATION (buffer);
 
       if (GST_CLOCK_TIME_IS_VALID (duration)) {
         *end = timestamp + duration;
