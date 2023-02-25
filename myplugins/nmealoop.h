@@ -17,7 +17,7 @@
     } sample;
 
     unsigned long framesFilled;
-    GstClockTime runningTime, frameTimeDelta;
+    GstClockTime runningTime, frameTimeDelta, firstFrame;
 
     unsigned frameRate;
     bool useLocalTime;
