@@ -83,7 +83,8 @@ enum
   PROP_FRAME_RATE,
   PROP_USE_LOCALTIME,
   PROP_PARENT,
-  PROP_TS_OFFSET
+  PROP_TS_OFFSET,
+  PROP_PIPELINE_TIME
 };
 
 #define DEFAULT_FRAMERATE 30
@@ -161,13 +162,13 @@ gst_nmeasource_class_init (GstNmeaSourceClass * klass)
           1,30, DEFAULT_FRAMERATE,
           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));  
 
-/*
+
   g_object_class_install_property (gobject_class, PROP_USE_LOCALTIME,
       g_param_spec_boolean ("localtime", "localtime",
           "Use OS time", 
           FALSE,
           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));  
-*/
+
   g_object_class_install_property (gobject_class, PROP_PARENT,
       g_param_spec_pointer ("parent", "parent",
           "Parent gstPipeline ptr", 
@@ -181,6 +182,12 @@ gst_nmeasource_class_init (GstNmeaSourceClass * klass)
           -10000,10000, DEFAULT_TSOFFSET,
           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));  
 
+  g_object_class_install_property (gobject_class, PROP_PIPELINE_TIME,
+      g_param_spec_boolean ("pipelinetime", "pipelinetime",
+          "Use pipelinetime time", 
+          FALSE,
+          (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));  
+
 }
 
 static void
@@ -191,6 +198,7 @@ gst_nmeasource_init (GstNmeaSource *nmeasource)
 #endif
 
   nmeasource->threadInfo.useLocalTime=false;
+  nmeasource->threadInfo.usePipelineTime=false;
   nmeasource->parent=NULL;
   nmeasource->threadInfo.tsoffsetms=0;
 
@@ -223,6 +231,9 @@ gst_nmeasource_set_property (GObject * object, guint property_id,
     case PROP_PARENT:
       nmeasource->parent=(gstreamPipeline*)g_value_get_pointer (value);
       break;
+    case PROP_PIPELINE_TIME:
+      nmeasource->threadInfo.usePipelineTime=g_value_get_boolean (value)?true:false;
+      break;
 
     default:
       G_OBJECT_WARN_INVALID_PROPERTY_ID (object, property_id, pspec);
@@ -254,6 +265,9 @@ gst_nmeasource_get_property (GObject * object, guint property_id,
 
     case PROP_PARENT:
       g_value_set_pointer(value, nmeasource->parent);
+      break;
+    case PROP_PIPELINE_TIME:
+      g_value_set_boolean(value, nmeasource->threadInfo.usePipelineTime);
       break;
 
     default:
@@ -568,14 +582,11 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 
   GST_DEBUG_OBJECT (nmeasource, "At frame rate %d timeDelta is %lu", nmeasource->threadInfo.frameRate, nmeasource->threadInfo.frameTimeDelta);
 
-#define _USE_PIEPLINE_TIME
-
-#ifdef _USE_PIEPLINE_TIME
-  GstClockTime pts=0;
+  if(nmeasource->threadInfo.usePipelineTime)
+  {
   if(nmeasource->parent)
   {
-    pts=nmeasource->parent->GetTimeSinceEpoch();
-  }
+      GstClockTime pts=nmeasource->parent->GetTimeSinceEpoch();
 
   if(nmeasource->threadInfo.tsoffsetms)
   {
@@ -599,13 +610,20 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
     info->tm_sec,
     (pts-(nowsecs*GST_SECOND))/GST_MSECOND);
   copyOfData=timebuf;
-#else
-    // get the mutex for shortest time
-  {
-    std::lock_guard<std::mutex> guard(nmeasource->threadInfo.gpsMutex);
-    copyOfData=nmeasource->threadInfo.sample.gpsOutput;
+    }
+    else
+    {
+      copyOfData="Need parent property set to pipeline* for pipeline time";
+    }
   }
-#endif
+  else
+  {
+    // get the mutex for shortest time
+    {
+      std::lock_guard<std::mutex> guard(nmeasource->threadInfo.gpsMutex);
+      copyOfData=nmeasource->threadInfo.sample.gpsOutput;
+    }
+  }
 
   int len=copyOfData.length();
 

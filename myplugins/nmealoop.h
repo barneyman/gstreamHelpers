@@ -22,6 +22,7 @@
     unsigned frameRate;
     bool useLocalTime;
     int tsoffsetms;
+    bool usePipelineTime;
 
     std::mutex gpsMutex;
   } ;
