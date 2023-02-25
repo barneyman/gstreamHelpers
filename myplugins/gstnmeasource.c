@@ -109,7 +109,7 @@ GST_STATIC_PAD_TEMPLATE ("src",
 
 /* class initialization */
 
-G_DEFINE_TYPE_WITH_CODE (GstNmeaSource, gst_nmeasource, GST_TYPE_BASE_SRC,
+G_DEFINE_TYPE_WITH_CODE (GstNmeaSource, gst_nmeasource, GST_TYPE_PUSH_SRC,
   GST_DEBUG_CATEGORY_INIT (gst_nmeasource_debug_category, "nmeasource", 0,
   "debug category for nmeasource element"));
 
@@ -118,6 +118,7 @@ gst_nmeasource_class_init (GstNmeaSourceClass * klass)
 {
   GObjectClass *gobject_class = G_OBJECT_CLASS (klass);
   GstBaseSrcClass *base_src_class = GST_BASE_SRC_CLASS (klass);
+  GstPushSrcClass *push_src_class = GST_PUSH_SRC_CLASS (klass);
 
   /* Setting up pads and setting metadata should be moved to
      base_class_init if you intend to subclass this class. */
@@ -130,8 +131,8 @@ gst_nmeasource_class_init (GstNmeaSourceClass * klass)
 
   gobject_class->set_property = gst_nmeasource_set_property;
   gobject_class->get_property = gst_nmeasource_get_property;
-  gobject_class->dispose = gst_nmeasource_dispose;
-  gobject_class->finalize = gst_nmeasource_finalize;
+  //gobject_class->dispose = gst_nmeasource_dispose;
+  //gobject_class->finalize = gst_nmeasource_finalize;
   //base_src_class->get_caps = GST_DEBUG_FUNCPTR (gst_nmeasource_get_caps);
   //base_src_class->negotiate = GST_DEBUG_FUNCPTR (gst_nmeasource_negotiate);
   //base_src_class->fixate = GST_DEBUG_FUNCPTR (gst_nmeasource_fixate);
@@ -144,8 +145,8 @@ gst_nmeasource_class_init (GstNmeaSourceClass * klass)
   base_src_class->is_seekable = GST_DEBUG_FUNCPTR (gst_nmeasource_is_seekable);
   //base_src_class->prepare_seek_segment = GST_DEBUG_FUNCPTR (gst_nmeasource_prepare_seek_segment);
   //base_src_class->do_seek = GST_DEBUG_FUNCPTR (gst_nmeasource_do_seek);
-  base_src_class->unlock = GST_DEBUG_FUNCPTR (gst_nmeasource_unlock);
-  base_src_class->unlock_stop = GST_DEBUG_FUNCPTR (gst_nmeasource_unlock_stop);
+  //base_src_class->unlock = GST_DEBUG_FUNCPTR (gst_nmeasource_unlock);
+  //base_src_class->unlock_stop = GST_DEBUG_FUNCPTR (gst_nmeasource_unlock_stop);
   //base_src_class->query = GST_DEBUG_FUNCPTR (gst_nmeasource_query);
   //base_src_class->event = GST_DEBUG_FUNCPTR (gst_nmeasource_event);
   //base_src_class->create = GST_DEBUG_FUNCPTR (gst_nmeasource_create);

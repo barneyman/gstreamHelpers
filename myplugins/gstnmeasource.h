@@ -20,7 +20,7 @@
 #ifndef _GST_NMEASOURCE_H_
 #define _GST_NMEASOURCE_H_
 
-#include <gst/base/gstbasesrc.h>
+#include <gst/base/gstpushsrc.h>
 #include "nmealoop.h"
 
 #include "../gstreamPipeline.h"
@@ -40,7 +40,7 @@ typedef struct _GstNmeaSourceClass GstNmeaSourceClass;
 
 struct _GstNmeaSource
 {
-  GstBaseSrc base_nmeasource;
+  GstPushSrcClass base_nmeasource;
 
   struct nmea_threadInfo threadInfo;
 
@@ -52,7 +52,7 @@ struct _GstNmeaSource
 
 struct _GstNmeaSourceClass
 {
-  GstBaseSrcClass base_nmeasource_class;
+  GstPushSrcClass base_nmeasource_class;
 };
 
 GType gst_nmeasource_get_type (void);
