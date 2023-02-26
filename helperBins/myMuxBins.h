@@ -76,7 +76,7 @@ public:
 
         AddGhostPads("splitmuxsink",NULL);
 
-        advertiseElementsPadTemplates("splitmuxsink");
+        advertiseElementsPadTemplates_splitmuxsink(pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"));
 
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"), 
             "max-size-time", time_seconds * GST_SECOND, NULL);
@@ -92,6 +92,69 @@ public:
     {
         releaseRequestedPads();
     }
+
+    // splitmuxsink is an idiot ... it declares all its 'on request' pads as caps ANY
+    // good luck trying to get a subtitles pad, you'll get video, and stiff shit
+    // so this deliberately tightens the caps according to template name
+    void advertiseElementsPadTemplates_splitmuxsink(GstElement *element)
+    {
+        if(!element)
+            return;
+
+        GstElementClass  *eclass = GST_ELEMENT_GET_CLASS (element);
+        GstElementClass  *myclass = GST_ELEMENT_GET_CLASS (m_myBin);
+        // get its pad templates
+
+        GList * padlist = gst_element_class_get_pad_template_list (eclass);
+
+        std::vector<std::pair<std::string,std::string>> fixedCaps={
+            std::make_pair("video","video/any"),
+            std::make_pair("subtitle_%u","text/any"),
+            std::make_pair("audio_%u","audio/any"),
+            std::make_pair("video_%u","video/any")
+        };
+
+        while (padlist) 
+        {
+            if(padlist->data)
+            {
+                //GstStaticPadTemplate *padtempl = (GstStaticPadTemplate*)padlist->data;
+                // doc'd as GstStaticPadTemplate but apparently not (looking at gstutils.c/gst_element_get_compatible_pad_template)
+                GstPadTemplate *padtempl = (GstPadTemplate*)padlist->data;
+
+                if(padtempl->direction == GST_PAD_SINK && padtempl->presence == GST_PAD_REQUEST)
+                {
+
+                    // create a new one - dynamic
+                    GstStaticPadTemplate *stat=new GstStaticPadTemplate();
+                    stat->name_template=padtempl->name_template;
+                    stat->direction=padtempl->direction;
+                    stat->presence=padtempl->presence;
+
+                    std::string toFind=padtempl->name_template;
+
+                    auto found=std::find_if(fixedCaps.begin(),fixedCaps.end(),
+                        [&toFind](const std::pair<std::string,std::string>& x) { return x.first == toFind;}
+                        );
+
+                    if(found!=fixedCaps.end())
+                    {
+                        stat->static_caps=GST_STATIC_CAPS(found->second.c_str());
+
+                        m_advertised.push_back(std::pair<GstElement*,GstStaticPadTemplate*>(element,stat));
+
+                        GST_INFO_OBJECT (m_myBin, "Advertising '%s' pad from '%s' - caps %s",padtempl->name_template,GST_ELEMENT_NAME(element), found->second.c_str());                
+
+                        gst_element_class_add_pad_template(myclass, padtempl);
+                    }
+
+
+                }
+            }
+            padlist = g_list_next (padlist);
+        }
+
+    }    
 
 };
 
