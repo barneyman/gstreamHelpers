@@ -408,13 +408,6 @@ gst_nmeasource_get_times (GstBaseSrc * src, GstBuffer * buffer,
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  // look for first time thru
-  if(nmeasource->threadInfo.firstFrame==GST_CLOCK_TIME_NONE)
-  {
-    // subtract the inital pts from each buffer so we return times from 0
-    nmeasource->threadInfo.firstFrame=0;//GST_BUFFER_PTS (buffer);
-  }
-
   // stolen from gsttestvieosrc
   /* for live sources, sync on the timestamp of the buffer */
   if (gst_base_src_is_live (src)) {
@@ -423,7 +416,7 @@ gst_nmeasource_get_times (GstBaseSrc * src, GstBuffer * buffer,
     GstClockTime pts = GST_BUFFER_PTS (buffer);
     GST_INFO_OBJECT (nmeasource, "PTS %" GST_TIME_FORMAT ".",GST_TIME_ARGS(pts));
 
-    GstClockTime timestamp = pts - nmeasource->threadInfo.firstFrame;
+    GstClockTime timestamp = pts;
 
     if (GST_CLOCK_TIME_IS_VALID (timestamp)) {
 
@@ -594,35 +587,39 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   {
     if(nmeasource->parent)
     {
-        GstClockTime pts=nmeasource->parent->GetTimeSinceEpoch();
+      GstClockTime baseTime=gst_element_get_base_time(GST_ELEMENT(src));
+      GstClockTime pts=nmeasource->parent->FixTimeForEpoch(baseTime+(nmeasource->threadInfo.runningTime));
 
-    if(nmeasource->threadInfo.tsoffsetms)
-    {
-      GstClockTime diff=(GstClockTime)abs(nmeasource->threadInfo.tsoffsetms)*(GST_MSECOND);
-      if(nmeasource->threadInfo.tsoffsetms>0)  
-        pts+=(diff);
-      else
-        pts-=(diff);
-    }
-
-    struct tm *info; time_t nowsecs=pts/GST_SECOND;
-    info = gmtime(&nowsecs);
-
-    char timebuf[128];
-    snprintf(timebuf,sizeof(timebuf)-1, "{\"data-type\":\"datetime\",\"utc\":\"%d-%02d-%02dT%02d:%02d:%02d.%03luZ\"}",
-      info->tm_year+1900,
-      info->tm_mon+1,
-      info->tm_mday,
-      info->tm_hour,
-      info->tm_min,
-      info->tm_sec,
-      (pts-(nowsecs*GST_SECOND))/GST_MSECOND);
-    copyOfData=timebuf;
-      }
-      else
+      if(nmeasource->threadInfo.tsoffsetms)
       {
-        copyOfData="Need parent property set to pipeline* for pipeline time";
+        GstClockTime diff=(GstClockTime)abs(nmeasource->threadInfo.tsoffsetms)*(GST_MSECOND);
+        if(nmeasource->threadInfo.tsoffsetms>0)  
+          pts+=(diff);
+        else
+          pts-=(diff);
       }
+
+      struct tm *info; 
+      time_t nowsecs=pts/GST_SECOND;
+      info = gmtime(&nowsecs);
+
+      char timebuf[128];
+      snprintf(timebuf,sizeof(timebuf)-1, "{\"data-type\":\"datetime\",\"utc\":\"%d-%02d-%02dT%02d:%02d:%02d.%03luZ\"}",
+        info->tm_year+1900,
+        info->tm_mon+1,
+        info->tm_mday,
+        info->tm_hour,
+        info->tm_min,
+        info->tm_sec,
+        (pts-(nowsecs*GST_SECOND))/GST_MSECOND);
+
+
+      copyOfData=timebuf;
+    }
+    else
+    {
+      copyOfData="Need parent property set to pipeline* for pipeline time";
+    }
   }
   else
   {
@@ -653,27 +650,6 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   GST_BUFFER_OFFSET (buf) = nmeasource->threadInfo.framesFilled++;
   GST_BUFFER_OFFSET_END (buf) = GST_BUFFER_OFFSET (buf) +1;
 
-  if(myClock)
-  {
-    GstClockTime runningTime=gst_clock_get_time (myClock)-baseTime;
-    GST_INFO_OBJECT (nmeasource, "Running Time %" GST_TIME_FORMAT ".",GST_TIME_ARGS(runningTime));
-
-    GST_BUFFER_DTS (buf) = GST_BUFFER_PTS (buf) = runningTime;
-
-    // do a check of running time against what *I* think running time is, hopefully spot a downstream hold on me
-    GstClockTime diff=abs(runningTime>nmeasource->threadInfo.runningTime);
-    // if we're more than a frame out ...
-    if(diff>nmeasource->threadInfo.frameTimeDelta)
-    {
-      GST_WARNING_OBJECT (nmeasource, "Pipe Running Time %" GST_TIME_FORMAT ". My Running Time %" GST_TIME_FORMAT " Diff %" GST_TIME_FORMAT "",
-        GST_TIME_ARGS(runningTime),GST_TIME_ARGS(nmeasource->threadInfo.runningTime),GST_TIME_ARGS(diff));
-
-      if(diff/nmeasource->threadInfo.frameTimeDelta > 1)
-        GST_ERROR_OBJECT (nmeasource, " %lu dropped",(unsigned)diff/nmeasource->threadInfo.frameTimeDelta );
-
-    }
-  }
-  else
   {
     // sort out timestamps - stolen from gstvideotestsrc
     GST_BUFFER_PTS (buf) = nmeasource->threadInfo.runningTime;
