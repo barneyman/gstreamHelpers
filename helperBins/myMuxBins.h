@@ -164,19 +164,21 @@ class gstH264MuxOutBin :  public gstreamBin
 {
 protected:
 
-    gstH264encoderBin m_encoder;
+    std::vector<gstH264encoderBin*> m_encoders;
+
     gstFrameBufferProgress m_progress;
 
 public:
     gstH264MuxOutBin(gstreamPipeline *parent,const char*location,const char *muxer, const char *name="muxh264OutBin"):
         gstreamBin(name,parent),
-        m_progress(this),
-        m_encoder(this)
+        m_progress(this)
     {
         pluginContainer<GstElement>::AddPlugin("filesink");
 
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("filesink"), 
             "location", location, NULL);
+
+       
 
         lateCtor(muxer);
 
@@ -185,8 +187,7 @@ public:
 
     gstH264MuxOutBin(gstreamPipeline *parent,FILE *fhandle,const char *muxer, const char *name="muxh264OutBin"):
         gstreamBin(name,parent),
-        m_progress(this),
-        m_encoder(this)
+        m_progress(this)
     {
         pluginContainer<GstElement>::AddPlugin("fdsink","filesink");
 
@@ -199,13 +200,27 @@ public:
 
 protected:
 
+    gstH264encoderBin* requestEncoder()
+    {
+        char namebuf[32];
+        snprintf(namebuf,sizeof(namebuf)-1,"encoder_%d",m_encoders.size());
+
+        gstH264encoderBin *encoder=new gstH264encoderBin(this,namebuf);
+        m_encoders.push_back(encoder);
+
+        return encoder;
+    }
+
+
     void lateCtor(const char *muxer)
     {
 
         pluginContainer<GstElement>::AddPlugin(muxer,"muxer");
 
+        gstH264encoderBin *encoder=requestEncoder();
+
         if(!gst_element_link_many(  
-            pluginContainer<GstElement>::FindNamedPlugin(m_encoder),
+            pluginContainer<GstElement>::FindNamedPlugin(*encoder),
             pluginContainer<GstElement>::FindNamedPlugin(m_progress),
             pluginContainer<GstElement>::FindNamedPlugin("muxer"),
             pluginContainer<GstElement>::FindNamedPlugin("filesink"),
@@ -215,11 +230,48 @@ protected:
             GST_ERROR_OBJECT (m_parent, "Failed to link output bin!");
         }
 
-        AddGhostPads(m_encoder,NULL);
+        AddGhostPads(*encoder,NULL);
 
         setBinFlags(GST_ELEMENT_FLAG_SINK);
 
     }
+
+    // there may be more than one video stream
+    virtual GstPad *request_new_pad (GstElement * element,GstPadTemplate * templ,const gchar * name,const GstCaps * caps)
+    {
+        // so spin up another encoder, connect it to the mux, and then ghost it's sink pin out
+        gstH264encoderBin *encoder=requestEncoder();
+        gst_element_link_many(
+            pluginContainer<GstElement>::FindNamedPlugin(*encoder),
+            pluginContainer<GstElement>::FindNamedPlugin("muxer"),
+            NULL);
+
+        // get it's src pins
+        GList *elementPads=(pluginContainer<GstElement>::FindNamedPlugin(*encoder))->sinkpads;
+
+        //gst_element_get_compatible_pad(pluginContainer<GstElement>::FindNamedPlugin(*encoder),)
+
+        for(;elementPads;elementPads=elementPads->next)
+        {
+            GstPad *eachPad=(GstPad *)elementPads->data;    
+            if(gst_pad_is_linked(eachPad))
+            {
+                continue;
+            }
+
+            // then set caps
+            //if(gst_pad_set_caps(eachPad,(GstCaps*)caps))
+            {
+                GstPad*ret=GhostSingleSinkPad(eachPad);
+                return ret;
+            }
+            
+        }
+        
+        return NULL;
+    }
+
+
 
 };
 
