@@ -95,6 +95,10 @@ GstPad *gstreamBin::request_new_pad (GstElement * element,GstPadTemplate * templ
     GST_INFO_OBJECT (m_myBin, "Looking for pad '%s' in bin '%s' caps '%s'",(name),Name(), capsString);
     g_free((gpointer)capsString);
 
+    capsString=gst_caps_to_string(GST_PAD_TEMPLATE_CAPS(templ));
+    GST_INFO_OBJECT (m_myBin, "Template '%s' caps '%s'",(templ->name_template), capsString);
+    g_free((gpointer)capsString);
+
     // find this template
     for(auto each=m_advertised.begin();each!=m_advertised.end();each++)
     {
@@ -102,8 +106,13 @@ GstPad *gstreamBin::request_new_pad (GstElement * element,GstPadTemplate * templ
         GstPadTemplate *advertisedTemplate=gst_static_pad_template_get(each->second);
         
         capsString=gst_caps_to_string(GST_PAD_TEMPLATE_CAPS(advertisedTemplate));
-        GST_INFO_OBJECT (m_myBin, "Looking at template caps '%s'", capsString);
+        GST_INFO_OBJECT (m_myBin, "Looking at template %s caps '%s'",each->second->name_template, capsString);
         g_free((gpointer)capsString);
+
+        if(strcmp(each->second->name_template,templ->name_template))
+        {
+            continue;
+        }
 
         // see if the request and requested caps are viable
         if(!gst_caps_can_intersect(caps,GST_PAD_TEMPLATE_CAPS(advertisedTemplate)))
@@ -115,7 +124,8 @@ GstPad *gstreamBin::request_new_pad (GstElement * element,GstPadTemplate * templ
         // gst_element_class_get_request_pad_template
 
         GstPad*ret=gst_element_request_pad(each->first,
-            advertisedTemplate,
+            //advertisedTemplate,
+            templ,
             NULL,
             caps);
 
