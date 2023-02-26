@@ -1175,11 +1175,11 @@ public:
         return m_networkClock?true:false;
     }
 
-    bool UseNTPv4Clock(const char *host, unsigned port, bool waitForSync=true, int timeoutS=-1)
+    bool UseNTPv4Clock(const char *host="0.au.pool.ntp.org", unsigned port=123, bool waitForSync=true, int timeoutS=-1)
     {
 
 
-        // https://archive.fosdem.org/2016/schedule/event/synchronised_gstreamer/attachments/slides/889/export/events/attachments/synchronised_gstreamer/slides/889/synchronised_multidevice_media_playback_with_GStreamer.pdf
+        // https://archive.fosdem.org/2016/schedule/event/syncgst_ntp_clock_newhronised_gstreamer/attachments/slides/889/export/events/attachments/synchronised_gstreamer/slides/889/synchronised_multidevice_media_playback_with_GStreamer.pdf
         GstClock *netClock=gst_ntp_clock_new("networkClock", host, port, 0);//gst_clock_get_time(gstSystemClk));
         if(netClock)
         {
