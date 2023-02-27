@@ -7,12 +7,12 @@
 #include "gstmybin.h"
 
 // given i've done this to get request pads running, lets declare one
-static GstStaticPadTemplate gst_mybin_sink_template =
-GST_STATIC_PAD_TEMPLATE ("request_%u",
-    GST_PAD_SINK,
-    GST_PAD_REQUEST,
-    GST_STATIC_CAPS_ANY
-    );
+// static GstStaticPadTemplate gst_mybin_sink_template =
+// GST_STATIC_PAD_TEMPLATE ("request_%u",
+//     GST_PAD_SINK,
+//     GST_PAD_REQUEST,
+//     GST_STATIC_CAPS_ANY
+//     );
 
 
 
