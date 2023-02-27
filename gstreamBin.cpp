@@ -229,7 +229,7 @@ void gstreamBin::advertiseElementsPadTemplates(GstElement *element)
 
                 GST_INFO_OBJECT (m_myBin, "Advertising '%s' pad from '%s' - caps %s",padtempl->name_template,GST_ELEMENT_NAME(element), gst_caps_to_string (padtempl->caps));                
 
-                gst_element_class_add_pad_template(myclass, padtempl);
+                gst_element_class_add_pad_template(myclass, gst_static_pad_template_get(stat));
 
 
             }
