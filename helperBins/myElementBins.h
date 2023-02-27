@@ -749,10 +749,7 @@ public:
             "use_buffering", TRUE, NULL);
 
         // then a mixer
-        pluginContainer<GstElement>::AddPlugin("videomixer");
-
-
-
+        pluginContainer<GstElement>::AddPlugin("compositor","videomixer");
 
         // TODO check this fn - enabling it stops things negotiating, and shouldn't that by RGBA?
         // multisink won't expose srcs until the sinks are used, and we're going to request those
