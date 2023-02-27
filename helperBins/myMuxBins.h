@@ -76,7 +76,8 @@ public:
 
         AddGhostPads("splitmuxsink",NULL);
 
-        advertiseElementsPadTemplates_splitmuxsink(pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"));
+        // TODO fix this - see below
+        //advertiseElementsPadTemplates_splitmuxsink(pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"));
 
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"), 
             "max-size-time", time_seconds * GST_SECOND, NULL);
@@ -93,6 +94,10 @@ public:
         releaseRequestedPads();
     }
 
+    // TODO - fix the underlying advertise then change it to have an underlying 'tightenCaps' map
+    // currently this adds no value because the implementation is flawed
+
+/*
     // splitmuxsink is an idiot ... it declares all its 'on request' pads as caps ANY
     // good luck trying to get a subtitles pad, you'll get video, and stiff shit
     // so this deliberately tightens the caps according to template name
@@ -155,6 +160,7 @@ public:
         }
 
     }    
+*/
 
 };
 
