@@ -179,12 +179,14 @@ public:
         gstreamBin(name,parent),
         m_progress(this)
     {
+       debugPrintStaticTemplates();
+
         pluginContainer<GstElement>::AddPlugin("filesink");
 
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("filesink"), 
             "location", location, NULL);
 
-       
+       debugPrintStaticTemplates();
 
         lateCtor(muxer);
 
@@ -239,6 +241,9 @@ protected:
         AddGhostPads(*encoder,NULL);
 
         setBinFlags(GST_ELEMENT_FLAG_SINK);
+
+        // and advertise the pads of the muxer
+        advertiseElementsPadTemplates("muxer");
 
     }
 
