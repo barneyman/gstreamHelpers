@@ -245,6 +245,16 @@ protected:
     // there may be more than one video stream
     virtual GstPad *request_new_pad (GstElement * element,GstPadTemplate * templ,const gchar * name,const GstCaps * caps)
     {
+        
+        gchar *capsString=gst_caps_to_string(caps);
+        GST_INFO_OBJECT (m_myBin, "Looking for pad '%s' in bin '%s' caps '%s'",(name),Name(), capsString);
+        g_free((gpointer)capsString);
+
+        capsString=gst_caps_to_string(GST_PAD_TEMPLATE_CAPS(templ));
+        GST_INFO_OBJECT (m_myBin, "Template '%s' caps '%s'",(templ->name_template), capsString);
+        g_free((gpointer)capsString);
+
+
         // so spin up another encoder, connect it to the mux, and then ghost it's sink pin out
         gstH264encoderBin *encoder=requestEncoder();
         gst_element_link_many(
