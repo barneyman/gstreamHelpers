@@ -246,7 +246,21 @@ void gstreamBin::advertiseElementsPadTemplates(GstElement *element)
                 stat->name_template=padtempl->name_template;
                 stat->direction=padtempl->direction;
                 stat->presence=padtempl->presence;
-                stat->static_caps=GST_STATIC_CAPS(gst_caps_to_string (padtempl->caps));
+
+                // we may have been asked to tighten caps
+                std::string toFind=padtempl->name_template;
+                auto found=std::find_if(m_tightenedCaps.begin(),m_tightenedCaps.end(),
+                    [&toFind](const std::pair<std::string,std::string>& x) { return x.first == toFind;}
+                    );
+                // we found tightened caps, so use them
+                if(found!=m_tightenedCaps.end())
+                {
+                    stat->static_caps=GST_STATIC_CAPS(found->second.c_str());                    
+                }
+                else
+                {
+                    stat->static_caps=GST_STATIC_CAPS(gst_caps_to_string (padtempl->caps));
+                }
 
                 m_advertised.push_back(std::pair<GstElement*,GstStaticPadTemplate*>(element,stat));
 

@@ -85,8 +85,15 @@ protected:
     GstElement* m_myBin;
 
     std::vector<GstPad*> m_ghostPadsSinks,m_ghostPadsSrcs,m_requestedPadsGhosted;
+    std::vector<std::pair<std::string,std::string>> m_tightenedCaps;
 
 protected:
+
+    void setTightenedCaps(std::vector<std::pair<std::string,std::string>> &tightenedCaps)
+    {
+        m_tightenedCaps=tightenedCaps;           
+    }
+
 
     void addPadToBeReleased(GstElement*el,GstPad*pad)
     {
