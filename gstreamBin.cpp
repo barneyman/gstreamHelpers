@@ -20,7 +20,30 @@ gstreamBin::gstreamBin(const char *binName, pluginContainer<GstElement> *parent)
     // add myself to pipeline
     parent->AddElement(binName,GST_ELEMENT(m_myBin));
 
-}    
+void gstreamBin::debugPrintStaticTemplates()
+{
+    GstElementClass  *myclass = GST_ELEMENT_GET_CLASS (m_myBin);
+
+    GList * padlist = gst_element_class_get_pad_template_list (myclass);
+
+    while (padlist) 
+    {
+        if(padlist->data)
+        {
+            //GstStaticPadTemplate *padtempl = (GstStaticPadTemplate*)padlist->data;
+            // doc'd as GstStaticPadTemplate but apparently not (looking at gstutils.c/gst_element_get_compatible_pad_template)
+            GstPadTemplate *padtempl = (GstPadTemplate*)padlist->data;
+
+            //if(padtempl->direction == GST_PAD_SINK && padtempl->presence == GST_PAD_REQUEST)
+            {
+                GST_WARNING_OBJECT (m_myBin, "Pad Template '%s' caps %s",padtempl->name_template, gst_caps_to_string (padtempl->caps));                
+
+            }
+        }
+        padlist = g_list_next (padlist);
+    }
+
+}
 
 
 // normally called by an owning class's dtor, so you can unlink from it

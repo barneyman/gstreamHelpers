@@ -76,6 +76,8 @@ protected:
         GST_OBJECT_FLAG_SET(m_myBin, flags);
     }
 
+    void debugPrintStaticTemplates();
+
 protected:
 
     pluginContainer<GstElement> *m_parent;
