@@ -554,6 +554,11 @@ public:
         AddGhostPads("capsfilter","capsfilter");
     }
 
+    gstCapsFilterSimple(pluginContainer<GstElement> *parent,GstCaps*caps,const char *name="capsFilterBin"):
+        gstCapsFilterBaseBin(parent,caps,name)
+    {
+        AddGhostPads("capsfilter","capsfilter");
+    }
 
 
 };
