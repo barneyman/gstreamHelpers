@@ -20,30 +20,37 @@ gstreamBin::gstreamBin(const char *binName, pluginContainer<GstElement> *parent)
     // add myself to pipeline
     parent->AddElement(binName,GST_ELEMENT(m_myBin));
 
-void gstreamBin::debugPrintStaticTemplates()
+}    
+
+gstreamBin::~gstreamBin()
 {
-    GstElementClass  *myclass = GST_ELEMENT_GET_CLASS (m_myBin);
+    GST_INFO_OBJECT (m_myBin, "killing bin %s",Name());                
 
-    GList * padlist = gst_element_class_get_pad_template_list (myclass);
-
-    while (padlist) 
+    // check
+    if(m_requestedPadsGhosted.size())
     {
-        if(padlist->data)
-        {
-            //GstStaticPadTemplate *padtempl = (GstStaticPadTemplate*)padlist->data;
-            // doc'd as GstStaticPadTemplate but apparently not (looking at gstutils.c/gst_element_get_compatible_pad_template)
-            GstPadTemplate *padtempl = (GstPadTemplate*)padlist->data;
-
-            //if(padtempl->direction == GST_PAD_SINK && padtempl->presence == GST_PAD_REQUEST)
-            {
-                GST_WARNING_OBJECT (m_myBin, "Pad Template '%s' caps %s",padtempl->name_template, gst_caps_to_string (padtempl->caps));                
-
-            }
-        }
-        padlist = g_list_next (padlist);
+        // remove request pads
+        releaseRequestedPads();
     }
 
+
+
+    // then unref the targets of ghosts
+    for(auto each=m_ghostPadsSrcs.begin();each!=m_ghostPadsSrcs.end();each++)
+    {
+        GST_INFO_OBJECT (m_myBin, "releasing ghost '%s' from '%s'",GST_PAD_NAME(*each),GST_ELEMENT_NAME(m_myBin));
+        gst_element_remove_pad(m_myBin,GST_PAD(*each));
+    }
+
+    for(auto each=m_ghostPadsSinks.begin();each!=m_ghostPadsSinks.end();each++)
+    {
+        GST_INFO_OBJECT (m_myBin, "releasing ghost '%s' from '%s'",GST_PAD_NAME(*each),GST_ELEMENT_NAME(m_myBin));
+        gst_element_remove_pad(m_myBin,GST_PAD(*each));
+    }
+
+
 }
+
 
 
 // normally called by an owning class's dtor, so you can unlink from it
@@ -77,90 +84,10 @@ void gstreamBin::releaseRequestedPads()
 }
 
 
-gstreamBin::~gstreamBin()
-{
-    GST_INFO_OBJECT (m_myBin, "killing bin %s",Name());                
 
-    // check
-    if(m_requestedPadsGhosted.size())
-    {
-        // remove request pads
-        releaseRequestedPads();
-    }
-
-
-
-    // then unref the targets of ghosts
-    for(auto each=m_ghostPadsSrcs.begin();each!=m_ghostPadsSrcs.end();each++)
-    {
-        GST_INFO_OBJECT (m_myBin, "releasing ghost '%s' from '%s'",GST_PAD_NAME(*each),GST_ELEMENT_NAME(m_myBin));
-        gst_element_remove_pad(m_myBin,GST_PAD(*each));
-    }
-
-    for(auto each=m_ghostPadsSinks.begin();each!=m_ghostPadsSinks.end();each++)
-    {
-        GST_INFO_OBJECT (m_myBin, "releasing ghost '%s' from '%s'",GST_PAD_NAME(*each),GST_ELEMENT_NAME(m_myBin));
-        gst_element_remove_pad(m_myBin,GST_PAD(*each));
-    }
-
-
-    // delete the static pads we use to advertise
-    for(auto each=m_advertised.begin();each!=m_advertised.end();each++)
-    {
-        delete each->second;
-    }
-
-}
 
 GstPad *gstreamBin::request_new_pad (GstElement * element,GstPadTemplate * templ,const gchar * name,const GstCaps * caps)
 {
-    gchar *capsString=gst_caps_to_string(caps);
-    GST_INFO_OBJECT (m_myBin, "Looking for pad '%s' in bin '%s' caps '%s'",(name),Name(), capsString);
-    g_free((gpointer)capsString);
-
-    capsString=gst_caps_to_string(GST_PAD_TEMPLATE_CAPS(templ));
-    GST_INFO_OBJECT (m_myBin, "Template '%s' caps '%s'",(templ->name_template), capsString);
-    g_free((gpointer)capsString);
-
-    // find this template
-    for(auto each=m_advertised.begin();each!=m_advertised.end();each++)
-    {
-        // static to template
-        GstPadTemplate *advertisedTemplate=gst_static_pad_template_get(each->second);
-        
-        capsString=gst_caps_to_string(GST_PAD_TEMPLATE_CAPS(advertisedTemplate));
-        GST_INFO_OBJECT (m_myBin, "Looking at template %s caps '%s'",each->second->name_template, capsString);
-        g_free((gpointer)capsString);
-
-        if(strcmp(each->second->name_template,templ->name_template))
-        {
-            continue;
-        }
-
-        // see if the request and requested caps are viable
-        if(!gst_caps_can_intersect(caps,GST_PAD_TEMPLATE_CAPS(advertisedTemplate)))
-        {
-            continue;
-        }
-
-        // use gst_element_request_pad_simple at 1.20
-        // gst_element_class_get_request_pad_template
-
-        GstPad*ret=gst_element_request_pad(each->first,
-            //advertisedTemplate,
-            templ,
-            NULL,
-            caps);
-
-        if(ret)
-        {
-            addPadToBeReleased(each->first,ret);
-            ret=GhostSingleRequestPad(ret);
-            return ret;
-        }
-    }
-    GST_ERROR_OBJECT (m_myBin, "Failed to get a request pad for '%s' in bin '%s'",(name),Name());
- 
     return NULL;
 }
 
@@ -219,62 +146,7 @@ bool gstreamBin::release_requested_pad(GstElement*el, GstPad *pad)
 
 
 
-void gstreamBin::advertiseElementsPadTemplates(GstElement *element)
-{
-    if(!element)
-        return;
 
-    GstElementClass  *eclass = GST_ELEMENT_GET_CLASS (element);
-    GstElementClass  *myclass = GST_ELEMENT_GET_CLASS (m_myBin);
-    // get its pad templates
-
-    GList * padlist = gst_element_class_get_pad_template_list (eclass);
-
-    while (padlist) 
-    {
-        if(padlist->data)
-        {
-            //GstStaticPadTemplate *padtempl = (GstStaticPadTemplate*)padlist->data;
-            // doc'd as GstStaticPadTemplate but apparently not (looking at gstutils.c/gst_element_get_compatible_pad_template)
-            GstPadTemplate *padtempl = (GstPadTemplate*)padlist->data;
-
-            if(padtempl->direction == GST_PAD_SINK && padtempl->presence == GST_PAD_REQUEST)
-            {
-
-                // create a new one - dynamic
-                GstStaticPadTemplate *stat=new GstStaticPadTemplate();
-                stat->name_template=padtempl->name_template;
-                stat->direction=padtempl->direction;
-                stat->presence=padtempl->presence;
-
-                // we may have been asked to tighten caps
-                std::string toFind=padtempl->name_template;
-                auto found=std::find_if(m_tightenedCaps.begin(),m_tightenedCaps.end(),
-                    [&toFind](const std::pair<std::string,std::string>& x) { return x.first == toFind;}
-                    );
-                // we found tightened caps, so use them
-                if(found!=m_tightenedCaps.end())
-                {
-                    stat->static_caps=GST_STATIC_CAPS(found->second.c_str());                    
-                }
-                else
-                {
-                    stat->static_caps=GST_STATIC_CAPS(gst_caps_to_string (padtempl->caps));
-                }
-
-                m_advertised.push_back(std::pair<GstElement*,GstStaticPadTemplate*>(element,stat));
-
-                GST_INFO_OBJECT (m_myBin, "Advertising '%s' pad from '%s' - caps %s",padtempl->name_template,GST_ELEMENT_NAME(element), gst_caps_to_string (padtempl->caps));                
-
-                gst_element_class_add_pad_template(myclass, gst_static_pad_template_get(stat));
-
-
-            }
-        }
-        padlist = g_list_next (padlist);
-    }
-
-}
 
 bool gstreamBin::AddGhostPads(const char*sink,const char*source, const char *sinkcaps, const char *srccaps)
 {
@@ -336,6 +208,13 @@ void gstreamBin::IterateAndGhost(GList *elementPads, std::vector<GstPad*> &resul
 
     }
 }
+
+GstPad* gstreamBin::GhostSingleSinkPad(GstElement *sink)
+{
+    GstPad *pad=(GstPad*)sink->sinkpads->data;
+    return GhostSingleSinkPad(pad);
+}
+
 
 GstPad* gstreamBin::GhostSinglePad(GstPad *eachPad, std::vector<GstPad*> &results)
 {

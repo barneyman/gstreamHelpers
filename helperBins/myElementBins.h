@@ -458,8 +458,6 @@ public:
         gstMultiQueueBin(parent,0,false,0,false,"multiQTailedBin")
     {
         m_tailname=tailelement;
-        // and advertise the q
-        advertiseElementsPadTemplates("multiqueueDemux");
     }
 
 
@@ -601,8 +599,6 @@ public:
         }
 
         AddGhostPads(m_caps, "multiqueue");
-
-        advertiseElementsPadTemplates("tee");
 
     }
 

@@ -686,7 +686,7 @@ public:
 
         // gst_pad_query_caps for splitmuxsrc seems to return static, so always said ANY, which caused chaos
         // need to confirm this works with other demuxes
-        GstCaps *srcCaps=gst_pad_get_current_caps(srcPad);
+        GstCaps *srcCaps=gst_pad_query_caps(srcPad,NULL);
         GST_INFO_OBJECT (m_pipeline, "Current caps are %s", gst_caps_to_string(srcCaps));
         bool succeeded=false;
         // get the sinkPads from the sinkElement
@@ -898,84 +898,17 @@ protected:
                 continue;
             }
 
-            // already linked, ignore?
-            if(!gst_pad_is_linked (eachSourcePad))
+            if(ConnectSrcToSink(eachSourcePad,destElement))
             {
-                // iterate thru each dest pad
-                bool padConnected=false;
-
-#define _LINK_TO_ANY_PAD_ON_DEST
-#ifdef _LINK_TO_ANY_PAD_ON_DEST
-                GST_INFO_OBJECT (m_pipeline, "   linking '%s:%s' with '%s:NULL'", GST_ELEMENT_NAME(sourceElement),GST_ELEMENT_NAME(eachSourcePad), GST_ELEMENT_NAME(destElement));//, GST_ELEMENT_NAME(eachDestPad));
-
-                // not specifying a dest pad invokes 'request' 
-                if(gst_element_link_pads(sourceElement,gst_pad_get_name(eachSourcePad),destElement,NULL))
-                {
-                    GST_INFO_OBJECT (m_pipeline, "succeeded");
-                    padConnected=true;
-                    numberConnected++;
-                    continue;
-                }
-                else
-                {
-                    GST_INFO_OBJECT (m_pipeline, "failed");
-                }
-                        
-#else // _LINK_TO_ANY_PAD_ON_DEST
-// this needs to request pads - matroskamux is an example!
-
-
-                // get the list of sinks on the dest
-                for(GList *sinkIterator=destElement->sinkpads;sinkIterator;sinkIterator=sinkIterator->next)
-                {
-                    GstPad *eachDestPad=GST_PAD(sinkIterator->data);
-
-                    GST_INFO_OBJECT (m_pipeline, "   linking '%s:%s' with '%s:%s'\n", GST_ELEMENT_NAME(sourceElement),GST_ELEMENT_NAME(eachSourcePad), GST_ELEMENT_NAME(destElement), GST_ELEMENT_NAME(eachDestPad));
-
-                    if(gst_pad_is_linked (eachDestPad))
-                    {
-                        GST_INFO_OBJECT (m_pipeline, " destpad already connected\n");
-                        continue;
-                    }
-
-
-                    if(gst_element_link_pads(sourceElement,gst_pad_get_name(eachSourcePad),destElement,gst_pad_get_name(eachDestPad)))
-                    {
-                        GST_INFO_OBJECT (m_pipeline, "succeeded\n");
-                        padConnected=true;
-                        numberConnected++;
-                        break;
-                    }
-                    else
-                    {
-                        GST_INFO_OBJECT (m_pipeline, "failed\n");
-                    }
-                }
-
-#endif // _LINK_TO_ANY_PAD_ON_DEST
-
-                if(!padConnected)
-                {
-                    GST_INFO_OBJECT (m_pipeline, mustConnectAll?"Element - Element FAILED":"fail ignored");
-
-                    if(mustConnectAll)
-                    {
-                        return false;
-                    }
-                    else            
-                    {
-#ifdef _LINK_TO_ANY_PAD_ON_DEST
-                        //return numberConnected?true:false;
-                        continue;
-#else
-#endif                        
-                    }
-                }
-            }
-            else
-            {
-                GST_INFO_OBJECT (m_pipeline, "source already linked to something");
                 numberConnected++;
+                continue;
+            }
+
+            GST_INFO_OBJECT (m_pipeline, mustConnectAll?"Element - Element FAILED":"fail ignored");
+
+            if(mustConnectAll)
+            {
+                return false;
             }
 
         }

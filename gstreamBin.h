@@ -7,6 +7,8 @@
 // gst_pad_query_caps
 // gst_element_request_pad
 
+class gstreamAdvertisingBin;
+
 class gstreamBin : public pluginContainer<GstElement>
 {
 public:
@@ -43,10 +45,9 @@ protected:
     GstPad*GhostSingleSrcPad(GstPad *eachPad) { return GhostSinglePad(eachPad,m_ghostPadsSrcs); }
     GstPad*GhostSinglePad(GstPad *eachPad, std::vector<GstPad*> &results);
 
-    void advertiseElementsPadTemplates(const char *element) { advertiseElementsPadTemplates(FindNamedPlugin(element)); }
-    void advertiseElementsPadTemplates(GstElement *element);
+    GstPad*GhostSingleSinkPad(const char *name) { return GhostSingleSinkPad(FindNamedPlugin(name)); }
+    GstPad*GhostSingleSinkPad(GstElement *sink);
 
-    std::vector<std::pair<GstElement*,GstStaticPadTemplate*>> m_advertised;
 
 
     void releaseSingleRequestedPin(GstElement*element, GstPad *pad)
@@ -76,8 +77,34 @@ protected:
         GST_OBJECT_FLAG_SET(m_myBin, flags);
     }
 
-    void debugPrintStaticTemplates();
 
+    // caps helpers
+    bool doCapsIntersect(const char *caps1txt,const char*caps2txt) 
+    {
+        GstCaps *caps1=gst_caps_from_string(caps1txt);
+        bool ret=doCapsIntersect(caps1,caps2txt);
+        gst_caps_unref(caps1);
+        return ret;
+    }
+
+    bool doCapsIntersect(const GstCaps* caps1,const char*caps2txt) 
+    {
+        GstCaps *caps2=gst_caps_from_string(caps2txt);
+        bool ret=doCapsIntersect(caps1,caps2);
+        gst_caps_unref(caps2);
+        return ret;
+    }
+
+    bool doCapsIntersect(const GstCaps* caps1,const GstCaps* caps2) 
+    {
+        gchar *caps1String=gst_caps_to_string(caps1);
+        gchar *caps2String=gst_caps_to_string(caps2);
+        GST_INFO_OBJECT (m_myBin, "Caps intersection '%s' in bin '%s' caps '%s'",(caps1String),Name(), caps2String);
+        g_free((gpointer)caps1String);
+        g_free((gpointer)caps2String);
+
+        return gst_caps_can_intersect(caps1,caps2);
+    }
 protected:
 
     pluginContainer<GstElement> *m_parent;
@@ -85,14 +112,9 @@ protected:
     GstElement* m_myBin;
 
     std::vector<GstPad*> m_ghostPadsSinks,m_ghostPadsSrcs,m_requestedPadsGhosted;
-    std::vector<std::pair<std::string,std::string>> m_tightenedCaps;
 
 protected:
 
-    void setTightenedCaps(std::vector<std::pair<std::string,std::string>> &tightenedCaps)
-    {
-        m_tightenedCaps=tightenedCaps;           
-    }
 
 
     void addPadToBeReleased(GstElement*el,GstPad*pad)
@@ -108,6 +130,38 @@ protected:
 
 
 };
+
+/*
+#include "helperBins/myElementBins.h"
+
+// used to advertise 'on request' pads from an element
+class gstreamAdvertisingBin : public gstreamBin
+{
+public:
+    gstreamAdvertisingBin(pluginContainer<GstElement> *parent,GstCaps*caps):
+        gstreamBin("advertisingBin",parent),
+        m_capsFilter(this,caps)
+    {
+        AddGhostPads(m_capsFilter,NULL);
+    }
+
+    ~gstreamAdvertisingBin()
+    {
+
+    }
+
+    void advertise(GstElement *element)
+    {
+
+    }
+
+protected:
+
+    gstCapsFilterSimple m_capsFilter;
+
+};
+*/
+
 
 #include <tuple>
 

@@ -2,92 +2,7 @@
 #define _mydemuxbins_guard
 
 #include "myElementBins.h"
-#include <mutex>
-
-
-class demuxInfo 
-{
-
-protected:
-
-    std::mutex m_mutex;
-
-public:
-    demuxInfo():
-        m_binDuration(0)
-    {
-
-    }
-
-    ~demuxInfo()
-    {
-        for(auto each=m_demuxSrcs.begin();each!=m_demuxSrcs.end();each++)
-        {
-            gst_caps_unref(*each);
-        }
-    }
-
-    bool lock()
-    {
-        m_mutex.lock();
-        return true;
-    }
-
-    void unlock()
-    {
-        m_mutex.unlock();
-    }
-
-    virtual demuxInfo& operator=(const demuxInfo &other)
-    {
-        // copy the other vector adding ref
-        for(auto each=other.m_demuxSrcs.begin();each!=other.m_demuxSrcs.end();each++)
-        {
-            GstCaps *thisOne=*each;
-            gst_caps_ref(thisOne);
-            m_demuxSrcs.push_back(thisOne);
-        }
-        m_binDuration=other.m_binDuration;
-        return *this;
-    }
-
-    bool isEmpty() { return m_demuxSrcs.size()==0; }
-
-    unsigned numSrcStreams() { return m_demuxSrcs.size(); }
-    unsigned numVideoStreams() { return countTheseCaps("video/x-h264"); }
-    unsigned numAudioStreams() { return countTheseCaps("audio/ANY"); }
-    unsigned numSubtitleStreams() { return countTheseCaps("text/x-raw"); }
-
-    GstClockTime muxerDuration() { return m_binDuration; }
-
-    std::vector<GstCaps*> m_demuxSrcs;
-
-protected:
-    unsigned countTheseCaps(const char *caps)
-    {
-        GstCaps *videoCaps=gst_caps_new_simple (caps,NULL,NULL);
-        unsigned count=countIntersects(videoCaps); 
-        gst_caps_unref(videoCaps);
-        return count;
-    }
-
-    unsigned countIntersects(GstCaps *with)
-    {
-        unsigned count=0;
-        for(auto each=m_demuxSrcs.begin();each!=m_demuxSrcs.end();each++)
-        {
-            if(gst_caps_can_intersect (*each,with))
-                count++;
-        }
-        return count;
-    }
-
-
-
-    gint64 m_binDuration;
-
-};
-
+#include "muxInfo.h"
 
 // used to work out what's in a mux'd stream
 // opens it up to a demux then counts what that finds
@@ -164,7 +79,8 @@ public:
 
             GST_INFO_OBJECT (m_parent, "adding pad with %s",gst_caps_to_string(padCaps));
 
-            m_demuxSrcs.push_back(padCaps);
+            // add stream to demux info
+            addStream(padCaps);
 
         }
         parent->Stop();
@@ -264,7 +180,7 @@ public:
             return;
         }
 
-        std::vector<GstCaps*> demuxSrcs=streamInfo.m_demuxSrcs;
+        std::vector<std::pair<std::string,GstCaps*>> demuxSrcs=streamInfo.m_demuxSrcs;
 
         bool seeking=(startAt!=GST_CLOCK_TIME_NONE  && endAt!=GST_CLOCK_TIME_NONE)?true:false;
 
@@ -301,10 +217,10 @@ public:
 
             // set the caps, add a ref?
             g_object_set (pluginContainer<GstElement>::FindNamedPlugin(capsFilterName), 
-                "caps", gst_caps_copy (*each), NULL);
+                "caps", gst_caps_copy (each->second), NULL);
 
             // depends on the caps
-            if(capIntersects(*each,"video/x-h264"))
+            if(capIntersects(each->second,"video/x-h264"))
             {
                 if(decode)
                 {
@@ -358,7 +274,7 @@ public:
                 }
 
             }
-            else if(capIntersects(*each,"text/x-raw"))
+            else if(capIntersects(each->second,"text/x-raw"))
             {
                 gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),NULL);
 
@@ -370,7 +286,7 @@ public:
             }
             else
             {
-                GST_WARNING_OBJECT (m_parent, "Connecting '%s' pad not yet impl'd - sinking to /dev/null", gst_caps_to_string(*each));
+                GST_WARNING_OBJECT (m_parent, "Connecting '%s' pad not yet impl'd - sinking to /dev/null", gst_caps_to_string(each->second));
 
                 gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),NULL);
 
