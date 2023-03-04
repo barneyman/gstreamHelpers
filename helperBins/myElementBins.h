@@ -818,20 +818,32 @@ public:
 
 class gstH264encoderBin : public gstreamBin
 {
+protected:
+    gstCapsFilterSimple *m_optionalCaps;
+
+
 public:
     gstH264encoderBin(pluginContainer<GstElement> *parent,const char *name="encoderBin"):
-        gstreamBin(name,parent)
+        gstreamBin(name,parent),
+        m_optionalCaps(NULL)
     {
-        const char *encoders[]={"vaapih264enc","v4l2h264enc","x264enc",NULL};
+        // v4l2h264enc needs tailing caps to work now
+        std::vector<std::pair<std::string,std::string>> encoders={ {"vaapih264enc",""},{"v4l2h264enc","video/x-h264,level=(string)4"},{"x264enc",""}};
+
 
         bool encoderAdded=false;
-        for(unsigned encoder=0;encoders[encoder];encoder++)
+        for(auto encoder=encoders.begin();encoder!=encoders.end();encoder++)
         {
-            if(!pluginContainer<GstElement>::AddPlugin(encoders[encoder],"encoder",NULL,false))
+            if(!pluginContainer<GstElement>::AddPlugin(encoder->first.c_str(),"encoder",NULL,false))
             {
+                if(!encoder->second.empty())
+                {
+                    m_optionalCaps=new gstCapsFilterSimple(this,encoder->second.c_str());
+                }
                 encoderAdded=true;
+                break;
             }
-            GST_DEBUG_OBJECT (m_parent, "Failed to create %s",encoders[encoder]);
+            GST_DEBUG_OBJECT (m_parent, "Failed to create %s",encoder->first.c_str());
         }
 
         if(!encoderAdded)
@@ -843,12 +855,27 @@ public:
 
         pluginContainer<GstElement>::AddPlugin("h264parse");
 
-        gst_element_link_many( pluginContainer<GstElement>::FindNamedPlugin("encoder"), 
-            pluginContainer<GstElement>::FindNamedPlugin("h264parse"), 
-            NULL);
+        if(m_optionalCaps)
+        {
+            gst_element_link_many( pluginContainer<GstElement>::FindNamedPlugin("encoder"), 
+                pluginContainer<GstElement>::FindNamedPlugin(*m_optionalCaps),
+                pluginContainer<GstElement>::FindNamedPlugin("h264parse"), 
+                NULL);
+        }
+        else
+        {
+            gst_element_link_many( pluginContainer<GstElement>::FindNamedPlugin("encoder"), 
+                pluginContainer<GstElement>::FindNamedPlugin("h264parse"), 
+                NULL);
+        }
 
         AddGhostPads("encoder","h264parse");
 
+    }
+
+    virtual ~gstH264encoderBin()
+    {
+        delete m_optionalCaps;
     }
 
 
