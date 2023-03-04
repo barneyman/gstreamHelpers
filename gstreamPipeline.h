@@ -699,8 +699,11 @@ public:
                 continue;
             }
 
+            // if we don't have fixed caps, accept will barf
+            GstCaps *sinkCaps=gst_pad_query_caps(eachSinkPad,srcCaps);
+
             // hurrah! will it accept the caps we need?
-            if(gst_pad_query_accept_caps(eachSinkPad,srcCaps))
+            if(gst_caps_can_intersect(sinkCaps,srcCaps))
             {
                 // try to link them
                 if(GST_PAD_LINK_OK==gst_pad_link(srcPad,eachSinkPad))
@@ -715,6 +718,8 @@ public:
                 GST_INFO_OBJECT (m_pipeline, "Sink caps for '%s' are %s", GST_ELEMENT_NAME(eachSinkPad), gst_caps_to_string(sinkCaps));
                 gst_caps_unref(sinkCaps);
             }
+
+            gst_caps_unref(sinkCaps);
         }
         if(!succeeded)
         {
