@@ -154,6 +154,7 @@ Absolute position (5) – absolute
         m_jsonPeek(this)
     {
         pluginContainer<GstElement>::AddPlugin("textoverlay");
+        pluginContainer<GstElement>::AddPlugin("queue");
 
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("textoverlay"),
             "valignment", valign, 
@@ -169,13 +170,15 @@ Absolute position (5) – absolute
         // subtitle
         // video        
 
-        gst_element_link(   pluginContainer<GstElement>::FindNamedPlugin(m_jsonPeek),
-                            pluginContainer<GstElement>::FindNamedPlugin("textoverlay"));
+        gst_element_link_many(   pluginContainer<GstElement>::FindNamedPlugin(m_jsonPeek),
+                            pluginContainer<GstElement>::FindNamedPlugin("textoverlay"),
+                            pluginContainer<GstElement>::FindNamedPlugin("queue"),
+                            NULL);
 
         // ghost my sink for json / utf-8
         AddGhostPads(m_jsonPeek, NULL);
         // ghost the video/raw pad for text overlay
-        AddGhostPads("textoverlay", "textoverlay");
+        AddGhostPads("textoverlay", "queue");
 
     }
 
@@ -201,6 +204,7 @@ public:
 
         // the t is for splitting the subtitles up for the kids, video passes thru all of them
         pluginContainer<GstElement>::AddPlugin("tee");
+        pluginContainer<GstElement>::AddPlugin("queue");
         // so join them up
         gst_element_link(pluginContainer<GstElement>::FindNamedPlugin("capsfilter"),FindNamedPlugin("tee"));        
         // every tee goes thru the mq, threads for free
@@ -208,6 +212,7 @@ public:
 
         // ghost the subs magnet for now
         AddGhostPads("capsfilter");
+        AddGhostPads("queue");
 
     }
 
@@ -237,7 +242,8 @@ public:
         {
             m_last=m_first=newone;
             // ghost the raw video and raw text pins of the first pango renderer
-            AddGhostPads(*m_first);
+            //AddGhostPads(*m_first);
+            gst_element_link(pluginContainer<GstElement>::FindNamedPlugin("queue"),pluginContainer<GstElement>::FindNamedPlugin(*m_first));
         }
         else
         {
