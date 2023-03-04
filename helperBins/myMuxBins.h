@@ -108,6 +108,7 @@ public:
                         if(!newPad)                                                        
                         {
                             // requesting video when it's already taken ... fall thru to video_aux
+                            padlist = g_list_next (padlist);
                             continue;
                         }
 
