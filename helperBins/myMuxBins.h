@@ -177,6 +177,18 @@ public:
         // set reserved-max-duration
 
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"), 
+            "async-finalize", TRUE, NULL);
+
+        char buffer[200];
+        snprintf(buffer, sizeof(buffer)-1,"properties, reserved-max-duration=(gint64)%lu, reserved-moov-update-period=(gint64)%lu",time_seconds*GST_SECOND,GST_SECOND*20);
+        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"), 
+            "muxer-properties", gst_structure_from_string(buffer,NULL), NULL);
+
+        // g_object_set (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"), 
+        //     "muxer-properties", "properties","reserved-max-duration",time_seconds*GST_SECOND,"reserved-moov-update-period",GST_SECOND*20, NULL);
+
+
+        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"), 
             "location", out, NULL);
 
         setBinFlags(GST_ELEMENT_FLAG_SINK);
