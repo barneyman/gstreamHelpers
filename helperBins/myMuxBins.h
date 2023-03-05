@@ -188,10 +188,6 @@ public:
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"), 
             "muxer-properties", gst_structure_from_string(buffer,NULL), NULL);
 
-        // g_object_set (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"), 
-        //     "muxer-properties", "properties","reserved-max-duration",time_seconds*GST_SECOND,"reserved-moov-update-period",GST_SECOND*20, NULL);
-
-
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"), 
             "location", out, NULL);
 
