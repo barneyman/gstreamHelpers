@@ -179,8 +179,12 @@ public:
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"), 
             "async-finalize", TRUE, NULL);
 
+        // g_object_set (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"), 
+        //     "use-robust-muxing", FALSE, NULL);
+
         char buffer[200];
-        snprintf(buffer, sizeof(buffer)-1,"properties, reserved-max-duration=(gint64)%lu, reserved-moov-update-period=(gint64)%lu",time_seconds*GST_SECOND,GST_SECOND*20);
+        snprintf(buffer, sizeof(buffer)-1,"properties, reserved-moov-update-period=(gint64)%lu",GST_SECOND*30);
+        // snprintf(buffer, sizeof(buffer)-1,"properties, reserved-max-duration=(gint64)%lu",time_seconds*GST_SECOND);
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("splitmuxsink"), 
             "muxer-properties", gst_structure_from_string(buffer,NULL), NULL);
 
