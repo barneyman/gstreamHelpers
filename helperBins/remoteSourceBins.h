@@ -14,7 +14,7 @@ public:
 
 protected:
 
-    gstQueue2 m_q2;
+    gstQueue m_q2;
     gstFrameBufferProgress m_progress;
 
 };
