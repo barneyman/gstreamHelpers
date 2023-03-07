@@ -129,16 +129,18 @@ public:
             snprintf(capsFilterName,sizeof(capsFilterName)-1,"capsfilt_%u",i);
             char sourceName[20];
             snprintf(sourceName,sizeof(sourceName)-1,"remote_%u",i);
-            char queueName[20];
-            snprintf(queueName,sizeof(queueName)-1,"queue_%u",i);
+            // char queueName[20];
+            // snprintf(queueName,sizeof(queueName)-1,"queue_%u",i);
+
+            // Q causes stuttering subtitles ?!
 
 
             TremoteSource *eachSourceBin=new TremoteSource(this,each->c_str(),sourceName);
             gstCapsFilterSimple *eachSourceCaps=new gstCapsFilterSimple(this,simple_caps,capsFilterName);
-            pluginContainer<GstElement>::AddPlugin("queue",queueName);
+            // pluginContainer<GstElement>::AddPlugin("queue",queueName);
             // connect them
             gst_element_link_many(  pluginContainer<GstElement>::FindNamedPlugin(*eachSourceBin),
-                                    pluginContainer<GstElement>::FindNamedPlugin(queueName),
+                                    // pluginContainer<GstElement>::FindNamedPlugin(queueName),
                                     pluginContainer<GstElement>::FindNamedPlugin(*eachSourceCaps),
                                     NULL);
             // and ghost it
