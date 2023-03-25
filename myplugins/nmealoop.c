@@ -16,7 +16,7 @@ void startMonitorThread(struct nmea_threadInfo &filter)
   nlohmann::json jsonData;
   jsonData["msg"]="Starting Thread";
   pushJson(&filter,jsonData);
-  //filter.gpsPolling=true;
+  filter.gpsPollingStopped=false;
   pthread_create(&filter.gpsThreadId,NULL,&gpsMonitorThreadEntry,&filter);
 
 }
@@ -24,6 +24,10 @@ void startMonitorThread(struct nmea_threadInfo &filter)
 void stopMonitorThread(struct nmea_threadInfo &filter)
 {
     filter.gpsPolling=false;
+    while(!filter.gpsPollingStopped)
+    {
+        usleep(10*1000);
+    }
    
 }
 
@@ -196,6 +200,8 @@ void* gpsMonitorThreadEntry(void *arg)
         }
       }
     }
+
+    filter->gpsPollingStopped=true;
   }
 
 

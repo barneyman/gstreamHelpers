@@ -8,7 +8,7 @@
 
   struct nmea_threadInfo
   {
-    bool gpsPolling;
+    volatile bool gpsPolling, gpsPollingStopped;
     pthread_t gpsThreadId;
     
     struct {
