@@ -293,16 +293,16 @@ gst_ptsnormalise_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
   GstClockTime baseTime=gst_element_get_base_time(GST_ELEMENT(filter));
   GstClock *myClock=GST_ELEMENT_CLOCK (filter);
 
-  GstClockTime runningTime=gst_clock_get_time(myClock)-baseTime;
-
-
+  if(GST_IS_CLOCK(myClock))
+  {
+    GstClockTime runningTime=gst_clock_get_time(myClock)-baseTime;
     GST_DEBUG_OBJECT (filter, "RAW PTS= %" GST_TIME_FORMAT 
                               " running %" GST_TIME_FORMAT 
                               " dur %" GST_TIME_FORMAT, 
                               GST_TIME_ARGS(outbuf->pts),
                               GST_TIME_ARGS(runningTime),
                               GST_TIME_ARGS(outbuf->duration));
-
+  }
 
   return GST_FLOW_OK;
 }
