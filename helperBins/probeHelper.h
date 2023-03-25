@@ -6,25 +6,23 @@ class padProber
 protected:
 
     pluginContainer<GstElement> *m_parent;
-    GstPadProbeType m_probeType;
 
 public:
 
-    padProber(pluginContainer<GstElement> *parent, GstPadProbeType probeType=GST_PAD_PROBE_TYPE_DATA_DOWNSTREAM):
-        m_parent(parent),
-        m_probeType(probeType)
+    padProber(pluginContainer<GstElement> *parent):
+        m_parent(parent)
     {
 
     }
 
-    bool attachProbes(const char*elementName, bool src=true)
+    bool attachProbes(const char*elementName,GstPadProbeType probeType=GST_PAD_PROBE_TYPE_DATA_DOWNSTREAM, bool src=true,pluginContainer<GstElement> *parent=NULL)
     {
         // find the element
-        GstElement *found=m_parent->FindNamedPlugin(elementName);
+        GstElement *found=(parent?parent:m_parent)->FindNamedPlugin(elementName);
 
         if(!found)
         {
-            return FALSE;
+            return false;
         }
 
         // get it's pads
@@ -35,12 +33,13 @@ public:
             GstPad *eachSourcePad=(GstPad *)interestedPads->data;
             //GST_INFO_OBJECT (m_parent, "adding BLOCK to %s:%s",GST_ELEMENT_NAME(found),GST_ELEMENT_NAME(eachSourcePad));
             
-            gst_pad_add_probe(eachSourcePad, m_probeType, staticPadProbe, this, NULL);
+            gst_pad_add_probe(eachSourcePad, probeType, staticPadProbe, this, NULL);
             // if(!parent->BlockPadForSeek(eachSourcePad))
             // {
             //     GST_ERROR_OBJECT (m_parent, "BlockPadForSeek failed for %s:%s", GST_ELEMENT_NAME(mq),GST_ELEMENT_NAME(eachSourcePad));                    
             // }
         }
+        return true;
     }
 
     protected:
@@ -53,29 +52,70 @@ public:
 
     virtual GstPadProbeReturn padProbe(GstPad * pad,GstPadProbeInfo * info)
     {
-
-        switch(info->type & (unsigned)m_probeType)
+        if(info->type & GST_PAD_PROBE_TYPE_BLOCK)
         {
-            case GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM:
-                eventProbe(pad,info);
-                break;
+            return blockProbe(pad,info);            
+        }
+        else
+        {
+            if(info->type & GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM)
+            {
+                eventProbe(pad,info);            
+            }
 
-            case GST_PAD_PROBE_TYPE_BUFFER:
-                bufferProbe(pad,info);
-                break;
+            if(info->type & GST_PAD_PROBE_TYPE_BUFFER)
+            {
+                bufferProbe(pad,info);            
+            }
 
-            case GST_PAD_PROBE_TYPE_BUFFER_LIST:
-                bufferListProbe(pad,info);
-                break;
-
-            default:
-                g_printerr ("padProbe unexpected probetype %0x\n", info->type & m_probeType);                    
-                break;
-
+            if(info->type & GST_PAD_PROBE_TYPE_BUFFER_LIST)
+            {
+                bufferListProbe(pad,info);            
+            }
         }
 
         return GST_PAD_PROBE_OK;
 
+    }
+
+    std::string getProbeNames(GstPadProbeInfo * info)
+    {   
+        if(!info)
+        {
+            return "";
+        }
+        return getProbeNames(info->type);
+    }
+
+    std::string getProbeNames(GstPadProbeType type)
+    {
+        std::string ret("");
+        if(type & GST_PAD_PROBE_TYPE_IDLE)
+            ret+="IDLE ";
+        if(type & GST_PAD_PROBE_TYPE_BLOCK)
+            ret+="BLOCK ";
+        /* flags to select datatypes */
+        if(type & GST_PAD_PROBE_TYPE_BUFFER)
+            ret+="BUFFER ";
+        if(type & GST_PAD_PROBE_TYPE_BUFFER_LIST)
+            ret+="BUFLIST ";
+        if(type & GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM)
+            ret+="DS ";
+        if(type & GST_PAD_PROBE_TYPE_EVENT_UPSTREAM)
+            ret+="US ";
+        if(type & GST_PAD_PROBE_TYPE_EVENT_FLUSH)
+            ret+="FLUSH ";
+        if(type & GST_PAD_PROBE_TYPE_QUERY_DOWNSTREAM)
+            ret+="QDS ";
+        if(type & GST_PAD_PROBE_TYPE_QUERY_UPSTREAM)
+            ret+="QUS ";
+        /* flags to select scheduling mode */
+        if(type & GST_PAD_PROBE_TYPE_PUSH)
+            ret+="PUSH ";
+        if(type & GST_PAD_PROBE_TYPE_PULL)
+            ret+="PULL ";
+
+        return ret;
     }
 
     virtual void eventProbe(GstPad * pad,GstPadProbeInfo * info)
@@ -95,6 +135,11 @@ public:
         g_print("saw bufferlist probe\n");
     }
 
+    virtual GstPadProbeReturn blockProbe(GstPad * pad,GstPadProbeInfo * info)
+    {
+        return GST_PAD_PROBE_OK;
+    }
+
 };
 
 class ptsPadProber : public padProber
@@ -105,7 +150,7 @@ class ptsPadProber : public padProber
 public:
    
     ptsPadProber(pluginContainer<GstElement> *parent):
-        padProber(parent, GST_PAD_PROBE_TYPE_BUFFER),m_lastSeen(GST_CLOCK_TIME_NONE)
+        padProber(parent),m_lastSeen(GST_CLOCK_TIME_NONE)
     {
 
     }
