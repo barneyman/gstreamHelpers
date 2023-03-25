@@ -87,7 +87,7 @@ enum
   PROP_PIPELINE_TIME
 };
 
-#define DEFAULT_FRAMERATE 30
+#define DEFAULT_FRAMERATE 10
 #define DEFAULT_TSOFFSET  0
 
 
@@ -205,7 +205,7 @@ gst_nmeasource_init (GstNmeaSource *nmeasource)
 
   nmeasource->threadInfo.frameRate=DEFAULT_FRAMERATE;
   nmeasource->threadInfo.tsoffsetms=DEFAULT_TSOFFSET;
-  nmeasource->threadInfo.frameTimeDelta=(GST_SECOND/nmeasource->threadInfo.frameRate);
+  nmeasource->threadInfo.frameTimeDelta=gst_util_uint64_scale(GST_SECOND,1,nmeasource->threadInfo.frameRate);
 
   // if i set this to true, i need to provide a clock to the pipeline
   // GST_MESSAGE_CLOCK_PROVIDE
@@ -416,7 +416,8 @@ gst_nmeasource_get_times (GstBaseSrc * src, GstBuffer * buffer,
     GstClockTime pts = GST_BUFFER_PTS (buffer);
     GST_INFO_OBJECT (nmeasource, "PTS %" GST_TIME_FORMAT ".",GST_TIME_ARGS(pts));
 
-    GstClockTime timestamp = pts;
+    // give me some latency
+    GstClockTime timestamp = pts+(20*GST_MSECOND);
 
     if (GST_CLOCK_TIME_IS_VALID (timestamp)) {
 
@@ -430,6 +431,7 @@ gst_nmeasource_get_times (GstBaseSrc * src, GstBuffer * buffer,
     *end = -1;
   }
 
+  GST_INFO_OBJECT (nmeasource, "start  %" GST_TIME_FORMAT ".",GST_TIME_ARGS(*start));
 
 }
 
@@ -577,18 +579,25 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 
   GST_DEBUG_OBJECT (nmeasource, "fill offset %lu size %u", offset, size);
  
+  GstClockTime baseTime=gst_element_get_base_time(GST_ELEMENT(src));
+
+  GstClock *myClock=GST_ELEMENT_CLOCK (src);
+
+  GstClockTime runningTime=gst_clock_get_time(myClock)-baseTime;
+
+
   offset=0;
 
   std::string copyOfData;
 
   GST_DEBUG_OBJECT (nmeasource, "At frame rate %d timeDelta is %lu", nmeasource->threadInfo.frameRate, nmeasource->threadInfo.frameTimeDelta);
 
+
   if(nmeasource->threadInfo.usePipelineTime)
   {
     if(nmeasource->parent)
     {
-      GstClockTime baseTime=gst_element_get_base_time(GST_ELEMENT(src));
-      GstClockTime pts=nmeasource->parent->FixTimeForEpoch(baseTime+(nmeasource->threadInfo.runningTime));
+      GstClockTime pts=nmeasource->parent->FixTimeForEpoch((nmeasource->threadInfo.runningTime-baseTime));
 
       if(nmeasource->threadInfo.tsoffsetms)
       {
@@ -643,12 +652,21 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   gst_buffer_fill (buf, offset, copyOfData.c_str(), len);
   gst_buffer_set_size (buf, len);
 
-  GstClock *myClock=GST_ELEMENT_CLOCK (src);
-  GstClockTime baseTime=gst_element_get_base_time(GST_ELEMENT(src));
 
+  if(!nmeasource->threadInfo.runningTime)
+  {
+    nmeasource->threadInfo.runningTime=(gst_clock_get_time(myClock)-baseTime);
 
-  GST_BUFFER_OFFSET (buf) = nmeasource->threadInfo.framesFilled++;
-  GST_BUFFER_OFFSET_END (buf) = GST_BUFFER_OFFSET (buf) +1;
+  }
+  else
+  {
+    //while( nmeasource->threadInfo.runningTime<runningTime )
+    {
+      nmeasource->threadInfo.runningTime+=nmeasource->threadInfo.frameTimeDelta;
+    }
+  }
+
+  GST_INFO_OBJECT (nmeasource, "Running time = %" GST_TIME_FORMAT ,GST_TIME_ARGS(runningTime));
 
   {
     // sort out timestamps - stolen from gstvideotestsrc
@@ -657,6 +675,8 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 
   }
 
+  GST_BUFFER_OFFSET (buf) = nmeasource->threadInfo.framesFilled++;
+  GST_BUFFER_OFFSET_END (buf) =nmeasource->threadInfo.framesFilled;
 
   GST_INFO_OBJECT (nmeasource, "Buffer PTS %" GST_TIME_FORMAT ".",GST_TIME_ARGS(GST_BUFFER_PTS (buf)));
 
@@ -665,8 +685,6 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   GST_BUFFER_DURATION (buf) = nmeasource->threadInfo.frameTimeDelta; 
 
   GST_INFO_OBJECT (nmeasource, "Buffer Dur %" GST_TIME_FORMAT ".",GST_TIME_ARGS(GST_BUFFER_DURATION (buf)));
-
-  nmeasource->threadInfo.runningTime+=nmeasource->threadInfo.frameTimeDelta;
 
   return GST_FLOW_OK;
 }
