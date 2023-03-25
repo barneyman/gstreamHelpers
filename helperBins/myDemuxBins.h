@@ -213,6 +213,13 @@ public:
 
         pluginContainer<GstElement>::AddPlugin("multiqueue","multiQdemux");
 
+        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"), 
+            "max-size-buffers", 0,
+            "max-size-time", 1*GST_SECOND,
+            "max-size-bytes", 0,
+             NULL);
+
+
         if(!splitDemux)
         {
             gst_element_link(pluginContainer<GstElement>::FindNamedPlugin("filesrc"),pluginContainer<GstElement>::FindNamedPlugin("demuxer"));
@@ -269,6 +276,7 @@ public:
 #endif
 
                     gst_element_link_many(  pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),
+                        //pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),
 #ifdef _DEBUG_TIMESTAMPS
                         FindNamedPlugin("ptsnormalise_video"),
 #endif                        
@@ -282,12 +290,13 @@ public:
                 }
                 else
                 {
-                    gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),NULL);
+                    //gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),NULL);
 
                     // hijack the parent's late linking framework
                     ConnectLate(pluginContainer<GstElement>::FindNamedPlugin("demuxer"),pluginContainer<GstElement>::FindNamedPlugin(capsFilterName));
 
-                    AddGhostPads(NULL,"multiQdemux");
+                    //AddGhostPads(NULL,"multiQdemux");
+                    AddGhostPads(NULL,capsFilterName);
 
                 }
 
@@ -298,21 +307,36 @@ public:
                 AddPlugin("ptsnormalise","ptsnormalise_subs");
 #endif
                 AddPlugin("queue");
+                g_object_set (pluginContainer<GstElement>::FindNamedPlugin("queue"), 
+                    "max-size-time", 3*GST_SECOND, 
+                    "max-size-buffers", 0,
+                    "max-size-bytes", 0,
+                    "min-threshold-time", GST_SECOND*2,
+                    NULL);
+
+                gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),
+                    //pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),
 #ifdef _DEBUG_TIMESTAMPS
                     FindNamedPlugin("ptsnormalise_subs"),
 #endif                    
+                    FindNamedPlugin("queue"),
+                    NULL);
 
                 // hijack the parent's late linking framework
                 ConnectLate(pluginContainer<GstElement>::FindNamedPlugin("demuxer"),pluginContainer<GstElement>::FindNamedPlugin(capsFilterName));
 
-                AddGhostPads(NULL,"multiQdemux");
+                AddGhostPads(NULL,"queue");
 
             }
             else
             {
                 GST_WARNING_OBJECT (m_parent, "Connecting '%s' pad not yet impl'd - sinking to /dev/null", gst_caps_to_string(each->second));
 
-                gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),NULL);
+
+
+                gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),
+                    pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),
+                    NULL);
 
                 // hijack the parent's late linking framework
                 ConnectLate(pluginContainer<GstElement>::FindNamedPlugin("demuxer"),pluginContainer<GstElement>::FindNamedPlugin(capsFilterName));
