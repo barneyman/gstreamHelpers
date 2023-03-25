@@ -97,10 +97,10 @@ public:
 };
 
 // queue min-threshold before pushing thru the src
-class gstQueueMinimum : public gstQueue
+class gstQueueTime : public gstQueue
 {
 public:
-    gstQueueMinimum(pluginContainer<GstElement> *parent,const char *name, unsigned minMSecs, unsigned maxMSecs=0):
+    gstQueueTime(pluginContainer<GstElement> *parent,const char *name, unsigned minMSecs, unsigned maxMSecs=0):
         gstQueue(parent,name),
         m_blockSrc(true)
     {
@@ -129,7 +129,7 @@ public:
     static void staticBufferRunning(GstElement * queue, gpointer data)
     {
         // release the lock
-        gstQueueMinimum* me=(gstQueueMinimum*)data;
+        gstQueueTime* me=(gstQueueTime*)data;
         me->m_blockSrc=false;
     }
 
