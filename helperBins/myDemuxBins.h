@@ -131,7 +131,10 @@ public:
 
 };
 
-
+//#define _DEBUG_TIMESTAMPS
+#ifdef _DEBUG_TIMESTAMPS
+#include "../myplugins/gstptsnormalise.h"
+#endif
 
 // this sets itself up by sampling the source file first, and prepping
 // all the pathways after that - generic - concretes below use specific muxers
@@ -146,6 +149,11 @@ public:
         gstreamListeningBin(name,parent),
         m_fatal(false)
     {
+
+#ifdef _DEBUG_TIMESTAMPS
+        ptsnormalise_registerRunTimePlugin();
+#endif
+
         bool splitDemux=(std::string(demuxer)==std::string("splitmuxsrc"));
 
         // because this is shared, we need to lock it when first populating, in case
@@ -256,8 +264,14 @@ public:
                         return;
                     }
 
+#ifdef _DEBUG_TIMESTAMPS
+                    AddPlugin("ptsnormalise","ptsnormalise_video");
+#endif
+
                     gst_element_link_many(  pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),
-                        pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),
+#ifdef _DEBUG_TIMESTAMPS
+                        FindNamedPlugin("ptsnormalise_video"),
+#endif                        
                         pluginContainer<GstElement>::FindNamedPlugin(parserName),
                         pluginContainer<GstElement>::FindNamedPlugin(decoderName),
                         NULL);
@@ -280,7 +294,13 @@ public:
             }
             else if(capIntersects(each->second,"text/x-raw"))
             {
-                gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),NULL);
+#ifdef _DEBUG_TIMESTAMPS
+                AddPlugin("ptsnormalise","ptsnormalise_subs");
+#endif
+                AddPlugin("queue");
+#ifdef _DEBUG_TIMESTAMPS
+                    FindNamedPlugin("ptsnormalise_subs"),
+#endif                    
 
                 // hijack the parent's late linking framework
                 ConnectLate(pluginContainer<GstElement>::FindNamedPlugin("demuxer"),pluginContainer<GstElement>::FindNamedPlugin(capsFilterName));
