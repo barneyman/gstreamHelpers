@@ -525,7 +525,7 @@ public:
 
         GstClockTime latency=gst_pipeline_get_latency(GST_PIPELINE(m_pipeline));
 
-        GST_WARNING_OBJECT (m_pipeline, "Pipeline Start Latency = %" GST_TIME_FORMAT "", GST_TIME_ARGS(latency));
+        GST_INFO_OBJECT (m_pipeline, "Pipeline Start Latency = %" GST_TIME_FORMAT "", GST_TIME_ARGS(latency));
 
         DumpGraph("Playing");
 
@@ -1165,7 +1165,7 @@ protected:
     {
         GstClock *clock;
         gst_message_parse_new_clock (msg, &clock);
-        GST_WARNING_OBJECT (m_pipeline, "New clock %s",GST_OBJECT_NAME (clock));
+        GST_INFO_OBJECT (m_pipeline, "New clock %s",GST_OBJECT_NAME (clock));
 
     }
 
@@ -1266,7 +1266,7 @@ protected:
         GstState old_state, new_state;
         gst_message_parse_state_changed(msg, &old_state, &new_state, NULL);
 
-        GST_WARNING_OBJECT (m_pipeline, "%s State change '%s' -> '%s'" ,GST_ELEMENT_NAME(msg->src),gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
+        GST_INFO_OBJECT (m_pipeline, "%s State change '%s' -> '%s'" ,GST_ELEMENT_NAME(msg->src),gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
 
         if((GstElement*)(msg->src)==(GstElement*)m_pipeline)
         {
@@ -1294,7 +1294,7 @@ protected:
             gst_query_parse_latency (query, NULL, &min_latency, NULL);
             gst_query_unref (query);
 
-            GST_WARNING_OBJECT (m_pipeline, "Got min_latency from stream: %"
+            GST_INFO_OBJECT (m_pipeline, "Got min_latency from stream: %"
                 GST_TIME_FORMAT, GST_TIME_ARGS (min_latency));
 
             gst_pipeline_set_latency(GST_PIPELINE(m_pipeline),min_latency);
@@ -1302,13 +1302,13 @@ protected:
         }
 
         GstClockTime latency=gst_pipeline_get_latency(GST_PIPELINE(m_pipeline));
-        GST_WARNING_OBJECT (m_pipeline, "Pipeline Start Latency = %" GST_TIME_FORMAT "", GST_TIME_ARGS(latency));
+        GST_INFO_OBJECT (m_pipeline, "Pipeline Start Latency = %" GST_TIME_FORMAT "", GST_TIME_ARGS(latency));
 
     }
 
     void genericMessageHandler(GstMessage*msg, const char*text)
     {
-        GST_WARNING_OBJECT (m_pipeline, "Message '%s' seen from '%s'",text, GST_OBJECT_NAME (msg->src));
+        GST_DEBUG_OBJECT (m_pipeline, "Message '%s' seen from '%s'",text, GST_OBJECT_NAME (msg->src));
         //g_print("Message '%s' seen from '%s'\n",text, GST_OBJECT_NAME (msg->src));
     }
 
