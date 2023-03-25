@@ -154,17 +154,21 @@ public:
         {
             // now build our demux pipeline based on what we know is there
             // by creating a toy that exposes all available srcs
-            gstreamDemuxExamineDiscrete examine(muxedFileName,demuxer);
-            if(examine.isValid())
+            GST_WARNING_OBJECT (m_parent, "gstreamDemuxExamineDiscrete BEGIN");            
             {
-                streamInfo=examine.m_info;
-                // store it forward
-                if(cached)
+                gstreamDemuxExamineDiscrete examine(muxedFileName,demuxer);
+                if(examine.isValid())
                 {
-                    *cached=examine.m_info;
-                    cached->unlock();
+                    streamInfo=examine.m_info;
+                    // store it forward
+                    if(cached)
+                    {
+                        *cached=examine.m_info;
+                        cached->unlock();
+                    }
                 }
             }
+            GST_WARNING_OBJECT (m_parent, "gstreamDemuxExamineDiscrete END");            
         }
         else
         {
