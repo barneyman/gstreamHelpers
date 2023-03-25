@@ -937,12 +937,7 @@ protected:
                     newClockMessageHandler(msg);
                     break;
                 case GST_MESSAGE_LATENCY :
-                    genericMessageHandler(msg,"Latency");
-                    if(!gst_bin_recalculate_latency(GST_BIN(m_pipeline)))
-                    {
-                        GST_ERROR_OBJECT (m_pipeline, "Could not force latency");                        
-                    }
-                    ;
+                    latencyMessageHandler(msg);
                     break;
                 case GST_MESSAGE_STREAM_START :
                     genericMessageHandler(msg,"StreamStart");
@@ -1271,15 +1266,10 @@ protected:
         GstState old_state, new_state;
         gst_message_parse_state_changed(msg, &old_state, &new_state, NULL);
 
-#ifdef _DEBUG
-        // catch our source
-        GstClockTime ck=GetTimeSinceEpoch();
-#endif        
+        GST_WARNING_OBJECT (m_pipeline, "%s State change '%s' -> '%s'" ,GST_ELEMENT_NAME(msg->src),gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
+
         if((GstElement*)(msg->src)==(GstElement*)m_pipeline)
         {
-#ifdef _DEBUG
-            GST_DEBUG_OBJECT (m_pipeline, "PIPELINE State change '%s' -> '%s'@ %" GST_TIME_FORMAT "",gst_element_state_get_name (old_state), gst_element_state_get_name (new_state),GST_TIME_ARGS(ck));
-#endif            
             pipelineStateChangeMessageHandler(msg);
             m_pipelineState=new_state;
         }
@@ -1293,10 +1283,32 @@ protected:
         genericMessageHandler(msg,"Element");
     }
 
+    void latencyMessageHandler(GstMessage*msg)
+    {
+        genericMessageHandler(msg,"Latency");
+
+        GstQuery *query=gst_query_new_latency();
+        if(gst_element_query(GST_ELEMENT(msg->src),query))
+        {
+            GstClockTime min_latency;
+            gst_query_parse_latency (query, NULL, &min_latency, NULL);
+            gst_query_unref (query);
+
+            GST_WARNING_OBJECT (m_pipeline, "Got min_latency from stream: %"
+                GST_TIME_FORMAT, GST_TIME_ARGS (min_latency));
+
+            gst_pipeline_set_latency(GST_PIPELINE(m_pipeline),min_latency);
+
+        }
+
+        GstClockTime latency=gst_pipeline_get_latency(GST_PIPELINE(m_pipeline));
+        GST_WARNING_OBJECT (m_pipeline, "Pipeline Start Latency = %" GST_TIME_FORMAT "", GST_TIME_ARGS(latency));
+
+    }
 
     void genericMessageHandler(GstMessage*msg, const char*text)
     {
-        GST_INFO_OBJECT (m_pipeline, "Message '%s' seen from '%s'",text, GST_OBJECT_NAME (msg->src));
+        GST_WARNING_OBJECT (m_pipeline, "Message '%s' seen from '%s'",text, GST_OBJECT_NAME (msg->src));
         //g_print("Message '%s' seen from '%s'\n",text, GST_OBJECT_NAME (msg->src));
     }
 
