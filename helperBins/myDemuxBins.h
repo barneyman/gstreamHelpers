@@ -211,14 +211,6 @@ public:
 
         }
 
-        pluginContainer<GstElement>::AddPlugin("multiqueue","multiQdemux");
-
-        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"), 
-            "max-size-buffers", 0,
-            "max-size-time", 1*GST_SECOND,
-            "max-size-bytes", 0,
-             NULL);
-
 
         if(!splitDemux)
         {
@@ -276,7 +268,6 @@ public:
 #endif
 
                     gst_element_link_many(  pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),
-                        //pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),
 #ifdef _DEBUG_TIMESTAMPS
                         FindNamedPlugin("ptsnormalise_video"),
 #endif                        
@@ -290,8 +281,6 @@ public:
                 }
                 else
                 {
-                    //gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),NULL);
-
                     // hijack the parent's late linking framework
                     ConnectLate(pluginContainer<GstElement>::FindNamedPlugin("demuxer"),pluginContainer<GstElement>::FindNamedPlugin(capsFilterName));
 
@@ -315,7 +304,6 @@ public:
                     NULL);
 
                 gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),
-                    //pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),
 #ifdef _DEBUG_TIMESTAMPS
                     FindNamedPlugin("ptsnormalise_subs"),
 #endif                    
@@ -333,27 +321,27 @@ public:
                 GST_WARNING_OBJECT (m_parent, "Connecting '%s' pad not yet impl'd - sinking to /dev/null", gst_caps_to_string(each->second));
 
 
-
-                gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),
-                    pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),
-                    NULL);
-
                 // hijack the parent's late linking framework
-                ConnectLate(pluginContainer<GstElement>::FindNamedPlugin("demuxer"),pluginContainer<GstElement>::FindNamedPlugin(capsFilterName));
+                ConnectLate(    
+                    pluginContainer<GstElement>::FindNamedPlugin("demuxer"),
+                    pluginContainer<GstElement>::FindNamedPlugin(capsFilterName));
 
                 char sinkFilterName[20];
                 snprintf(sinkFilterName,sizeof(capsFilterName)-1,"fakesink_%u",padCount);
                 pluginContainer<GstElement>::AddPlugin("fakesink",sinkFilterName);
-                gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin("multiQdemux"),pluginContainer<GstElement>::FindNamedPlugin(sinkFilterName),NULL);
+                gst_element_link_many(  pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),
+                                        pluginContainer<GstElement>::FindNamedPlugin(sinkFilterName),
+                                        NULL);
 
             }
         }
 
         if(seeking)
         {
+            GST_ERROR_OBJECT (m_parent, "I removed mmultiqueue at commit 45f569eb4d2f6e8d282402b08a4514df4cf4bbda - rework this");
+
             // demux is single threaded, so having a blocked pad on it, stops the other pads connecting, so block the q's srcs
             GstElement *mq=pluginContainer<GstElement>::FindNamedPlugin("multiQdemux");
-            //for(GList *sourcePads=mq->srcpads;sourcePads;sourcePads=sourcePads->next)
             for(GList *sourcePads=mq->sinkpads;sourcePads;sourcePads=sourcePads->next)
             {
                 GstPad *eachSourcePad=(GstPad *)sourcePads->data;
