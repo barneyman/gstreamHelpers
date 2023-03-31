@@ -1275,7 +1275,7 @@ protected:
         }
     }
 
-
+    // utility virtual
     virtual void pipelineStateChangeMessageHandler(GstMessage*msg){}
 
     virtual void elementMessageHandler(GstMessage*msg)
