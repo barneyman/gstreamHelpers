@@ -20,7 +20,7 @@ HELPERHEADERS = gstreamPipeline.h gstreamEdits.h gstreamBin.h
 
 MYPLUGINSSRC = $(wildcard ./myplugins/*.c)
 MYPLUGINSHEAD = $(wildcard ./myplugins/*.h)
-MYPLUGINSAR = gstjsoninject.o gstjsontopango.o gstnmeasource.o nmealoop.o gstmybin.o gstjsonparse.o gstptsnormalise.o
+MYPLUGINSAR = gstjsoninject.o gstjsontopango.o gstnmeasource.o nmealoop.o gstmybin.o gstjsonparse.o gstptsnormalise.o gstbarrier.o
 MYPLUGINSOBJ = $(MYPLUGINSSRC:.cc=.o)
 MYPLUGINSLIB = libmyplugins.a
 
@@ -34,9 +34,7 @@ RPICAMLIB = myplugins/gst-rpicamsrc/src/.libs/libgstrpicamsrc.so
 
 
 all: helperlib myplugins nmealib
-all4pi: $(all) rpicamerasrc
 
-rpicamerasrc: $(RPICAMLIB)
 helperlib: $(HELPERLIB)
 myplugins: $(MYPLUGINSLIB)
 nmealib: $(NMEALIB)
