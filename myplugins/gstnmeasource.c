@@ -585,6 +585,11 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 
   GstClockTime runningTime=gst_clock_get_time(myClock)-baseTime;
 
+  while(runningTime < GST_SECOND*2)
+  {
+    runningTime=gst_clock_get_time(myClock)-baseTime;    
+  }
+
 
   offset=0;
 
