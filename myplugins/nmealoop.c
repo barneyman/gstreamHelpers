@@ -88,27 +88,27 @@ void* gpsMonitorThreadEntry(void *arg)
 
               info = localtime( &tod.tv_sec );
 
-              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02d.%03ldZ",
+              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02d.%ldZ",
                 info->tm_year+1900,
                 info->tm_mon+1,
                 info->tm_mday,
                 info->tm_hour,
                 info->tm_min,
                 info->tm_sec,
-                tod.tv_usec/1000);
+                tod.tv_usec/100000);
 
               jsonData["local"]=timebuf;
 
               info = gmtime(&tod.tv_sec);
 
-              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02d.%03ldZ",
+              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02d.%ldZ",
                 info->tm_year+1900,
                 info->tm_mon+1,
                 info->tm_mday,
                 info->tm_hour,
                 info->tm_min,
                 info->tm_sec,
-                tod.tv_usec/1000);
+                tod.tv_usec/100000);
 
               jsonData["utc"]=timebuf;
 

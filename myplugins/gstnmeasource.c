@@ -220,7 +220,7 @@ gst_nmeasource_set_property (GObject * object, guint property_id,
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (object);
 
-  GST_INFO_OBJECT (nmeasource, "set_property");
+  GST_DEBUG_OBJECT (nmeasource, "set_property");
 
   switch (property_id) {
     case PROP_TS_OFFSET:
@@ -252,7 +252,7 @@ gst_nmeasource_get_property (GObject * object, guint property_id,
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (object);
 
-  GST_INFO_OBJECT (nmeasource, "get_property");
+  GST_DEBUG_OBJECT (nmeasource, "get_property");
 
   switch (property_id) {
 
@@ -286,7 +286,7 @@ gst_nmeasource_dispose (GObject * object)
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (object);
 
-  GST_INFO_OBJECT (nmeasource, "dispose");
+  GST_DEBUG_OBJECT (nmeasource, "dispose");
 
   /* clean up as possible.  may be called multiple times */
 
@@ -298,7 +298,7 @@ gst_nmeasource_finalize (GObject * object)
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (object);
 
-  GST_INFO_OBJECT (nmeasource, "finalize");
+  GST_DEBUG_OBJECT (nmeasource, "finalize");
 
   /* clean up object here */
 
@@ -311,7 +311,7 @@ gst_nmeasource_get_caps (GstBaseSrc * src, GstCaps * filter)
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource, "get_caps");
+  GST_DEBUG_OBJECT (nmeasource, "get_caps");
 
   return NULL;
 }
@@ -322,7 +322,7 @@ gst_nmeasource_negotiate (GstBaseSrc * src)
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource, "negotiate");
+  GST_DEBUG_OBJECT (nmeasource, "negotiate");
 
   return TRUE;
 }
@@ -333,7 +333,7 @@ gst_nmeasource_fixate (GstBaseSrc * src, GstCaps * caps)
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource, "fixate");
+  GST_DEBUG_OBJECT (nmeasource, "fixate");
 
   return NULL;
 }
@@ -344,7 +344,7 @@ gst_nmeasource_set_caps (GstBaseSrc * src, GstCaps * caps)
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource,"set caps '%s'", gst_caps_to_string(caps) );
+  GST_DEBUG_OBJECT (nmeasource,"set caps '%s'", gst_caps_to_string(caps) );
 
   return TRUE;
 }
@@ -355,7 +355,7 @@ gst_nmeasource_decide_allocation (GstBaseSrc * src, GstQuery * query)
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource, "decide_allocation");
+  GST_DEBUG_OBJECT (nmeasource, "decide_allocation");
 
   return TRUE;
 }
@@ -367,7 +367,7 @@ gst_nmeasource_start (GstBaseSrc * src)
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource, "start");
+  GST_DEBUG_OBJECT (nmeasource, "start");
 
   startMonitorThread(nmeasource->threadInfo);
 
@@ -386,7 +386,7 @@ gst_nmeasource_stop (GstBaseSrc * src)
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource, "stop");
+  GST_DEBUG_OBJECT (nmeasource, "stop");
 
   stopMonitorThread(nmeasource->threadInfo);
 
@@ -414,7 +414,7 @@ gst_nmeasource_get_times (GstBaseSrc * src, GstBuffer * buffer,
     /* get duration to calculate end time */
     GstClockTime duration = GST_BUFFER_DURATION (buffer);
     GstClockTime pts = GST_BUFFER_PTS (buffer);
-    GST_INFO_OBJECT (nmeasource, "PTS %" GST_TIME_FORMAT ".",GST_TIME_ARGS(pts));
+    GST_DEBUG_OBJECT (nmeasource, "PTS %" GST_TIME_FORMAT ".",GST_TIME_ARGS(pts));
 
     // give me some latency
     GstClockTime timestamp = pts+(20*GST_MSECOND);
@@ -431,7 +431,7 @@ gst_nmeasource_get_times (GstBaseSrc * src, GstBuffer * buffer,
     *end = -1;
   }
 
-  GST_INFO_OBJECT (nmeasource, "start  %" GST_TIME_FORMAT ".",GST_TIME_ARGS(*start));
+  GST_DEBUG_OBJECT (nmeasource, "start  %" GST_TIME_FORMAT ".",GST_TIME_ARGS(*start));
 
 }
 
@@ -441,7 +441,7 @@ gst_nmeasource_get_size (GstBaseSrc * src, guint64 * size)
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource, "get_size");
+  GST_DEBUG_OBJECT (nmeasource, "get_size");
 
   *size=(GST_SECOND/DEFAULT_FRAMERATE);
 
@@ -454,7 +454,7 @@ gst_nmeasource_is_seekable (GstBaseSrc * src)
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource, "is_seekable");
+  GST_DEBUG_OBJECT (nmeasource, "is_seekable");
 
   return FALSE;
 }
@@ -467,7 +467,7 @@ gst_nmeasource_prepare_seek_segment (GstBaseSrc * src, GstEvent * seek,
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource, "prepare_seek_segment");
+  GST_DEBUG_OBJECT (nmeasource, "prepare_seek_segment");
 
   return TRUE;
 }
@@ -478,7 +478,7 @@ gst_nmeasource_do_seek (GstBaseSrc * src, GstSegment * segment)
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource, "do_seek");
+  GST_DEBUG_OBJECT (nmeasource, "do_seek");
 
   return TRUE;
 }
@@ -490,7 +490,7 @@ gst_nmeasource_unlock (GstBaseSrc * src)
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource, "unlock");
+  GST_DEBUG_OBJECT (nmeasource, "unlock");
 
   return TRUE;
 }
@@ -501,7 +501,7 @@ gst_nmeasource_unlock_stop (GstBaseSrc * src)
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource, "unlock_stop");
+  GST_DEBUG_OBJECT (nmeasource, "unlock_stop");
 
   return TRUE;
 }
@@ -512,7 +512,7 @@ gst_nmeasource_query (GstBaseSrc * src, GstQuery * query)
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-   GST_INFO_OBJECT (nmeasource, "Received %s query: %" GST_PTR_FORMAT,
+   GST_DEBUG_OBJECT (nmeasource, "Received %s query: %" GST_PTR_FORMAT,
       GST_QUERY_TYPE_NAME (query), query);
 
   gboolean ret=TRUE;
@@ -529,7 +529,7 @@ gst_nmeasource_query (GstBaseSrc * src, GstQuery * query)
   }
 
 
-  GST_INFO_OBJECT (nmeasource, "query");
+  GST_DEBUG_OBJECT (nmeasource, "query");
 
   return ret;
 }
@@ -540,7 +540,7 @@ gst_nmeasource_event (GstBaseSrc * src, GstEvent * event)
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource, "event");
+  GST_DEBUG_OBJECT (nmeasource, "event");
 
   return TRUE;
 }
@@ -553,7 +553,7 @@ gst_nmeasource_create (GstBaseSrc * src, guint64 offset, guint size,
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource, "create");
+  GST_DEBUG_OBJECT (nmeasource, "create");
 
   return GST_FLOW_OK;
 }
@@ -566,7 +566,7 @@ gst_nmeasource_alloc (GstBaseSrc * src, guint64 offset, guint size,
 {
   GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_INFO_OBJECT (nmeasource, "alloc");
+  GST_DEBUG_OBJECT (nmeasource, "alloc");
 
   return GST_FLOW_OK;
 }
@@ -585,10 +585,10 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 
   GstClockTime runningTime=gst_clock_get_time(myClock)-baseTime;
 
-  while(runningTime < GST_SECOND*2)
-  {
-    runningTime=gst_clock_get_time(myClock)-baseTime;    
-  }
+  // while(runningTime < GST_SECOND*2)
+  // {
+  //   runningTime=gst_clock_get_time(myClock)-baseTime;    
+  // }
 
 
   offset=0;
@@ -671,7 +671,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
     }
   }
 
-  GST_INFO_OBJECT (nmeasource, "Running time = %" GST_TIME_FORMAT ,GST_TIME_ARGS(runningTime));
+  GST_INFO_OBJECT (nmeasource, "Fill: Running time = %" GST_TIME_FORMAT ,GST_TIME_ARGS(runningTime));
 
   {
     // sort out timestamps - stolen from gstvideotestsrc
@@ -683,13 +683,13 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   GST_BUFFER_OFFSET (buf) = nmeasource->threadInfo.framesFilled++;
   GST_BUFFER_OFFSET_END (buf) =nmeasource->threadInfo.framesFilled;
 
-  GST_INFO_OBJECT (nmeasource, "Buffer PTS %" GST_TIME_FORMAT ".",GST_TIME_ARGS(GST_BUFFER_PTS (buf)));
+  GST_DEBUG_OBJECT (nmeasource, "Buffer PTS %" GST_TIME_FORMAT ".",GST_TIME_ARGS(GST_BUFFER_PTS (buf)));
 
   gst_object_sync_values (GST_OBJECT (src), GST_BUFFER_PTS (buf));
 
   GST_BUFFER_DURATION (buf) = nmeasource->threadInfo.frameTimeDelta; 
 
-  GST_INFO_OBJECT (nmeasource, "Buffer Dur %" GST_TIME_FORMAT ".",GST_TIME_ARGS(GST_BUFFER_DURATION (buf)));
+  GST_DEBUG_OBJECT (nmeasource, "Buffer Dur %" GST_TIME_FORMAT ".",GST_TIME_ARGS(GST_BUFFER_DURATION (buf)));
 
   return GST_FLOW_OK;
 }

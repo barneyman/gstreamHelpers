@@ -27,7 +27,7 @@ public:
     {
         pluginContainer<GstElement>::AddPlugin("rtspsrc","rtspsrc");
         pluginContainer<GstElement>::AddPlugin("rtph264depay","depay2");
-        pluginContainer<GstElement>::AddPlugin("identity","antijitter");
+        pluginContainer<GstElement>::AddPlugin("rtpjitterbuffer","antijitter");
         pluginContainer<GstElement>::AddPlugin("h264parse","parser2");
 
         // and config
