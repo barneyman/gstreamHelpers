@@ -6,15 +6,14 @@ class baseRemoteSourceBin : public gstreamListeningBin
 {
 public:
     baseRemoteSourceBin(const char*name, pluginContainer<GstElement> *parent):
-        gstreamListeningBin(name,parent),
-        m_q2(this,"q2"),m_progress(this,0)
+        m_progress(this,0),
+        gstreamListeningBin(name,parent)
     {
         setBinFlags(GST_ELEMENT_FLAG_SOURCE);
     }
 
 protected:
 
-    gstQueue m_q2;
     gstFrameBufferProgress m_progress;
 
 };
@@ -23,7 +22,8 @@ protected:
 class rtspSourceBin : public baseRemoteSourceBin
 {
 public:
-    rtspSourceBin(pluginContainer<GstElement> *parent, const char*location, const char*name="rtspSource"):baseRemoteSourceBin(name,parent)
+    rtspSourceBin(pluginContainer<GstElement> *parent, const char*location, const char*name="rtspSource"):
+        baseRemoteSourceBin(name,parent)
     {
         pluginContainer<GstElement>::AddPlugin("rtspsrc","rtspsrc");
         pluginContainer<GstElement>::AddPlugin("rtph264depay","depay2");
@@ -42,7 +42,6 @@ public:
         // then all the others ..
         gst_element_link_many(
                 pluginContainer<GstElement>::FindNamedPlugin("antijitter"),
-                pluginContainer<GstElement>::FindNamedPlugin(m_q2),
                 pluginContainer<GstElement>::FindNamedPlugin("depay2"),
                 pluginContainer<GstElement>::FindNamedPlugin("parser2"),
                 pluginContainer<GstElement>::FindNamedPlugin(m_progress),
@@ -91,7 +90,6 @@ public:
                         pluginContainer<GstElement>::FindNamedPlugin("parser2"));
 
         gst_element_link_many(  pluginContainer<GstElement>::FindNamedPlugin("rtmpsrc"),
-                                pluginContainer<GstElement>::FindNamedPlugin(m_q2),
                                 pluginContainer<GstElement>::FindNamedPlugin("depay2"),
                                 NULL);
 

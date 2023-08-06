@@ -172,7 +172,7 @@ public:
 class gstQueue2Buffering : public gstQueue2
 {
 public:
-    gstQueue2Buffering(gstreamPipeline *parent,const char *name, unsigned maxBuffSecs):gstQueue2(parent,name)
+    gstQueue2Buffering(pluginContainer<GstElement>  *parent,const char *name, unsigned maxBuffSecs):gstQueue2(parent,name)
     {
         // if they WANT buffering ...
         if(maxBuffSecs)
