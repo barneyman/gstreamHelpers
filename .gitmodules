@@ -1,6 +1,3 @@
 [submodule "myplugins/NemaTode"]
 	path = myplugins/NemaTode
 	url = https://github.com/ckgt/NemaTode.git
-[submodule "gstreamer-gst-template"]
-	path = gstreamer-gst-template
-	url = git@github.com:freedesktop/gstreamer-gst-template.git
