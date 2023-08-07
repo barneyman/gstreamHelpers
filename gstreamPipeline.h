@@ -207,6 +207,11 @@ public:
 
     }    
 
+    void SendActionSignal(const char *plugin,const char*action)
+    {
+        g_signal_emit_by_name (FindNamedPlugin(plugin), action);
+    }
+
 protected:
 
     std::vector<std::pair<std::string,GstElement*> > m_allPlugins;
