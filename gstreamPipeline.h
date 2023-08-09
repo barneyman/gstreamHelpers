@@ -1292,22 +1292,8 @@ protected:
     {
         genericMessageHandler(msg,"Latency");
 
-        GstQuery *query=gst_query_new_latency();
-        if(gst_element_query(GST_ELEMENT(msg->src),query))
-        {
-            GstClockTime min_latency;
-            gst_query_parse_latency (query, NULL, &min_latency, NULL);
-            gst_query_unref (query);
+        gst_bin_recalculate_latency (GST_BIN (m_pipeline));
 
-            GST_INFO_OBJECT (m_pipeline, "Got min_latency from stream: %"
-                GST_TIME_FORMAT, GST_TIME_ARGS (min_latency));
-
-            gst_pipeline_set_latency(GST_PIPELINE(m_pipeline),min_latency);
-
-        }
-
-        GstClockTime latency=gst_pipeline_get_latency(GST_PIPELINE(m_pipeline));
-        GST_INFO_OBJECT (m_pipeline, "Pipeline Start Latency = %" GST_TIME_FORMAT "", GST_TIME_ARGS(latency));
 
     }
 
