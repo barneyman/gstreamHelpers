@@ -994,6 +994,9 @@ protected:
                     qosMessageHandler(msg);
                     break;
 
+                case GST_MESSAGE_PROGRESS:
+                    asyncProgressHandler(msg);
+                    break;
 
                 case GST_MESSAGE_APPLICATION:
                     if (gst_message_has_name (msg, _DO_SEEK_MSG))
@@ -1241,6 +1244,38 @@ protected:
 
 
         //genericMessageHandler(msg,"Buffer");
+    }
+
+    volatile bool m_asyncInProgress=false, m_preolled=false;
+
+    virtual void asyncProgressHandler(GstMessage*msg)
+    {
+        GstProgressType type;
+        gchar *code, *text;
+
+        gst_message_parse_progress (msg, &type, &code, &text);
+
+        GST_INFO_OBJECT (m_pipeline, "progress msg - %s", text);
+
+        switch (type) {
+          case GST_PROGRESS_TYPE_START:
+          case GST_PROGRESS_TYPE_CONTINUE:
+            m_asyncInProgress = true;
+            break;
+          case GST_PROGRESS_TYPE_COMPLETE:
+          case GST_PROGRESS_TYPE_CANCELED:
+          case GST_PROGRESS_TYPE_ERROR:
+            m_asyncInProgress = false;
+            break;
+          default:
+            break;
+        }
+
+        if (!m_asyncInProgress && m_preolled && m_target_state == GST_STATE_PAUSED) 
+        {
+            Play();
+        }
+
     }
 
     virtual void qosMessageHandler(GstMessage*msg)
