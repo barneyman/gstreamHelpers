@@ -227,9 +227,9 @@ class gstreamPipelineBase : public pluginContainer<pipelineType>
 
 protected:
 
-    gstreamPipelineBase():m_bus(NULL),m_pipeline(NULL),m_pipelineState(GST_STATE_NULL ),
-        m_eosSeen(false), m_blockedPins(0), m_seekLateEvent(NULL), m_seekLateOn(NULL),
-        m_exitOnBool(NULL),m_networkClock(NULL)
+    gstreamPipelineBase():m_bus(NULL),m_pipeline(NULL),m_pipelineState(GST_STATE_NULL),
+        m_blockedPins(0), m_seekLateEvent(NULL), m_seekLateOn(NULL),
+        m_networkClock(NULL)
     {
         // assume gst_init is called by derived class
     }
@@ -249,8 +249,8 @@ protected:
 public:
 
     gstreamPipelineBase(const char *pipelineName):m_bus(NULL),m_pipeline(NULL),m_pipelineState(GST_STATE_NULL ),
-        m_eosSeen(false), m_blockedPins(0), m_seekLateEvent(NULL), m_seekLateOn(NULL),
-        m_exitOnBool(NULL),m_networkClock(NULL)
+        m_blockedPins(0), m_seekLateEvent(NULL), m_seekLateOn(NULL),
+        m_networkClock(NULL)
     {
         initialiseGstreamer();
 
@@ -269,6 +269,11 @@ public:
         {
             gst_object_unref (m_bus);
             m_bus=NULL;
+        }
+
+        if(m_mainLoop)
+        {
+            g_main_loop_unref(m_mainLoop);
         }
 
         if(m_pipeline)  
@@ -469,17 +474,9 @@ public:
             }
         }
 
-        if(!Pause())
-            return false;
-
-//        // play is performed when the demux is unblocked
-//        if(!Play())
-//            return false;
 
         // then wait for us to play out
-        internalRun(0);
-
-        return true;
+        return internalRun(0);
 
     }
 
@@ -488,59 +485,41 @@ public:
         gst_pipeline_set_latency(GST_PIPELINE(m_pipeline),latMillis*GST_MSECOND);
     }
 
+    static gboolean static_bus_handler (GstBus * bus, GstMessage * message, gpointer data)
+    {
+        return ((gstreamPipelineBase*)data)->bus_handler (bus, message);
+    }
 
-    bool Run(unsigned long timeoutSeconds=0, bool doPreroll=true, bool doReady=true)
+    gboolean bus_handler (GstBus * bus, GstMessage * message)
+    {
+        CrackMessage(message);
+
+        return TRUE;
+    }
+
+    time_t m_looptimeout=0;
+    time_t m_startedAt=0;
+
+    bool Run(unsigned long timeoutSeconds=0, bool doReady=true)
     {
         if(m_seekLateEvent)
             return SeekRun(doReady);
 
         GST_INFO_OBJECT (m_pipeline, "Running for %lu seconds",timeoutSeconds);
-
-        DumpGraph("Ready");
         
         if(doReady)
         {
             if(!Ready())
             {
-                DumpGraph("Ready FAILED");
                 return false;
             }
         }
 
-        if(doPreroll)
-        {
-            GST_INFO_OBJECT (m_pipeline, "PREROLL request");
-            if(!PreRoll())
-            {
-                DumpGraph("PREROLL FAILED");
-                return false;
-            }
-            GST_INFO_OBJECT (m_pipeline, "PREROLL");
-            DumpGraph("Paused");
-        }
+        DumpGraph("Ready");
+
+        return internalRun(timeoutSeconds);
 
 
-        GST_INFO_OBJECT (m_pipeline, "PLAY request");
-        if(!Play())
-        {
-            return false;
-        }
-
-        GST_INFO_OBJECT (m_pipeline, "PLAY");
-
-        GstClockTime latency=gst_pipeline_get_latency(GST_PIPELINE(m_pipeline));
-
-        GST_INFO_OBJECT (m_pipeline, "Pipeline Start Latency = %" GST_TIME_FORMAT "", GST_TIME_ARGS(latency));
-
-        DumpGraph("Playing");
-
-        internalRun(timeoutSeconds);
-
-        latency=gst_pipeline_get_latency(GST_PIPELINE(m_pipeline));
-
-        GST_WARNING_OBJECT (m_pipeline, "Pipeline End Latency = %" GST_TIME_FORMAT "", GST_TIME_ARGS(latency));
-
-        return true;
     }
 
 
@@ -555,34 +534,7 @@ public:
         return (m_pipelineState);
     }
 
-    bool AwaitState(GstState newState, GstClockTime waitFor=2*GST_SECOND)
-    {
-        GstState currentState=GST_STATE_VOID_PENDING,pendingState;
-        while(currentState!=newState)
-        {
-            GstStateChangeReturn ret=gst_element_get_state((GstElement*)m_pipeline, &currentState, &pendingState, 2*GST_SECOND);
 
-            switch(ret)
-            {
-                case GST_STATE_CHANGE_SUCCESS:
-                    // worked
-                    break;
-                case GST_STATE_CHANGE_FAILURE:
-                    GST_ERROR_OBJECT(m_pipeline, "GST_STATE_CHANGE_FAILURE in AwaitState");
-                    DumpGraph("GetState Failed bailing");
-                    return false;
-                case GST_STATE_CHANGE_ASYNC:
-                    PumpMessages();
-                    DumpGraph("ASYNCwaiting");
-                    break;
-                default:
-                    GST_DEBUG_OBJECT(m_pipeline, "gst_element_get_state returned %d\n", ret);
-                    break;
-            }
-        }
-
-        return true;
-    }
 
 
     bool ChangeStateAndWait(GstState newState)
@@ -595,44 +547,23 @@ public:
             return false;
         }
 
-        if(ret==GST_STATE_CHANGE_SUCCESS || (newState==GST_STATE_PAUSED && ret==GST_STATE_CHANGE_NO_PREROLL))
+        m_target_state=newState;
+
+        if(ret==GST_STATE_CHANGE_NO_PREROLL)
         {
+            GST_INFO_OBJECT (m_pipeline, "Pipeline is live and does not need PREROLL");
             return true;
         }
 
-        GST_INFO_OBJECT (m_pipeline, "gst_element_set_state returned %d",ret);
-
-        GstState currentState=GST_STATE_VOID_PENDING,pendingState;
-        bool stateChangeSuccess=false;
-        // i changed this so seekrun will work ... in the background (when seeking) i issue a play call
-        // while we are still pausing (and ergo in this loop)
-        //while(currentState!=newState)
-        while(!stateChangeSuccess)
+        if(ret==GST_STATE_CHANGE_SUCCESS)
         {
-            ret=gst_element_get_state((GstElement*)m_pipeline, &currentState, &pendingState, (2*GST_SECOND)/10);
-
-            switch(ret)
-            {
-                case GST_STATE_CHANGE_SUCCESS:
-                    stateChangeSuccess=true;
-                    // worked
-                    break;
-                case GST_STATE_CHANGE_FAILURE:
-                    GST_ERROR_OBJECT(m_pipeline, "GST_STATE_CHANGE_FAILURE in ChangeStateAndWait");
-                    DumpGraph("GetState Failed");
-                    return false;
-                case GST_STATE_CHANGE_ASYNC:
-                    PumpMessages();
-                    DumpGraph("pumping");
-                    break;
-                default:
-                    GST_DEBUG_OBJECT(m_pipeline, "gst_element_get_state returned %d\n", ret);
-                    break;
+            GST_INFO_OBJECT (m_pipeline, "Pause succeeded");
+            return true;
             }
 
-        }
-        
-        return stateChangeSuccess;
+        // otherwise it's ASYNC ...
+        return true;
+
     }
 
     // requires GST_DEBUG_DUMP_DOT_DIR to be set
@@ -713,6 +644,7 @@ public:
                 // try to link them
                 if(GST_PAD_LINK_OK==gst_pad_link(srcPad,eachSinkPad))
                 {
+                    gst_pad_set_active(eachSinkPad,TRUE);
                     // yay!
                     succeeded=true;
                 }
@@ -766,10 +698,8 @@ public:
             if(std::get<0>(*each)==element)
             {
                 // force a connect
-                //if(LinkAllSourcePadsToDestAny(std::get<0>(*each),std::get<1>(*each),true,pad))
                 if(ConnectSrcToSink(pad,std::get<1>(*each)))
                 {
-                    gst_element_sync_state_with_parent(std::get<1>(*each));
 
                     // if we are blocking the pad ...
                     if(std::get<2>(*each))
@@ -803,71 +733,66 @@ public:
 
 protected:
 
-    volatile bool *m_exitOnBool;
+    GMainLoop *m_mainLoop = NULL;
+    GstState m_target_state = GST_STATE_PAUSED;
+    volatile bool *m_exitOnBool=NULL;
 
     void sendEOStoEnd()
     {
         bool result=gst_element_send_event(GST_ELEMENT(m_pipeline),gst_event_new_eos());
-
-        // GstIterator *sources=gst_bin_iterate_sources (GST_BIN(m_pipeline));
-        // if(sources)
-        // {
-        //     GValue item = G_VALUE_INIT;
-        //     while (gst_iterator_next (sources, &item)==GST_ITERATOR_OK) 
-        //     {
-        //         GST_INFO_OBJECT (m_pipeline, "Sending EOS to '%s' ... ",gst_element_get_name((GstElement*)g_value_get_object(&item)));
-
-        //         bool result=gst_element_send_event((GstElement*)g_value_get_object(&item),gst_event_new_eos());
-        //         bool result=gst_element_send_event(GST_ELEMENT(m_pipeline),gst_event_new_eos());
-
-        //         if(!result)
-        //             GST_ERROR_OBJECT (m_pipeline, " Sending EOS FAILED");
-
-        //         g_value_reset(&item);
-        //     }
-        //     gst_iterator_free(sources);        
-        // }
     }
 
-    void internalRun(unsigned long timeoutSeconds=0)
+    static gboolean staticTimeoutFunction(gpointer data)
     {
-        time_t startTime=time(NULL);
-        bool eosSent=false;
+        return ((gstreamPipelineBase*)data)->timeoutFunction();        
+    }
 
-        int graphCount=0;
-
-        while(!m_eosSeen)
+    gboolean timeoutFunction()
+    {
+        if(m_exitOnBool && *m_exitOnBool)
         {
-            if(timeoutSeconds || m_exitOnBool)
-            {
-
-                if(!eosSent)
-                {
-                    bool sendEOS=false;
-
-                    if(m_exitOnBool && *m_exitOnBool)
-                        sendEOS=true;
-                    else if (timeoutSeconds && (time(NULL)-startTime)>=timeoutSeconds)
-                        sendEOS=true;
-                    
-                    if(sendEOS)
-                    {
-                        sendEOStoEnd();
-                        eosSent=true;
-                    }
-
-                }
-            }
-
-            PumpMessages();
-
+            // exit the main loop
+            sendEOStoEnd();
+            return false;
         }
+
+        if(m_looptimeout!=0 && m_startedAt!=0)
+        {
+            if(time(NULL)-m_startedAt>(m_looptimeout))
+            {
+                sendEOStoEnd();
+                return false;
+            }
+        }
+        return true;
+    }
+
+    bool internalRun(unsigned long timeoutSeconds)
+    {
+        gst_bus_add_watch(m_bus,static_bus_handler,this);
+
+        GST_INFO_OBJECT (m_pipeline, "PREROLL request");
+        if(!PreRoll())
+        {
+            DumpGraph("PREROLL FAILED");
+            return false;
+        }
+        GST_INFO_OBJECT (m_pipeline, "PREROLL");
+        DumpGraph("Paused");
+
+        m_looptimeout=timeoutSeconds;
+
+        m_mainLoop=g_main_loop_new (NULL, FALSE);
+        // millis
+        g_timeout_add(250,staticTimeoutFunction,this);
+
+        g_main_loop_run (m_mainLoop);
 
         GST_INFO_OBJECT (m_pipeline, "Exiting pump loop");
 
-        PreRoll();
-        Ready();
         Stop();        
+
+        return true;
     }
 
     GstClockTime GetRunningTime()
@@ -967,7 +892,6 @@ protected:
                 // i have to understand segments better
                 case GST_MESSAGE_SEGMENT_DONE:
                     genericMessageHandler(msg,"Segment Done");
-                    //m_eosSeen=true;
                     //break;
                 case GST_MESSAGE_EOS:
                     // flag and out
@@ -1021,21 +945,6 @@ protected:
             }
     }
 
-    int PumpMessages(unsigned long timeoutMS=200)
-    {
-
-        GstMessage* msg =NULL;
-
-        while(msg=gst_bus_timed_pop (m_bus, timeoutMS*GST_MSECOND))
-        {
-            CrackMessage(msg);
-
-            // finished, unref
-            gst_message_unref(msg);
-        }
-
-        return 1;
-    }    
 
 public:
 
@@ -1184,7 +1093,7 @@ protected:
         // just check!
         if((GstElement*)(msg->src)==(GstElement*)m_pipeline)
         {
-            m_eosSeen=true;
+            g_main_loop_quit(m_mainLoop);
         }
         else
         {
@@ -1246,7 +1155,7 @@ protected:
         //genericMessageHandler(msg,"Buffer");
     }
 
-    volatile bool m_asyncInProgress=false, m_preolled=false;
+    volatile bool m_asyncInProgress=false, m_prerolled=false;
 
     virtual void asyncProgressHandler(GstMessage*msg)
     {
@@ -1255,7 +1164,7 @@ protected:
 
         gst_message_parse_progress (msg, &type, &code, &text);
 
-        GST_INFO_OBJECT (m_pipeline, "progress msg - %s", text);
+ 
 
         switch (type) {
           case GST_PROGRESS_TYPE_START:
@@ -1271,7 +1180,13 @@ protected:
             break;
         }
 
-        if (!m_asyncInProgress && m_preolled && m_target_state == GST_STATE_PAUSED) 
+        GST_INFO_OBJECT (m_pipeline, "progress msg - %s - async %s prerolled %s target %d", text,
+            m_asyncInProgress?"TRUE":"FALSE",
+            m_prerolled?"TRUE":"FALSE",
+            m_target_state
+            );
+
+        if (!m_asyncInProgress && m_prerolled && m_target_state == GST_STATE_PAUSED) 
         {
             Play();
         }
@@ -1315,8 +1230,31 @@ protected:
         }
     }
 
-    // utility virtual
-    virtual void pipelineStateChangeMessageHandler(GstMessage*msg){}
+    // important virtual - call me if you override me
+    virtual void pipelineStateChangeMessageHandler(GstMessage*msg)
+    {
+        GstState oldState, newState, pendingState;
+        gst_message_parse_state_changed (msg, &oldState, &newState, &pendingState);
+
+        if (m_target_state==GST_STATE_PAUSED && m_target_state==newState)
+        {
+            // we are paused, kick it into play and set target state
+            m_prerolled=true;
+
+            // if nothing async is in motion ...
+            if(!m_asyncInProgress)
+            {
+                Play();
+            }
+        }
+
+        if (m_target_state==GST_STATE_PLAYING && m_target_state==newState)
+        {
+            DumpGraph("Playing");
+            m_startedAt=time(NULL);
+        }
+
+    }
 
     virtual void elementMessageHandler(GstMessage*msg)
     {
@@ -1348,7 +1286,6 @@ protected:
     GstNetTimeProvider *m_networkClock;
 
     GstState m_pipelineState;
-    bool m_eosSeen;
 
 
     // source element, dest element, are we blocking, how many
