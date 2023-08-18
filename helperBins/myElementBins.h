@@ -681,6 +681,7 @@ public:
             "valignment", valign,
             "halignment",halign, 
             "wait-text", FALSE,
+            "draw-outline", FALSE, 
             NULL);
 
         // block off the subtitle sink, so we don't ghost it

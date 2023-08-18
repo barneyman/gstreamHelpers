@@ -149,7 +149,7 @@ Absolute position (5) – absolute
 */
 
 
-    gstJsonToPangoRenderBinT(pluginContainer<GstElement> *parent, const char *name="pangoBin", unsigned halign=1, unsigned valign=1,bool shaded=true):
+    gstJsonToPangoRenderBinT(pluginContainer<GstElement> *parent, const char *name="pangoBin", unsigned halign=1, unsigned valign=1,bool shaded=false):
         gstreamBin(name,parent),
         m_jsonPeek(this)
     {
@@ -160,6 +160,7 @@ Absolute position (5) – absolute
             "valignment", valign, 
             "halignment", halign, 
             "shaded-background", shaded?TRUE:FALSE, 
+            "draw-outline", FALSE, 
             NULL);
 
 
