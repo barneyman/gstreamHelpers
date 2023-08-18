@@ -1218,25 +1218,22 @@ protected:
 
     virtual void stateChangeMessageHandler(GstMessage*msg)
     {
-        GstState old_state, new_state;
-        gst_message_parse_state_changed(msg, &old_state, &new_state, NULL);
+        GstState old_state, new_state, pendingState;
+        gst_message_parse_state_changed(msg, &old_state, &new_state, &pendingState);
 
         GST_INFO_OBJECT (m_pipeline, "%s State change '%s' -> '%s'" ,GST_ELEMENT_NAME(msg->src),gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
 
         if((GstElement*)(msg->src)==(GstElement*)m_pipeline)
         {
-            pipelineStateChangeMessageHandler(msg);
+            pipelineStateChangeMessageHandler(msg, old_state, new_state,pendingState);
             m_pipelineState=new_state;
         }
     }
 
     // important virtual - call me if you override me
-    virtual void pipelineStateChangeMessageHandler(GstMessage*msg)
+    virtual void pipelineStateChangeMessageHandler(GstMessage*msg, GstState old_state,GstState new_state, GstState pendingState)
     {
-        GstState oldState, newState, pendingState;
-        gst_message_parse_state_changed (msg, &oldState, &newState, &pendingState);
-
-        if (m_target_state==GST_STATE_PAUSED && m_target_state==newState)
+        if (m_target_state==GST_STATE_PAUSED && m_target_state==new_state)
         {
             // we are paused, kick it into play and set target state
             m_prerolled=true;
@@ -1248,7 +1245,7 @@ protected:
             }
         }
 
-        if (m_target_state==GST_STATE_PLAYING && m_target_state==newState)
+        if (m_target_state==GST_STATE_PLAYING && m_target_state==new_state)
         {
             DumpGraph("Playing");
             m_startedAt=time(NULL);
