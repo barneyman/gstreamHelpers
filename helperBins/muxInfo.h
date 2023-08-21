@@ -17,9 +17,9 @@ public:
     demuxInfo():
         m_binDuration(0)
     {
-        m_video=gst_caps_new_simple("video/x-h264",NULL);
-        m_audio=gst_caps_new_simple("audio/ANY",NULL);
-        m_subs=gst_caps_new_simple("text/x-raw",NULL);
+        m_video=gst_caps_new_simple("video/x-h264",NULL,NULL);
+        m_audio=gst_caps_new_simple("audio/ANY",NULL,NULL);
+        m_subs=gst_caps_new_simple("text/x-raw",NULL,NULL);
     }
 
     demuxInfo(const demuxInfo& other)

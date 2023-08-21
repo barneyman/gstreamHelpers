@@ -227,7 +227,7 @@ protected:
     gstH264encoderBin* requestEncoder()
     {
         char namebuf[32];
-        snprintf(namebuf,sizeof(namebuf)-1,"encoder_%d",m_encoders.size());
+        snprintf(namebuf,sizeof(namebuf)-1,"encoder_%d",(int)m_encoders.size());
 
         gstH264encoderBin *encoder=new gstH264encoderBin(this,namebuf);
         m_encoders.push_back(encoder);
