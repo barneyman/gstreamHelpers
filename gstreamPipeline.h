@@ -1100,6 +1100,7 @@ protected:
         // just check!
         if((GstElement*)(msg->src)==(GstElement*)m_pipeline)
         {
+            GST_INFO_OBJECT (m_pipeline, "Pipeline seen EOS - going to ready");
             Ready();
         }
         else
@@ -1241,7 +1242,11 @@ protected:
             // if we are seeking ..
             if(m_seekLateEvent)
             {
-                gst_element_send_event(m_seekLateOn,m_seekLateEvent);
+                GST_INFO_OBJECT (m_pipeline, "sending seek event");
+                if(!gst_element_send_event(m_seekLateOn,m_seekLateEvent))
+                {
+                    GST_ERROR_OBJECT (m_pipeline, "seek event FAILED");
+                }
                 m_seekLateEvent=NULL;
                 // this will cause another preroll ...
             }
@@ -1283,6 +1288,7 @@ protected:
                     if(old_state==GST_STATE_PAUSED)
                     {
                         // we are closing down - stop
+                        GST_INFO_OBJECT (m_pipeline, "Stopping main loop");
                         g_main_loop_quit(m_mainLoop);
                         Stop();
                     }
