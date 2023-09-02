@@ -1236,7 +1236,7 @@ protected:
             m_pipelineState=new_state;
         }
 
-        if(m_seekLateOn == (GstElement*)(msg->src) && new_state==GST_STATE_READY)
+        if(m_seekLateOn == (GstElement*)(msg->src) && new_state==GST_STATE_PAUSED)
         {
             // if we are seeking ..
             if(m_seekLateEvent)

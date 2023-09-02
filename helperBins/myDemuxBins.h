@@ -341,7 +341,8 @@ public:
         if(seeking)
         {
 
-            parent->SeekOnElementLate(startAt,endAt, pluginContainer<GstElement>::FindNamedPlugin("demuxer"));
+            //parent->SeekOnElementLate(startAt,endAt, pluginContainer<GstElement>::FindNamedPlugin("demuxer"));
+            parent->SeekOnElementLate(startAt,endAt, this->m_myBin);
         }
       
 
