@@ -443,7 +443,7 @@ public:
         if(m_seekLateEvent)
             return false;
 
-        m_seekLateOn=onElement;//pluginContainer<pipelineType>::FindNamedPlugin(seekOn);
+        m_seekLateOn=onElement;
 
         if(!m_seekLateOn)
             return false;
@@ -453,9 +453,9 @@ public:
             GST_FORMAT_TIME,
             // flush is needed to get the 'padblocked' probe call
             (GstSeekFlags)(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_ACCURATE),
-            GST_SEEK_TYPE_SET,
+            startAt?GST_SEEK_TYPE_SET:GST_SEEK_TYPE_NONE,
             startAt,
-            GST_SEEK_TYPE_SET,
+            endAt?GST_SEEK_TYPE_SET:GST_SEEK_TYPE_NONE,
             endAt
 
         );
@@ -734,7 +734,7 @@ public:
 protected:
 
     GMainLoop *m_mainLoop = NULL;
-    GstState m_target_state = GST_STATE_PAUSED;
+    volatile GstState m_target_state = GST_STATE_PAUSED;
     volatile bool *m_exitOnBool=NULL;
 
     void sendEOStoEnd()
@@ -1228,6 +1228,18 @@ protected:
             pipelineStateChangeMessageHandler(msg, old_state, new_state,pendingState);
             m_pipelineState=new_state;
         }
+
+        if(m_seekLateOn == (GstElement*)(msg->src) && new_state==GST_STATE_READY)
+        {
+            // if we are seeking ..
+            if(m_seekLateEvent)
+            {
+                gst_element_send_event(m_seekLateOn,m_seekLateEvent);
+                m_seekLateEvent=NULL;
+                // this will cause another preroll ...
+            }
+
+        }
     }
 
     // important virtual - call me if you override me
@@ -1282,7 +1294,7 @@ protected:
 
     GstNetTimeProvider *m_networkClock;
 
-    GstState m_pipelineState;
+    volatile GstState m_pipelineState;
 
 
     // source element, dest element, are we blocking, how many

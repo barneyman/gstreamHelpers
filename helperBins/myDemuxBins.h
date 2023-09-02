@@ -338,20 +338,6 @@ public:
 
         if(seeking)
         {
-            GST_ERROR_OBJECT (m_parent, "I removed mmultiqueue at commit 45f569eb4d2f6e8d282402b08a4514df4cf4bbda - rework this");
-
-            // demux is single threaded, so having a blocked pad on it, stops the other pads connecting, so block the q's srcs
-            GstElement *mq=pluginContainer<GstElement>::FindNamedPlugin("multiQdemux");
-            for(GList *sourcePads=mq->sinkpads;sourcePads;sourcePads=sourcePads->next)
-            {
-                GstPad *eachSourcePad=(GstPad *)sourcePads->data;
-                GST_INFO_OBJECT (m_parent, "adding BLOCK to %s:%s",GST_ELEMENT_NAME(mq),GST_ELEMENT_NAME(eachSourcePad));
-                if(!parent->BlockPadForSeek(eachSourcePad))
-                {
-                    GST_ERROR_OBJECT (m_parent, "BlockPadForSeek failed for %s:%s", GST_ELEMENT_NAME(mq),GST_ELEMENT_NAME(eachSourcePad));                    
-                }
-            }
-
 
             parent->SeekOnElementLate(startAt,endAt, pluginContainer<GstElement>::FindNamedPlugin("demuxer"));
         }
