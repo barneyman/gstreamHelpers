@@ -790,8 +790,6 @@ protected:
 
         GST_INFO_OBJECT (m_pipeline, "Exiting pump loop");
 
-        Stop();        
-
         return true;
     }
 
@@ -1089,11 +1087,10 @@ protected:
     // virtual message handlers
     virtual void eosMessageHandler(GstMessage*msg)
     {
-        genericMessageHandler(msg,"EOS");
         // just check!
         if((GstElement*)(msg->src)==(GstElement*)m_pipeline)
         {
-            g_main_loop_quit(m_mainLoop);
+            Ready();
         }
         else
         {
@@ -1245,7 +1242,15 @@ protected:
     // important virtual - call me if you override me
     virtual void pipelineStateChangeMessageHandler(GstMessage*msg, GstState old_state,GstState new_state, GstState pendingState)
     {
-        if (m_target_state==GST_STATE_PAUSED && m_target_state==new_state)
+        if (m_target_state==new_state)
+        {
+            switch(m_target_state)                        
+            {
+
+                case GST_STATE_PAUSED:
+
+                    // we go paused->paused if we do a seekrun()
+                    if(old_state==GST_STATE_READY || old_state==GST_STATE_PAUSED)
         {
             // we are paused, kick it into play and set target state
             m_prerolled=true;
@@ -1256,13 +1261,34 @@ protected:
                 Play();
             }
         }
+                    break;
 
-        if (m_target_state==GST_STATE_PLAYING && m_target_state==new_state)
-        {
+
+                case GST_STATE_PLAYING:
             DumpGraph("Playing");
             m_startedAt=time(NULL);
-        }
+                    break;
 
+                case GST_STATE_READY:
+                    if(old_state==GST_STATE_PAUSED)
+                    {
+                        // we are closing down - stop
+                        g_main_loop_quit(m_mainLoop);
+                        Stop();
+        }
+                    break;
+
+                case GST_STATE_NULL:
+                    if(old_state==GST_STATE_READY)
+                    {
+                        g_main_loop_quit(m_mainLoop);
+    }
+                    break;
+
+
+            }
+
+        }
     }
 
     virtual void elementMessageHandler(GstMessage*msg)
