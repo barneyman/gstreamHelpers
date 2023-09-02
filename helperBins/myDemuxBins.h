@@ -154,6 +154,8 @@ public:
         ptsnormalise_registerRunTimePlugin();
 #endif
 
+        setBinFlags(GST_ELEMENT_FLAG_SOURCE);
+
         bool splitDemux=(std::string(demuxer)==std::string("splitmuxsrc"));
 
         // because this is shared, we need to lock it when first populating, in case
