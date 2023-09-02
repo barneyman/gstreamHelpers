@@ -737,15 +737,19 @@ protected:
     GMainLoop *m_mainLoop = NULL;
     volatile GstState m_target_state = GST_STATE_PAUSED;
     volatile bool *m_exitOnBool=NULL;
+    bool m_eosSent=false;
 
     bool sendEOStoEnd()
     {
-        bool result=gst_element_send_event(GST_ELEMENT(m_pipeline),gst_event_new_eos());
-        if(!result)
+        if(!m_eosSent)
         {
-            GST_ERROR_OBJECT (m_pipeline, "sendEOStoEnd FAILED");
+            m_eosSent=gst_element_send_event(GST_ELEMENT(m_pipeline),gst_event_new_eos());
+            if(!m_eosSent)
+            {
+                GST_ERROR_OBJECT (m_pipeline, "sendEOStoEnd FAILED");
+            }
         }
-        return result;
+        return m_eosSent;
     }
 
     static gboolean staticTimeoutFunction(gpointer data)
