@@ -541,6 +541,8 @@ public:
     {
         GstStateChangeReturn ret = gst_element_set_state ((GstElement*)m_pipeline, newState);
 
+        bool retval=true;
+
         if (ret == GST_STATE_CHANGE_FAILURE) 
         {
             GST_ERROR_OBJECT(m_pipeline, "Unable to set the pipeline to '%s' state.", gst_element_state_get_name(newState));
@@ -551,15 +553,14 @@ public:
 
         if(ret==GST_STATE_CHANGE_NO_PREROLL)
         {
-            GST_INFO_OBJECT (m_pipeline, "Pipeline is live and does not need PREROLL");
+            GST_WARNING_OBJECT (m_pipeline, "Pipeline is live and does not need PREROLL");
             return true;
         }
 
         if(ret==GST_STATE_CHANGE_SUCCESS)
         {
-            GST_INFO_OBJECT (m_pipeline, "Pause succeeded");
-            return true;
-            }
+            GST_INFO_OBJECT (m_pipeline, "state change to %s succeeded", gst_element_state_get_name(newState));
+        }
 
         // otherwise it's ASYNC ...
         return true;
@@ -737,9 +738,14 @@ protected:
     volatile GstState m_target_state = GST_STATE_PAUSED;
     volatile bool *m_exitOnBool=NULL;
 
-    void sendEOStoEnd()
+    bool sendEOStoEnd()
     {
         bool result=gst_element_send_event(GST_ELEMENT(m_pipeline),gst_event_new_eos());
+        if(!result)
+        {
+            GST_ERROR_OBJECT (m_pipeline, "sendEOStoEnd FAILED");
+        }
+        return result;
     }
 
     static gboolean staticTimeoutFunction(gpointer data)
@@ -1196,14 +1202,14 @@ protected:
         guint64 running, stream, timestamp, duration;
         gst_message_parse_qos(msg,&islive,&running, &stream, &timestamp, &duration);
 
-        
         GstFormat format;
         guint64 processed, dropped;
         gst_message_parse_qos_stats(msg, &format, &processed, &dropped);
 
-        GST_WARNING_OBJECT (m_pipeline, "QOS msg %s - %lu dropped",// - avail %.1f s left ( %d %d )\n",
+        GST_WARNING_OBJECT (m_pipeline, "QOS msg - %s %s - %lu dropped %lu processed",// - avail %.1f s left ( %d %d )\n",
             GST_OBJECT_NAME (msg->src),
-            dropped);
+            islive?"LIVE":"",
+            dropped, processed);
 
 
     }
@@ -1251,22 +1257,22 @@ protected:
 
                     // we go paused->paused if we do a seekrun()
                     if(old_state==GST_STATE_READY || old_state==GST_STATE_PAUSED)
-        {
-            // we are paused, kick it into play and set target state
-            m_prerolled=true;
+                    {
+                        // we are paused, kick it into play and set target state
+                        m_prerolled=true;
 
-            // if nothing async is in motion ...
-            if(!m_asyncInProgress)
-            {
-                Play();
-            }
-        }
+                        // if nothing async is in motion ...
+                        if(!m_asyncInProgress)
+                        {
+                            Play();
+                        }
+                    }
                     break;
 
 
                 case GST_STATE_PLAYING:
-            DumpGraph("Playing");
-            m_startedAt=time(NULL);
+                    DumpGraph("Playing");
+                    m_startedAt=time(NULL);
                     break;
 
                 case GST_STATE_READY:
@@ -1275,14 +1281,14 @@ protected:
                         // we are closing down - stop
                         g_main_loop_quit(m_mainLoop);
                         Stop();
-        }
+                    }
                     break;
 
                 case GST_STATE_NULL:
                     if(old_state==GST_STATE_READY)
                     {
                         g_main_loop_quit(m_mainLoop);
-    }
+                    }
                     break;
 
 
@@ -1308,7 +1314,6 @@ protected:
     void genericMessageHandler(GstMessage*msg, const char*text)
     {
         GST_DEBUG_OBJECT (m_pipeline, "Message '%s' seen from '%s'",text, GST_OBJECT_NAME (msg->src));
-        //g_print("Message '%s' seen from '%s'\n",text, GST_OBJECT_NAME (msg->src));
     }
 
 
