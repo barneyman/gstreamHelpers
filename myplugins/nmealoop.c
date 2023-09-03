@@ -1,6 +1,4 @@
 #include "nmealoop.h"
-#include "nmeaparse/NMEAParser.h"
-#include "nmeaparse/GPSService.h"
 #include "../json/json.hpp"
 #include <fcntl.h>
 #include <unistd.h>
@@ -8,6 +6,8 @@
 
 
 void* gpsMonitorThreadEntry(void *arg);
+void* gpsdMonitorThreadEntry(void *arg);
+
 void pushJson(nmea_threadInfo *filter, nlohmann::json &jsonData);
 
 void startMonitorThread(struct nmea_threadInfo &filter)
@@ -17,7 +17,8 @@ void startMonitorThread(struct nmea_threadInfo &filter)
   jsonData["msg"]="Starting Thread";
   pushJson(&filter,jsonData);
   filter.gpsPollingStopped=false;
-  pthread_create(&filter.gpsThreadId,NULL,&gpsMonitorThreadEntry,&filter);
+  //pthread_create(&filter.gpsThreadId,NULL,&gpsMonitorThreadEntry,&filter);
+  pthread_create(&filter.gpsThreadId,NULL,&gpsdMonitorThreadEntry,&filter);
 
 }
 
@@ -47,164 +48,82 @@ void pushJson(nmea_threadInfo *filter, nlohmann::json &jsonData)
 
 }
 
-// thread that looks after the GPS details
-void* gpsMonitorThreadEntry(void *arg)
+#include <libgpsmm.h>
+
+void* gpsdMonitorThreadEntry(void *arg)
 {
 
   nmea_threadInfo *filter=(nmea_threadInfo*)arg;
 
-  nmea::NMEAParser parser;
-  nmea::GPSService gps(parser);
+  gpsmm gps_rec("burner", DEFAULT_GPSD_PORT);
+
+  if (gps_rec.stream(WATCH_ENABLE|WATCH_JSON) == NULL) 
+  {
+      return NULL;
+  }
 
   filter->gpsPolling=true;
 
-  // requires enable_uart=1 in config.txt
-  FILE* gpsFeed = fopen ("/dev/serial0", "r"); 
 
-  nlohmann::json jsonData;
-
+  while(filter->gpsPolling)
   {
+    struct gps_data_t *gps_data;
 
-    while(filter->gpsPolling)
+
+    nlohmann::json jsonData;
+
+    if (!gps_rec.waiting(50000000))
     {
-
-      if(filter->useLocalTime)
-      {
-            jsonData["gpsLocked"]=false;
-            {
-              
-              jsonData["speedKMH"]=(int)0;
-              jsonData["altitudeM"]=(int)0;
-              jsonData["latitudeN"]=(int)0;
-              jsonData["longitudeE"]=(int)0;
-              jsonData["bearingDeg"]=(int)0;
-              jsonData["satelliteCount"]=0;
-              
-              char timebuf[125];
-
-              struct tm *info;
-              struct timeval tod;
-              gettimeofday(&tod,NULL);
-
-              info = localtime( &tod.tv_sec );
-
-              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02d.%ldZ",
-                info->tm_year+1900,
-                info->tm_mon+1,
-                info->tm_mday,
-                info->tm_hour,
-                info->tm_min,
-                info->tm_sec,
-                tod.tv_usec/100000);
-
-              jsonData["local"]=timebuf;
-
-              info = gmtime(&tod.tv_sec);
-
-              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02d.%ldZ",
-                info->tm_year+1900,
-                info->tm_mon+1,
-                info->tm_mday,
-                info->tm_hour,
-                info->tm_min,
-                info->tm_sec,
-                tod.tv_usec/100000);
-
-              jsonData["utc"]=timebuf;
-
-
-            }
-
-        pushJson(filter,jsonData);
-
-        // dont spam the json
-        usleep(10*1000);
-
         continue;
-
-      }
-
-
-      if(!gpsFeed)
-      {
-        jsonData["msg"]="No GPS Serial Feed";
-
-        pushJson(filter,jsonData);
-
-        // dont spam the json
-        usleep(1000*1000);
-
-        continue;
-
-      }
-
-
-
-      char lineBuffer[255];
-      memset(&lineBuffer,0,sizeof(lineBuffer));
-
-      // nmea::NMEAParser parser;
-      // nmea::GPSService gps(parser);
-
-      // parse it
-
-      if(gpsFeed)
-      {
-
-        while(fgets(lineBuffer,sizeof(lineBuffer)-1,gpsFeed) && filter->gpsPolling)
-        {
-
-
-            jsonData.clear();
-
-            try
-            {
-              parser.readLine(lineBuffer);
-            }
-            catch(const std::exception& e)
-            {
-              continue;
-            }
-
-
-            // build the json
-            jsonData["gpsLocked"]=gps.fix.locked();
-            if(gps.fix.locked())
-            {
-              
-              jsonData["speedKMH"]=(int)gps.fix.speed;
-              jsonData["altitudeM"]=(int)gps.fix.altitude;
-              jsonData["latitudeN"]=((int)(gps.fix.latitude*10000))/10000.0;
-              jsonData["longitudeE"]=((int)(gps.fix.longitude*10000))/10000.0;
-              jsonData["bearingDeg"]=(int)gps.fix.travelAngle;
-              jsonData["satelliteCount"]=gps.fix.trackingSatellites;
-              
-              char timebuf[25];
-              snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02dZ",
-                gps.fix.timestamp.year,
-                gps.fix.timestamp.month,
-                gps.fix.timestamp.day,
-                gps.fix.timestamp.hour,
-                gps.fix.timestamp.min,
-                (int)gps.fix.timestamp.sec);
-
-              jsonData["utc"]=timebuf;
-
-            }
-            else
-            {
-              jsonData["msg"]="No GPS Lock";
-            }
-
-            pushJson(filter,jsonData);
-        }
-      }
     }
 
-    filter->gpsPollingStopped=true;
+    if ((gps_data = gps_rec.read()) == NULL) 
+    {
+        continue;
+    } 
+    else 
+    {
+      //PROCESS(newdata);
+      switch(gps_data->fix.mode)
+      {
+        case MODE_NOT_SEEN:
+            jsonData["msg"]="no sky";
+            break;
+        case MODE_NO_FIX:
+            jsonData["msg"]="not fixed";
+            break;
+        case MODE_3D:
+            if(gps_data->set & ALTITUDE_SET)
+                jsonData["altitudeM"]=gps_data->fix.altitude;
+            if(gps_data->set & CLIMB_SET)
+                jsonData["climb"]=gps_data->fix.climb;
+        case MODE_2D:
+            
+            if(gps_data->set & LATLON_SET)
+            {
+                jsonData["longitudeE"]=trunc(gps_data->fix.longitude*10000)/10000.0;
+                jsonData["latitudeN"]=trunc(gps_data->fix.latitude*10000)/10000.0;
+            }
+            if(gps_data->set & SATELLITE_SET)
+                jsonData["satelliteCount"]=gps_data->satellites_visible;
+
+            if(gps_data->set & TRACK_SET)
+                jsonData["bearingDeg"]=(int)(gps_data->fix.track);
+            if(gps_data->set & SPEED_SET)
+                jsonData["speedKMH"]=(int)(gps_data->fix.speed/1000);
+            break;
+
+
+        }
+        pushJson(filter,jsonData);
+        gps_data->set=0;
+      }
+
   }
 
+  filter->gpsPollingStopped=true;
 
   return NULL;
 
 }
+
