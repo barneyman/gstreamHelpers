@@ -233,7 +233,7 @@ public:
                 "caps", gst_caps_copy (each->second), NULL);
 
             // depends on the caps
-            if(capIntersects(each->second,"video/x-h264"))
+            if(doCapsIntersect(each->second,"video/x-h264"))
             {
                 if(decode)
                 {
@@ -292,7 +292,7 @@ public:
                 }
 
             }
-            else if(capIntersects(each->second,"text/x-raw"))
+            else if(doCapsIntersect(each->second,"text/x-raw"))
             {
 #ifdef _DEBUG_TIMESTAMPS
                 AddPlugin("ptsnormalise","ptsnormalise_subs");
@@ -361,16 +361,6 @@ public:
     bool fatalError() { return m_fatal; }
 
 protected:
-
-    bool capIntersects(GstCaps *caps, const char *testcapsstr)
-    {
-        GstCaps *testCaps=gst_caps_new_simple (testcapsstr,NULL,NULL);
-        bool intersect=(gst_caps_can_intersect (caps,testCaps))?true:false;
-        gst_caps_unref(testCaps);
-        return intersect;
-
-    }
-
 
     bool m_fatal;
 
