@@ -27,16 +27,22 @@ public:
         *this=other;
     }
 
-    ~demuxInfo()
+    virtual ~demuxInfo()
     {
         for(auto each=m_demuxSrcs.begin();each!=m_demuxSrcs.end();each++)
         {
             gst_caps_unref(each->second);
         }
+        
+        deref();
 
-        gst_caps_unref(m_video);
-        gst_caps_unref(m_audio);
-        gst_caps_unref(m_subs);
+    }
+
+    void deref()
+    {
+        gst_caps_unref(m_video); m_video=NULL;
+        gst_caps_unref(m_audio); m_audio=NULL;
+        gst_caps_unref(m_subs); m_subs=NULL;
 
     }
 
@@ -62,6 +68,8 @@ public:
             m_demuxSrcs.push_back(std::pair<std::string,GstCaps*>(thatOne, thisOne));
         }
         m_binDuration=other.m_binDuration;
+
+        deref();
 
         gst_caps_ref(m_video=other.m_video);
         gst_caps_ref(m_audio=other.m_audio);
