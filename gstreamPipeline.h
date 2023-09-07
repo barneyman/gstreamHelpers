@@ -800,6 +800,8 @@ protected:
 
         GST_INFO_OBJECT (m_pipeline, "Exiting pump loop");
 
+        gst_bus_remove_watch(m_bus);
+
         return true;
     }
 

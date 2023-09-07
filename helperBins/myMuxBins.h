@@ -222,6 +222,14 @@ public:
     {
     }
 
+    virtual ~gstH264EncoderMuxOutBin()
+    {
+        for(auto iter=m_encoders.begin();iter!=m_encoders.end();iter++)
+        {
+            delete *iter;
+        }
+    }
+
 protected:
 
     gstH264encoderBin* requestEncoder()
