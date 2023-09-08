@@ -248,6 +248,8 @@ protected:
 
 public:
 
+    operator GstElement*() { return m_pipeline; }
+
     gstreamPipelineBase(const char *pipelineName):m_bus(NULL),m_pipeline(NULL),m_pipelineState(GST_STATE_NULL ),
         m_blockedPins(0), m_seekLateEvent(NULL), m_seekLateOn(NULL),
         m_networkClock(NULL)
@@ -263,7 +265,7 @@ public:
 
     }
 
-    ~gstreamPipelineBase()
+    virtual ~gstreamPipelineBase()
     {
         if(m_bus)
         {

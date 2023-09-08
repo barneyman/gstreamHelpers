@@ -89,7 +89,7 @@ public:
 
     }
 
-    ~gstDemuxDecodeBinExamine()
+    virtual ~gstDemuxDecodeBinExamine()
     {
         // get my nails out of fakesink
         releaseRequestedPads();
