@@ -134,12 +134,31 @@ bool gstreamBin::release_requested_pad(GstElement*el, GstPad *pad)
                 each++;
             }
         }
+        if(!ret)
+        {
+            // there's an edge case with 'handleUnfurnishedRequest' where an encoder is dynamically created and
+            // ghosted as a sink pin, but it was ghosted as a result of a request_pad call
+            for(auto eachSinkGhost=m_ghostPadsSinks.begin();eachSinkGhost!=m_ghostPadsSinks.end();eachSinkGhost++)
+            {
+                if(*eachSinkGhost==pad)
+                {
+                    ret=true;
+                    GST_INFO_OBJECT (m_myBin, "Found SinkGhost  '%s' pad from '%s' to release it",GST_PAD_NAME(pad),GST_ELEMENT_NAME(el));                
+                    // the dtor will clean up the sink ghost
+                }
+            }
+
+            if(!ret)
+            {
+                GST_ERROR_OBJECT (m_myBin, "Could not find  '%s' pad from '%s' to release it",GST_PAD_NAME(pad),GST_ELEMENT_NAME(el));                
+            }
+        }
+    }
+    else
+    {
+        GST_WARNING_OBJECT (m_myBin, "Non Ghost Pad passed  '%s' pad from '%s' to release it",GST_PAD_NAME(pad),GST_ELEMENT_NAME(el));                
     }
 
-    if(!ret)
-    {
-        GST_ERROR_OBJECT (m_myBin, "Could not find  '%s' pad from '%s' to release it",GST_PAD_NAME(pad),GST_ELEMENT_NAME(el));                
-    }
 
     return ret;
 }

@@ -671,6 +671,15 @@ public:
                     {
                         // yay!
                         succeeded=true;
+                        // remember to release it
+                        m_requestedPads.push_back(std::pair<GstElement*, GstPad*>(sinkElement,newSinkPad));
+                        // and grab the sinkElement
+                        gst_object_ref(sinkElement);
+                    }
+                    else
+                    {
+                        // hand it back
+                        gst_element_release_request_pad(sinkElement,newSinkPad);
                     }
                 }
             }
@@ -1349,6 +1358,8 @@ protected:
     GstEvent *m_seekLateEvent;
     GstElement *m_seekLateOn;
 
+    std::vector<std::pair<GstElement*, GstPad*>> m_requestedPads;
+
 };
 
 
@@ -1362,6 +1373,27 @@ public:
 
     gstreamPipeline(const char *pipelineName):gstreamPipelineBase(pipelineName)
     {}
+
+    virtual ~gstreamPipeline()
+    {
+        releaseMyRequestedPads();
+    }
+
+    void releaseMyRequestedPads()
+    {
+        for(auto iter=m_requestedPads.begin();iter!=m_requestedPads.end();iter++)
+        {
+            gst_element_release_request_pad(iter->first,iter->second);
+            //gst_element_release_request_pad((GstObject*))iter->second->object->parent,iter->second);
+            gst_object_unref(iter->first);
+            gst_object_unref(iter->second);
+        }
+        m_requestedPads.clear();
+    }
+
+protected:
+
+
 
 };
 
