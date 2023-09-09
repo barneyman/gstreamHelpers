@@ -562,9 +562,12 @@ public:
         if(ret==GST_STATE_CHANGE_SUCCESS)
         {
             GST_INFO_OBJECT (m_pipeline, "state change to %s succeeded", gst_element_state_get_name(newState));
+            return true;
         }
 
+        GST_INFO_OBJECT (m_pipeline, "state change to %s is ASYNC", gst_element_state_get_name(newState));
         // otherwise it's ASYNC ...
+        m_awaitForAsyncDone=true;
         return true;
 
     }
@@ -894,7 +897,7 @@ protected:
                     genericMessageHandler(msg,"StreamStart");
                     break;
                 case GST_MESSAGE_ASYNC_DONE :
-                    genericMessageHandler(msg,"AsyncDone");
+                    asyncMessageHandler(msg);
                     break;
                 case GST_MESSAGE_TAG:
                     genericMessageHandler(msg,"Tag");
@@ -1176,7 +1179,9 @@ protected:
         //genericMessageHandler(msg,"Buffer");
     }
 
-    volatile bool m_asyncInProgress=false, m_prerolled=false;
+    volatile bool m_waitOnCompletedProgress=false, m_prerolled=false;
+    bool m_awaitForAsyncDone=false;
+
 
     virtual void asyncProgressHandler(GstMessage*msg)
     {
@@ -1190,25 +1195,26 @@ protected:
         switch (type) {
           case GST_PROGRESS_TYPE_START:
           case GST_PROGRESS_TYPE_CONTINUE:
-            m_asyncInProgress = true;
+            m_waitOnCompletedProgress = true;
             break;
           case GST_PROGRESS_TYPE_COMPLETE:
           case GST_PROGRESS_TYPE_CANCELED:
           case GST_PROGRESS_TYPE_ERROR:
-            m_asyncInProgress = false;
+            m_waitOnCompletedProgress = false;
             break;
           default:
             break;
         }
 
-        GST_INFO_OBJECT (m_pipeline, "progress msg - %s - async %s prerolled %s target %d", text,
-            m_asyncInProgress?"TRUE":"FALSE",
+        GST_WARNING_OBJECT (m_pipeline, "progress msg - '%s' - async %s prerolled %s target %d", text,
+            m_waitOnCompletedProgress?"TRUE":"FALSE",
             m_prerolled?"TRUE":"FALSE",
             m_target_state
             );
 
-        if (!m_asyncInProgress && m_prerolled && m_target_state == GST_STATE_PAUSED) 
+        if (!m_waitOnCompletedProgress && m_prerolled && m_target_state == GST_STATE_PAUSED) 
         {
+            GST_WARNING_OBJECT (m_pipeline, "Playing from asyncProgressHandler");
             Play();
         }
 
@@ -1237,6 +1243,14 @@ protected:
         genericMessageHandler(msg,"Error");
     }
 
+    virtual void asyncMessageHandler(GstMessage*msg)
+    {
+        GstClockTime runningTime;
+        gst_message_parse_async_done(msg,&runningTime);
+        GST_WARNING_OBJECT (m_pipeline, "%s AsyncDone " ,GST_ELEMENT_NAME(msg->src));
+
+    }
+
     virtual void stateChangeMessageHandler(GstMessage*msg)
     {
         GstState old_state, new_state, pendingState;
@@ -1244,13 +1258,7 @@ protected:
 
         GST_INFO_OBJECT (m_pipeline, "%s State change '%s' -> '%s'" ,GST_ELEMENT_NAME(msg->src),gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
 
-        if((GstElement*)(msg->src)==(GstElement*)m_pipeline)
-        {
-            pipelineStateChangeMessageHandler(msg, old_state, new_state,pendingState);
-            m_pipelineState=new_state;
-        }
-
-        if(m_seekLateOn == (GstElement*)(msg->src) && new_state==GST_STATE_PAUSED)
+        if(m_seekLateOn == (GstElement*)(msg->src) && new_state==GST_STATE_READY)
         {
             // if we are seeking ..
             if(m_seekLateEvent)
@@ -1265,6 +1273,13 @@ protected:
             }
 
         }
+
+        if((GstElement*)(msg->src)==(GstElement*)m_pipeline)
+        {
+            pipelineStateChangeMessageHandler(msg, old_state, new_state,pendingState);
+            m_pipelineState=new_state;
+        }
+
     }
 
     // important virtual - call me if you override me
@@ -1284,7 +1299,7 @@ protected:
                         m_prerolled=true;
 
                         // if nothing async is in motion ...
-                        if(!m_asyncInProgress)
+                        if(!m_waitOnCompletedProgress)
                         {
                             Play();
                         }
