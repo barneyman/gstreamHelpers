@@ -666,7 +666,7 @@ public:
             // let's request the pad we need - null caps are fatal for gst_pad_template_new, so just, don't!
             if(srcCaps)
             {
-                GstPad *newSinkPad=gst_element_request_pad(sinkElement,gst_pad_template_new("src_%u",GST_PAD_SINK,GST_PAD_REQUEST,srcCaps),NULL,NULL);
+                GstPad *newSinkPad=gst_element_request_pad(sinkElement,gst_pad_template_new("sink_%u",GST_PAD_SINK,GST_PAD_REQUEST,srcCaps),NULL,NULL);
                 if(newSinkPad)
                 {
                     if(GST_PAD_LINK_OK==gst_pad_link(srcPad,newSinkPad))
