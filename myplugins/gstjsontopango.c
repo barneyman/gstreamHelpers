@@ -524,6 +524,8 @@ gst_json_to_pango_subsink_chain (GstPad * pad, GstObject * parent, GstBuffer * b
   gst_memory_map(memory,&info,GST_MAP_READ);
   std::string jsonString((const char*)info.data, info.size);
 
+  gst_memory_unmap(memory,&info);
+
   // detoken the pango that matroska gives us
   detoken(jsonString);
 
@@ -601,7 +603,6 @@ gst_json_to_pango_subsink_chain (GstPad * pad, GstObject * parent, GstBuffer * b
     GST_LOG_OBJECT (filter, "Sending %s", msg);
   }
 
-  
   /* make empty buffer */
   GstBuffer *textBuffer = gst_buffer_new_and_alloc(len+1);
   gst_buffer_fill (textBuffer, 0, msg, len+1);
@@ -611,7 +612,7 @@ gst_json_to_pango_subsink_chain (GstPad * pad, GstObject * parent, GstBuffer * b
   gst_buffer_copy_into(textBuffer, buf, GST_BUFFER_COPY_TIMESTAMPS ,0,-1);
 
   // then release the original buffer
-  gst_buffer_unref(textBuffer);
+  gst_buffer_unref(buf);
 
   return gst_pad_push(filter->pango_srcpad, textBuffer);
 
