@@ -180,6 +180,7 @@ public:
 
     ~gstSplitMuxOutBin()
     {
+        GST_DEBUG_OBJECT (m_myBin, "gstSplitMuxOutBin dtor");                
     }
 
     virtual GstCaps* tightenCaps(GstPadTemplate *padtempl)
