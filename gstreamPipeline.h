@@ -541,7 +541,11 @@ public:
 
     bool ChangeStateAndWait(GstState newState)
     {
+        
+        gst_element_get_state(*this,&m_current_state, &m_pending_state,0);
+
         GstStateChangeReturn ret = gst_element_set_state ((GstElement*)m_pipeline, newState);
+        m_awaitForAsyncDone=false;
 
         bool retval=true;
 
@@ -749,7 +753,7 @@ public:
 protected:
 
     GMainLoop *m_mainLoop = NULL;
-    volatile GstState m_target_state = GST_STATE_PAUSED;
+    GstState m_target_state = GST_STATE_NULL, m_current_state=GST_STATE_NULL, m_pending_state=GST_STATE_NULL;
     volatile bool *m_exitOnBool=NULL;
     bool m_eosSent=false;
 
@@ -791,12 +795,12 @@ protected:
         return true;
     }
 
-    bool internalRun(unsigned long timeoutSeconds)
+    bool internalRun(unsigned long timeoutSeconds, bool preroll=true)
     {
         gst_bus_add_watch(m_bus,static_bus_handler,this);
 
         GST_INFO_OBJECT (m_pipeline, "PREROLL request");
-        if(!PreRoll())
+        if(preroll && !PreRoll())
         {
             DumpGraph("PREROLL FAILED");
             return false;
@@ -951,7 +955,10 @@ protected:
                     {
                         GST_INFO_OBJECT (m_pipeline, "Sending seeklate event from msgapp");
                         // do a seek
-                        gst_element_send_event(m_seekLateOn,m_seekLateEvent);
+                        if(!gst_element_send_event(m_seekLateOn,m_seekLateEvent))
+                        {
+                            GST_ERROR_OBJECT (m_pipeline, "seek event FAILED");                            
+                        }
                         m_seekLateEvent=NULL;
 
                         // and roll!!
@@ -1179,8 +1186,6 @@ protected:
         //genericMessageHandler(msg,"Buffer");
     }
 
-    volatile bool m_waitOnCompletedProgress=false, m_prerolled=false;
-    bool m_awaitForAsyncDone=false;
 
 
     virtual void asyncProgressHandler(GstMessage*msg)
@@ -1247,7 +1252,12 @@ protected:
     {
         GstClockTime runningTime;
         gst_message_parse_async_done(msg,&runningTime);
-        GST_WARNING_OBJECT (m_pipeline, "%s AsyncDone " ,GST_ELEMENT_NAME(msg->src));
+        GST_INFO_OBJECT (m_pipeline, "%s AsyncDone" ,GST_ELEMENT_NAME(msg->src));
+        if(m_awaitForAsyncDone)
+        {
+            m_awaitForAsyncDone=false;
+            pipelineStateChangeMessageHandler(m_current_state,m_target_state,m_pending_state);
+        }
 
     }
 
@@ -1256,35 +1266,45 @@ protected:
         GstState old_state, new_state, pendingState;
         gst_message_parse_state_changed(msg, &old_state, &new_state, &pendingState);
 
-        GST_INFO_OBJECT (m_pipeline, "%s State change '%s' -> '%s'" ,GST_ELEMENT_NAME(msg->src),gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
-
-        if(m_seekLateOn == (GstElement*)(msg->src) && new_state==GST_STATE_READY)
-        {
-            // if we are seeking ..
-            if(m_seekLateEvent)
-            {
-                GST_INFO_OBJECT (m_pipeline, "sending seek event");
-                if(!gst_element_send_event(m_seekLateOn,m_seekLateEvent))
-                {
-                    GST_ERROR_OBJECT (m_pipeline, "seek event FAILED");
-                }
-                m_seekLateEvent=NULL;
-                // this will cause another preroll ...
-            }
-
-        }
+        GST_DEBUG_OBJECT (m_pipeline, "%s State change '%s' -> '%s'" ,GST_ELEMENT_NAME(msg->src),gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
 
         if((GstElement*)(msg->src)==(GstElement*)m_pipeline)
         {
-            pipelineStateChangeMessageHandler(msg, old_state, new_state,pendingState);
-            m_pipelineState=new_state;
+            if(!m_awaitForAsyncDone)
+            {
+                pipelineStateChangeMessageHandler(old_state, new_state, pendingState);
+                m_pipelineState=new_state;
+            }
         }
 
     }
 
     // important virtual - call me if you override me
-    virtual void pipelineStateChangeMessageHandler(GstMessage*msg, GstState old_state,GstState new_state, GstState pendingState)
+    // ringbuffer does
+    virtual void pipelineStateChangeMessageHandler(GstState old_state, GstState new_state, GstState pendingState)
     {
+
+        GST_INFO_OBJECT (m_pipeline, "%s State change '%s' -> '%s'" ,"Pipeline",gst_element_state_get_name (old_state), gst_element_state_get_name (new_state));
+        // TODO - if this works, remove m_seekLateOn
+        if(m_seekLateEvent && new_state==GST_STATE_PAUSED)
+        {
+            GST_INFO_OBJECT (m_pipeline, "sending seek event");
+
+            DumpGraph("seeking");
+
+            if(!gst_element_send_event(m_seekLateOn,m_seekLateEvent))
+            {
+                GST_ERROR_OBJECT (m_pipeline, "seek event FAILED");
+            }
+            m_seekLateEvent=NULL;
+            // ask the pipeline to play
+            Play();
+            // don't fall thru to the pipeline ready handler
+            return;
+
+        }
+
+
         if (m_target_state==new_state)
         {
             switch(m_target_state)                        
@@ -1301,6 +1321,7 @@ protected:
                         // if nothing async is in motion ...
                         if(!m_waitOnCompletedProgress)
                         {
+                            GST_INFO_OBJECT (m_pipeline, "Play from state change");
                             Play();
                         }
                     }
@@ -1376,6 +1397,9 @@ protected:
     GstElement *m_seekLateOn;
 
     std::vector<std::pair<GstElement*, GstPad*>> m_requestedPads;
+
+    volatile bool m_waitOnCompletedProgress=false, m_prerolled=false;
+    bool m_awaitForAsyncDone=false;
 
 };
 

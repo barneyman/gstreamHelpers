@@ -340,9 +340,14 @@ public:
 
         if(seeking)
         {
+            // this 'works' but creates broken MP4s
+            parent->SeekOnElementLate(startAt, endAt, *parent);
 
+            // this errors out
             //parent->SeekOnElementLate(startAt,endAt, pluginContainer<GstElement>::FindNamedPlugin("demuxer"));
-            parent->SeekOnElementLate(startAt,endAt, this->m_myBin);
+
+            // this errors out
+            // parent->SeekOnElementLate(startAt,endAt, this->m_myBin);
         }
       
 

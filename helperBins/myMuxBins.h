@@ -29,7 +29,10 @@ public:
         m_progress=new gstFrameBufferProgress(this);
         pluginContainer<GstElement>::AddPlugin("filesink","finalsink");
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("finalsink"), 
-            "location", location, NULL);
+            "location", location, 
+            // this make SEEK work ...
+            "async", FALSE,
+            NULL);
 
         lateCtor();
 
@@ -45,7 +48,10 @@ public:
         pluginContainer<GstElement>::AddPlugin("fdsink","finalsink");
 
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("finalsink"), 
-            "fd", fileno(fhandle), NULL);
+            "fd", fileno(fhandle), 
+            // this make SEEK work ...
+            "async", FALSE,
+            NULL);
 
         lateCtor();
 
