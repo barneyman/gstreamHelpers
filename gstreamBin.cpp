@@ -234,6 +234,12 @@ GstPad* gstreamBin::GhostSingleSinkPad(GstElement *sink)
     return GhostSingleSinkPad(pad);
 }
 
+GstPad* gstreamBin::GhostSingleRequestedSinkPad(GstElement *sink)
+{
+    GstPad *pad=(GstPad*)sink->sinkpads->data;
+    return GhostSingleRequestPad(pad);
+}
+
 
 GstPad* gstreamBin::GhostSinglePad(GstPad *eachPad, std::vector<GstPad*> &results)
 {

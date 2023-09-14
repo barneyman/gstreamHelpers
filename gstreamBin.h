@@ -38,6 +38,8 @@ public:
 
     void IterateAndGhost(GList *elementPads, std::vector<GstPad*> &results, GstCaps *allowedCaps=NULL);
 
+    GstElement* bin() { return m_myBin; }
+
 protected:
 
     GstPad*GhostSingleRequestPad(GstPad *eachPad) { return GhostSinglePad(eachPad,m_requestedPadsGhosted); }
@@ -47,6 +49,7 @@ protected:
 
     GstPad*GhostSingleSinkPad(const char *name) { return GhostSingleSinkPad(FindNamedPlugin(name)); }
     GstPad*GhostSingleSinkPad(GstElement *sink);
+    GstPad* GhostSingleRequestedSinkPad(GstElement *sink);
 
 
 

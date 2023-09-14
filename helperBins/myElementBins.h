@@ -742,13 +742,9 @@ class gstVideoMixerBin : public gstCapsFilterBaseBin
 public:
 
     // if we're doing composite mixing, and there is border-padding, we need to add an alpha channel to each incoming video
-    gstVideoMixerBin(pluginContainer<GstElement> *parent, unsigned numSinks,bool addAlpha=false, const char *name="videoMixerBin"):
+    gstVideoMixerBin(pluginContainer<GstElement> *parent, bool addAlpha=false, const char *name="videoMixerBin"):
         gstCapsFilterBaseBin(parent,gst_caps_new_simple("video/x-raw","format",G_TYPE_STRING, "RGB", NULL),name)
     {
-        // add a multiqueueMixer at the front
-        pluginContainer<GstElement>::AddPlugin("multiqueue","multiqueueMixer");
-        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("multiqueueMixer"), 
-            "use_buffering", TRUE, NULL);
 
         // then a mixer
         pluginContainer<GstElement>::AddPlugin("compositor","videomixer");
@@ -766,53 +762,74 @@ public:
                 pluginContainer<GstElement>::FindNamedPlugin("capsfilter"),
                 NULL
                 );
+            AddGhostPads(NULL,"capsfilter");
         }
-
-        // i WANT to do this using the request_new_pad virtual, but that's harder
-        for(auto each=0;each<numSinks;each++)
-        {
-            GstPadTemplate *sinkTemplate=gst_pad_template_new("sink_%d",GST_PAD_SINK,GST_PAD_REQUEST,gst_caps_new_any());
-            GstPad *newPad=gst_element_request_pad(
-                pluginContainer<GstElement>::FindNamedPlugin("multiqueueMixer"),
-                sinkTemplate,
-                NULL,NULL);
-            if(newPad)
-            {
-                addPadToBeReleased(pluginContainer<GstElement>::FindNamedPlugin("multiqueueMixer"),newPad);
-
-                if(addAlpha)
-                {
-                    char alphaName[20];
-                    snprintf(alphaName, sizeof(alphaName)-1,"alpha_%u",each);
-                    pluginContainer<GstElement>::AddPlugin("alpha",alphaName);
-
-                    g_object_set (pluginContainer<GstElement>::FindNamedPlugin(alphaName), 
-                        "alpha", 1.0, NULL);
-
-                    gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin("multiqueueMixer"),
-                        pluginContainer<GstElement>::FindNamedPlugin(alphaName),
-                        pluginContainer<GstElement>::FindNamedPlugin("videomixer"),
-                        NULL);
-
-                }
-                else
-                {
-                    gst_element_link(pluginContainer<GstElement>::FindNamedPlugin("multiqueueMixer"),
-                        pluginContainer<GstElement>::FindNamedPlugin("videomixer"));
-                }
-                gst_object_unref(sinkTemplate);
-            }
-        }
-
-        if(addAlpha)
-            AddGhostPads("multiqueueMixer","capsfilter");
         else
-            AddGhostPads("multiqueueMixer","videomixer");
-
-
-
+        {
+            AddGhostPads(NULL,"videomixer");
+        }
     }
 
+    virtual ~gstVideoMixerBin()
+    {
+        releaseRequestedPads();
+        for(auto iter=m_scalers.begin();iter!=m_scalers.end();iter++)
+        {
+            delete *iter;
+        }
+        m_scalers.clear();
+    }
+
+    virtual GstPad *request_new_pad (GstElement * element,GstPadTemplate * templ,const gchar * name,const GstCaps * caps)
+    {
+        if(doCapsIntersect(caps,"video/x-raw"))
+        {
+            // woot!!!
+            // ask compositor
+            GstPad *newC=gst_element_get_request_pad(pluginContainer<GstElement>::FindNamedPlugin("videomixer"),name);   
+            if(newC)
+            {
+                GstPad *padToGhost=newC;
+                addPadToBeReleased(pluginContainer<GstElement>::FindNamedPlugin("videomixer"),newC);
+                // if this is the first video, it gets the whole frame
+                if(m_padsToBeReleased.size()>1)
+                {
+                    placeVideo(newC);
+                    char scalerName[32];
+                    snprintf(scalerName,sizeof(scalerName)-1,"scaler_%u",(unsigned)m_scalers.size());
+                    // add a scaler on it
+                    gstVideoScaleBin *scaler=new gstVideoScaleBin(this,320,240,0,0,scalerName);
+                    m_scalers.push_back(scaler);
+                    // join them
+                    gst_element_link(scaler->bin(),
+                        pluginContainer<GstElement>::FindNamedPlugin("videomixer")
+                        );
+
+                    return GhostSingleRequestedSinkPad(scaler->bin());
+                }
+                return GhostSingleRequestPad(padToGhost);
+            }
+            return newC;
+        }
+        else
+        {
+            // spin up an identity, 
+        }
+        return NULL;
+    }
+
+protected:
+
+    virtual void placeVideo(GstPad*pad)
+    {
+        g_object_set(pad,
+            "xpos",10,
+            "ypos",10,
+            NULL
+            );
+    }
+
+    std::vector<gstVideoScaleBin*> m_scalers;
 
 };
 
@@ -882,18 +899,13 @@ public:
 
 };
 
+
 class gstTestSourceBin : public gstCapsFilterBaseBin
 {
-protected:
-
-    gstH264encoderBin m_encoder;
-    gstFrameBufferProgress m_progress;
 
 public:
     gstTestSourceBin(pluginContainer<GstElement> *parent,unsigned framerate,unsigned width=1280, unsigned height=960, const char *name="TestSrcBin"):
-        gstCapsFilterBaseBin(parent,gst_caps_new_simple("video/x-raw","framerate",GST_TYPE_FRACTION, framerate,1, "width",G_TYPE_INT,width,"height",G_TYPE_INT,height,NULL),name),
-        m_encoder(this),
-        m_progress(this)
+        gstCapsFilterBaseBin(parent,gst_caps_new_simple("video/x-raw","format",G_TYPE_STRING,"I420","framerate",GST_TYPE_FRACTION, framerate,1, "width",G_TYPE_INT,width,"height",G_TYPE_INT,height,NULL),name)
     {
         pluginContainer<GstElement>::AddPlugin("videotestsrc");
         
@@ -904,11 +916,42 @@ public:
 
         gst_element_link_many( pluginContainer<GstElement>::FindNamedPlugin("videotestsrc"), 
             pluginContainer<GstElement>::FindNamedPlugin("capsfilter"), 
+            NULL);
+
+        AddGhostPads(NULL,"capsfilter");
+
+        setBinFlags(GST_ELEMENT_FLAG_SOURCE);
+
+    }
+
+};
+
+
+class gstTestSourceH264Bin : public gstreamBin
+{
+protected:
+
+    gstH264encoderBin m_encoder;
+    gstFrameBufferProgress m_progress;
+    gstTestSourceBin m_source;
+
+public:
+    gstTestSourceH264Bin(pluginContainer<GstElement> *parent,unsigned framerate,unsigned width=1280, unsigned height=960, const char *name="TestSrcBin"):
+        gstreamBin("videotestsrcenc",parent),
+        m_source(this,framerate,width,height),
+        //gstCapsFilterBaseBin(parent,gst_caps_new_simple("video/x-raw","framerate",GST_TYPE_FRACTION, framerate,1, "width",G_TYPE_INT,width,"height",G_TYPE_INT,height,NULL),name),
+        m_encoder(this),
+        m_progress(this)
+    {
+        pluginContainer<GstElement>::AddPlugin("videotestsrc");
+        
+        gst_element_link_many( pluginContainer<GstElement>::FindNamedPlugin(m_source), 
             pluginContainer<GstElement>::FindNamedPlugin(m_progress),
             pluginContainer<GstElement>::FindNamedPlugin(m_encoder), 
             NULL);
 
         AddGhostPads(NULL,m_encoder);
+        setBinFlags(GST_ELEMENT_FLAG_SOURCE);
     }
 };
 
