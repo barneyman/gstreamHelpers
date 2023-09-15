@@ -298,12 +298,12 @@ public:
                 AddPlugin("ptsnormalise","ptsnormalise_subs");
 #endif
                 AddPlugin("queue");
-                g_object_set (pluginContainer<GstElement>::FindNamedPlugin("queue"), 
-                    "max-size-time", 3*GST_SECOND, 
-                    "max-size-buffers", 0,
-                    "max-size-bytes", 0,
-                    "min-threshold-time", GST_SECOND*2,
-                    NULL);
+                // g_object_set (pluginContainer<GstElement>::FindNamedPlugin("queue"), 
+                //     "max-size-time", 3*GST_SECOND, 
+                //     "max-size-buffers", 0,
+                //     "max-size-bytes", 0,
+                //     "min-threshold-time", GST_SECOND*2,
+                //     NULL);
 
                 gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin(capsFilterName),
 #ifdef _DEBUG_TIMESTAMPS
