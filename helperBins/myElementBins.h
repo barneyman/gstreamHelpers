@@ -805,14 +805,14 @@ public:
                         pluginContainer<GstElement>::FindNamedPlugin("videomixer")
                         );
 
-                    return GhostSingleRequestedSinkPad(scaler->bin());
+                    return GhostSingleSinkPad(scaler->bin());
                 }
                 return GhostSingleRequestPad(padToGhost);
             }
-            return newC;
         }
         else
         {
+            // TODO
             // spin up an identity, 
         }
         return NULL;
