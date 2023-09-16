@@ -972,4 +972,39 @@ public:
 
 };
 
+class gstGLImageSink : public gstreamBin
+{
+public:
+    gstGLImageSink(pluginContainer<GstElement> *parent,const char *name="glimagesink"):gstreamBin(name,parent),
+    m_tee(this,"video/x-raw")
+    {
+        // glimagesink adds a glupload (and some other glelements)
+        pluginContainer<GstElement>::AddPlugin("glimagesink");
+        pluginContainer<GstElement>::AddPlugin("videoconvert");
+        // pluginContainer<GstElement>::AddPlugin("gltransformation");
+
+        // g_object_set(
+        //      pluginContainer<GstElement>::FindNamedPlugin("gltransformation"),
+        //      "scale-x", 0.5,
+        //      "scale-y", 0.5,
+        //      NULL
+        // );
+
+        gst_element_link_many(
+            pluginContainer<GstElement>::FindNamedPlugin(m_tee),
+            pluginContainer<GstElement>::FindNamedPlugin("videoconvert"),
+            // pluginContainer<GstElement>::FindNamedPlugin("gltransformation"),
+            pluginContainer<GstElement>::FindNamedPlugin("glimagesink"),
+            NULL
+            );
+
+        AddGhostPads(m_tee,m_tee);            
+    }
+
+protected:
+
+    gstTeeBin m_tee;
+
+};
+
 #endif // _myelementbins_guard
