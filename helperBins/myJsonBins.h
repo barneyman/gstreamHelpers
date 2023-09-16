@@ -215,6 +215,20 @@ public:
         AddGhostPads("capsfilter");
         AddGhostPads("queue");
 
+//#define _TRY_OPENGL
+#ifdef _TRY_OPENGL
+        pluginContainer<GstElement>::AddPlugin("glupload");
+        pluginContainer<GstElement>::AddPlugin("gloverlaycompositor");
+        pluginContainer<GstElement>::AddPlugin("gldownload");
+        pluginContainer<GstElement>::AddPlugin("videoconvert");
+        gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin("glupload"),
+                                pluginContainer<GstElement>::FindNamedPlugin("gloverlaycompositor"),
+                                pluginContainer<GstElement>::FindNamedPlugin("gldownload"),
+                                pluginContainer<GstElement>::FindNamedPlugin("videoconvert"),
+                                NULL);
+        AddGhostPads(NULL,"videoconvert");
+#endif        
+
     }
 
     ~gstMultiJsonToPangoRenderBin()
@@ -260,7 +274,11 @@ public:
 
     void finished()
     {
+#ifdef _TRY_OPENGL
+        gst_element_link(pluginContainer<GstElement>::FindNamedPlugin(*m_last), pluginContainer<GstElement>::FindNamedPlugin("glupload"));
+#else
         AddGhostPads(NULL, *m_last);
+#endif        
     }
 
 protected:
