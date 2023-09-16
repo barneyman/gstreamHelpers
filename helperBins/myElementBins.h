@@ -990,6 +990,9 @@ public:
         //      NULL
         // );
 
+        // as fast as poss
+        g_object_set(pluginContainer<GstElement>::FindNamedPlugin("glimagesink"),"sync",false,NULL);
+
         gst_element_link_many(
             pluginContainer<GstElement>::FindNamedPlugin(m_tee),
             pluginContainer<GstElement>::FindNamedPlugin("videoconvert"),
@@ -999,6 +1002,8 @@ public:
             );
 
         AddGhostPads(m_tee,m_tee);            
+
+        setBinFlags(GST_ELEMENT_FLAG_SINK);
     }
 
 protected:
