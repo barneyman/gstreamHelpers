@@ -625,15 +625,10 @@ public:
 
     bool ConnectSrcToSink(GstPad*srcPad, GstElement *sinkElement)
     {
-        // get the caps of the srcPad;
-        GstCaps *queryCaps=gst_pad_query_caps(srcPad,NULL);
-        GST_INFO_OBJECT (m_pipeline, "Query caps are %s", gst_caps_to_string(queryCaps));
-        gst_caps_unref(queryCaps);
-
         // gst_pad_query_caps for splitmuxsrc seems to return static, so always said ANY, which caused chaos
         // need to confirm this works with other demuxes
         GstCaps *srcCaps=gst_pad_query_caps(srcPad,NULL);
-        GST_INFO_OBJECT (m_pipeline, "Current caps are %s", gst_caps_to_string(srcCaps));
+        GST_INFO_OBJECT (m_pipeline, "Current src caps are %s", gst_caps_to_string(srcCaps));
         bool succeeded=false;
         // get the sinkPads from the sinkElement
         for(auto eachSinkPadIterator=sinkElement->sinkpads;eachSinkPadIterator && !succeeded;eachSinkPadIterator=eachSinkPadIterator->next)
@@ -647,7 +642,7 @@ public:
 
             // if we don't have fixed caps, accept will barf
             GstCaps *sinkCaps=gst_pad_query_caps(eachSinkPad,srcCaps);
-
+            GST_INFO_OBJECT (m_pipeline, "Current sink caps are %s", gst_caps_to_string(srcCaps));
             // hurrah! will it accept the caps we need?
             if(gst_caps_can_intersect(sinkCaps,srcCaps))
             {
@@ -676,7 +671,21 @@ public:
                 GstPad *newSinkPad=gst_element_request_pad(sinkElement,gst_pad_template_new("sink_%u",GST_PAD_SINK,GST_PAD_REQUEST,srcCaps),NULL,NULL);
                 if(newSinkPad)
                 {
-                    if(GST_PAD_LINK_OK==gst_pad_link(srcPad,newSinkPad))
+                    GstCaps *sinkCaps=gst_pad_query_caps(newSinkPad,NULL);
+                    GST_INFO_OBJECT (m_pipeline, "gst_element_request_pad sink caps are %s", gst_caps_to_string(sinkCaps));
+
+                    GstCaps *intersectCaps=gst_caps_intersect(sinkCaps,srcCaps);;
+                    gst_caps_unref(sinkCaps);
+
+                    if(intersectCaps)
+                    {
+                        GST_INFO_OBJECT (m_pipeline, "intersect  caps are %s", gst_caps_to_string(intersectCaps));
+                        gst_caps_unref(intersectCaps);
+                    }
+
+
+                    GstPadLinkReturn ret=gst_pad_link(srcPad,newSinkPad);
+                    if(GST_PAD_LINK_OK==ret)
                     {
                         // yay!
                         succeeded=true;

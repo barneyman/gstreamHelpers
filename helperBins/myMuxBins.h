@@ -94,7 +94,7 @@ public:
 
                 if(padtempl->direction == GST_PAD_SINK && padtempl->presence == GST_PAD_REQUEST)
                 {
-                    // osyensibly for splitmuxsink
+                    // ostensibly for splitmuxsink
                     GstCaps* tightenedCaps=tightenCaps(padtempl);
 
                     bool capsInterset=doCapsIntersect(caps,tightenedCaps?tightenedCaps:padtempl->caps);
