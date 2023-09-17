@@ -604,7 +604,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   {
     if(nmeasource->parent)
     {
-      GstClockTime pts=nmeasource->parent->FixTimeForEpoch((nmeasource->threadInfo.runningTime-baseTime));
+      GstClockTime pts=nmeasource->parent->FixTimeForEpoch((nmeasource->threadInfo.runningTime+baseTime));
 
       if(nmeasource->threadInfo.tsoffsetms)
       {
@@ -631,6 +631,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
         ((pts%GST_SECOND)/GST_MSECOND)/100
         );
 
+      GST_DEBUG_OBJECT (nmeasource, "UTC %s", timebuf);
 
       timeString=timebuf;
     }

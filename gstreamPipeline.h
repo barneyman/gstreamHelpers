@@ -1007,7 +1007,9 @@ public:
 
     GstClockTime FixTimeForEpoch(GstClockTime in)
     {
-        // systemclock returns time from 1970, NTPclock from 1900 ... so 
+        GST_DEBUG_OBJECT (m_pipeline, "FixTimeForEpoch in %" GST_TIME_FORMAT "",GST_TIME_ARGS(in));
+
+        // systemclock returns time from 1970, NTPclock from 1900 ... so fix it to 1970
         GstClock *pipeClock=gst_pipeline_get_clock(GST_PIPELINE(m_pipeline));
         if(pipeClock)
         {
@@ -1030,6 +1032,9 @@ public:
                 // RFC868 has you fam
                 // https://datatracker.ietf.org/doc/html/rfc868 pp2
                 in-=(2208988800L*GST_SECOND);
+
+                GST_DEBUG_OBJECT (m_pipeline, "FixTimeForEpoch out %" GST_TIME_FORMAT "",GST_TIME_ARGS(in));
+
                 return in;
             }
 
@@ -1044,6 +1049,7 @@ public:
             if(GST_IS_SYSTEM_CLOCK(pipeClock))
             {
                 gst_object_unref(pipeClock);
+                GST_DEBUG_OBJECT (m_pipeline, "FixTimeForEpoch out %" GST_TIME_FORMAT "",GST_TIME_ARGS(in));
                 return in;
             }
             gst_object_unref(pipeClock);
