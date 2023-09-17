@@ -1,5 +1,4 @@
 #include "nmealoop.h"
-#include "../json/json.hpp"
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/time.h>
@@ -40,7 +39,7 @@ void pushJson(nmea_threadInfo *filter, nlohmann::json &jsonData)
       std::lock_guard<std::mutex> guard(filter->gpsMutex);
 
       // dump the string
-      filter->sample.gpsOutput=jsonData.dump();
+      filter->sample.gpsOutput=jsonData;
       filter->sample.pts=GST_CLOCK_TIME_NONE;
 
     // release the mutex

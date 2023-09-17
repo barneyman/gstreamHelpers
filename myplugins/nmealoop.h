@@ -5,6 +5,8 @@
 #include <string>
 #include <gst/gst.h>
 #include <mutex>
+#include "../json/json.hpp"
+
 
   struct nmea_threadInfo
   {
@@ -12,7 +14,7 @@
     pthread_t gpsThreadId;
     
     struct {
-      std::string gpsOutput;
+      nlohmann::json gpsOutput;
       GstClockTime pts;
     } sample;
 

@@ -37,6 +37,7 @@
 #include <gst/gst.h>
 #include <gst/base/gstbasesrc.h>
 #include "gstnmeasource.h"
+#include <string>
 
 GST_DEBUG_CATEGORY_STATIC (gst_nmeasource_debug_category);
 #define GST_CAT_DEFAULT gst_nmeasource_debug_category
@@ -198,7 +199,7 @@ gst_nmeasource_init (GstNmeaSource *nmeasource)
 #endif
 
   nmeasource->threadInfo.useLocalTime=false;
-  nmeasource->threadInfo.usePipelineTime=false;
+  nmeasource->threadInfo.usePipelineTime=true;
   nmeasource->threadInfo.firstFrame=GST_CLOCK_TIME_NONE;
   nmeasource->parent=NULL;
   nmeasource->threadInfo.tsoffsetms=0;
@@ -593,9 +594,10 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 
   offset=0;
 
-  std::string copyOfData;
+  std::string copyOfData, timeString;
 
   GST_DEBUG_OBJECT (nmeasource, "At frame rate %d timeDelta is %lu", nmeasource->threadInfo.frameRate, nmeasource->threadInfo.frameTimeDelta);
+
 
 
   if(nmeasource->threadInfo.usePipelineTime)
@@ -618,29 +620,37 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
       info = gmtime(&nowsecs);
 
       char timebuf[128];
-      snprintf(timebuf,sizeof(timebuf)-1, "{\"data-type\":\"datetime\",\"utc\":\"%d-%02d-%02dT%02d:%02d:%02d.%03luZ\"}",
+      snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02d.%luZ",
         info->tm_year+1900,
         info->tm_mon+1,
         info->tm_mday,
         info->tm_hour,
         info->tm_min,
         info->tm_sec,
-        (pts-(nowsecs*GST_SECOND))/GST_MSECOND);
+        //(pts-(nowsecs*GST_SECOND))/GST_MSECOND
+        ((pts%GST_SECOND)/GST_MSECOND)/100
+        );
 
 
-      copyOfData=timebuf;
+      timeString=timebuf;
     }
     else
     {
       copyOfData="Need parent property set to pipeline* for pipeline time";
     }
   }
-  else
+  
+
   {
     // get the mutex for shortest time
     {
       std::lock_guard<std::mutex> guard(nmeasource->threadInfo.gpsMutex);
-      copyOfData=nmeasource->threadInfo.sample.gpsOutput;
+      
+      if(timeString.length())
+      {
+        nmeasource->threadInfo.sample.gpsOutput["utc"]=timeString;
+      }
+      copyOfData=nmeasource->threadInfo.sample.gpsOutput.dump();
     }
   }
 
