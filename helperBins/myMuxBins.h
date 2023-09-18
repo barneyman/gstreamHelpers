@@ -86,6 +86,7 @@ public:
         GstElementClass  *eclass = GST_ELEMENT_GET_CLASS (pluginContainer<GstElement>::FindNamedPlugin(m_muxerName.c_str()));
 
         GList * padlist = gst_element_class_get_pad_template_list (eclass);
+
         while (padlist) 
         {
             if(padlist->data)
@@ -111,21 +112,21 @@ public:
                         // if it's not a %u template check it's not already linked!
                         if(!strchr(padtempl->name_template,'%'))
                         {
-                            for(GList *elementPads=pluginContainer<GstElement>::FindNamedPlugin(m_muxerName.c_str())->sinkpads;
-                                        elementPads;
-                                        elementPads=elementPads->next)
-                            {
-                                GstPad *eachPad=(GstPad *)elementPads->data;  
-                                if(!strcmp(eachPad->object.name,padtempl->name_template))
+                            iteratePadsLambda(
+                                pluginContainer<GstElement>::FindNamedPlugin(m_muxerName.c_str())->sinkpads,
+                                [&](GstPad *eachPad)
                                 {
-                                    if(gst_pad_is_linked(eachPad))
+                                    if(!strcmp(eachPad->object.name,padtempl->name_template))
                                     {
-                                        /// oh dear ... already linked
-                                        proceed=false;
-                                        break;
-                                    }   
-                                }
-                            }
+                                        if(gst_pad_is_linked(eachPad))
+                                        {
+                                            /// oh dear ... already linked
+                                            proceed=false;
+                                            return false;
+                                        }   
+                                    }
+                                    return true;
+                                });
                         }
 
                         GstPad *newPad=NULL;

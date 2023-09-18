@@ -205,27 +205,28 @@ bool gstreamBin::AddGhostPads(GstElement *sinkElement,GstElement*sourceElement, 
 
 void gstreamBin::IterateAndGhost(GList *elementPads, std::vector<GstPad*> &results, GstCaps *allowedCaps)
 {
-    for(;elementPads;elementPads=elementPads->next)
-    {
-        GstPad *eachPad=(GstPad *)elementPads->data;    
+    iteratePadsLambda(elementPads,
+        [&](GstPad *eachPad){
 
-        if(allowedCaps)
-        {
-            GstCaps *padCaps=gst_pad_query_caps(eachPad,NULL);
-            if(padCaps)
+            if(allowedCaps)
             {
-                bool intersect=gst_caps_can_intersect(padCaps,allowedCaps);
-                gst_caps_unref(padCaps);
-                if(!intersect)
+                GstCaps *padCaps=gst_pad_query_caps(eachPad,NULL);
+                if(padCaps)
                 {
-                    continue;
+                    bool intersect=gst_caps_can_intersect(padCaps,allowedCaps);
+                    gst_caps_unref(padCaps);
+                    if(!intersect)
+                    {
+                        return true;
+                    }
                 }
             }
-        }
 
-        GstPad *result=GhostSinglePad(eachPad,results);
+            GstPad *result=GhostSinglePad(eachPad,results);
+            return true;
 
-    }
+        });
+    
 }
 
 GstPad* gstreamBin::GhostSingleSinkPad(GstElement *sink)

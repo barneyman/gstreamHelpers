@@ -70,19 +70,19 @@ public:
         // then count the number of srcpads on the demuxer
         GstElement *demux=pluginContainer<GstElement>::FindNamedPlugin("demuxer");
 
-        for(GList *sourcePads=demux->srcpads;sourcePads;sourcePads=sourcePads->next)
-        {
-            GstPad *eachSourcePad=(GstPad *)sourcePads->data;
+        iteratePadsLambda(demux->srcpads,
+            [&](GstPad*eachSourcePad)
+            {
+                GstCaps *padCaps=gst_pad_get_current_caps(eachSourcePad);
 
-            //GstCaps *padCaps=gst_pad_query_caps(eachSourcePad,NULL);
-            GstCaps *padCaps=gst_pad_get_current_caps(eachSourcePad);
+                GST_INFO_OBJECT (m_parent, "adding pad with %s",gst_caps_to_string(padCaps));
 
-            GST_INFO_OBJECT (m_parent, "adding pad with %s",gst_caps_to_string(padCaps));
+                // add stream to demux info
+                addStream(padCaps);
+                return true;
+            }
+        );
 
-            // add stream to demux info
-            addStream(padCaps);
-
-        }
         parent->Stop();
 
         return true;
@@ -498,12 +498,14 @@ public:
         {
             // demux is single threaded, so having a blocked pad on it, stops the other pads connecting, so block the q's srcs
             GstElement *demux=pluginContainer<GstElement>::FindNamedPlugin("capsfilter");
-            for(GList *sourcePads=demux->srcpads;sourcePads;sourcePads=sourcePads->next)
-            {
-                GstPad *eachSourcePad=(GstPad *)sourcePads->data;
-                GST_INFO_OBJECT (m_parent, "adding BLOCK to %s:%s",GST_ELEMENT_NAME(demux),GST_ELEMENT_NAME(eachSourcePad));
-                parent->BlockPadForSeek(eachSourcePad);
-            }
+            iteratePadsLambda(demux->srcpads,
+                    [&](GstPad *eachSourcePad)
+                    {
+                        GST_INFO_OBJECT (m_parent, "adding BLOCK to %s:%s",GST_ELEMENT_NAME(demux),GST_ELEMENT_NAME(eachSourcePad));
+                        parent->BlockPadForSeek(eachSourcePad);
+                        return true;
+                    }
+                );
 
             parent->SeekOnElementLate(startAt,endAt, pluginContainer<GstElement>::FindNamedPlugin("demuxer"));
         }

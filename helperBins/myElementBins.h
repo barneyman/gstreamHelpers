@@ -116,14 +116,6 @@ public:
         // attach to the src (to block) and the overrun (to release)
         g_signal_connect(pluginContainer<GstElement>::FindNamedPlugin("queue"),"running", G_CALLBACK(staticBufferRunning), this);
 
-        
-        // GList *sourcePads=pluginContainer<GstElement>::FindNamedPlugin("queue")->srcpads;
-        // if(sourcePads)
-        // {
-        //     GstPad *eachSourcePad=(GstPad *)sourcePads->data;
-        //     //gst_pad_add_probe (eachSourcePad, GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM, (GstPadProbeCallback) staticPadBlocked, this, NULL);
-        // }
-
     }
 
     static void staticBufferRunning(GstElement * queue, gpointer data)

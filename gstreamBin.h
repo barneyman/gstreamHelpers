@@ -42,6 +42,19 @@ public:
 
 protected:
 
+    void iteratePadsLambda(GList *elementPads, const std::function<bool (GstPad*)>& lambdafn)
+    {
+        for(;elementPads;elementPads=elementPads->next)
+        {
+            GstPad *eachPad=(GstPad *)elementPads->data;  
+            if(!lambdafn(eachPad))
+            {
+                break;
+            }
+        }
+
+    }
+
     GstPad*GhostSingleRequestPad(GstPad *eachPad) { return GhostSinglePad(eachPad,m_requestedPadsGhosted); }
     GstPad*GhostSingleSinkPad(GstPad *eachPad) { return GhostSinglePad(eachPad,m_ghostPadsSinks); }
     GstPad*GhostSingleSrcPad(GstPad *eachPad) { return GhostSinglePad(eachPad,m_ghostPadsSrcs); }
