@@ -106,10 +106,36 @@ public:
 
                     if(capsInterset)
                     {
-                        GstPad *newPad=gst_element_request_pad(pluginContainer<GstElement>::FindNamedPlugin(m_muxerName.c_str()),
+                        bool proceed=true;
+
+                        // if it's not a %u template check it's not already linked!
+                        if(!strchr(padtempl->name_template,'%'))
+                        {
+                            for(GList *elementPads=pluginContainer<GstElement>::FindNamedPlugin(m_muxerName.c_str())->sinkpads;
+                                        elementPads;
+                                        elementPads=elementPads->next)
+                            {
+                                GstPad *eachPad=(GstPad *)elementPads->data;  
+                                if(!strcmp(eachPad->object.name,padtempl->name_template))
+                                {
+                                    if(gst_pad_is_linked(eachPad))
+                                    {
+                                        /// oh dear ... already linked
+                                        proceed=false;
+                                        break;
+                                    }   
+                                }
+                            }
+                        }
+
+                        GstPad *newPad=NULL;
+                        if(proceed)
+                        {
+                            newPad=gst_element_request_pad(pluginContainer<GstElement>::FindNamedPlugin(m_muxerName.c_str()),
                                                     padtempl,
                                                     padtempl->name_template,
                                                     padtempl->caps);
+                        }
 
                         if(!newPad)                                                        
                         {
