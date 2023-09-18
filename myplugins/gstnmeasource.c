@@ -62,7 +62,7 @@ static gboolean gst_nmeasource_start (GstBaseSrc * src);
 static gboolean gst_nmeasource_stop (GstBaseSrc * src);
 static void gst_nmeasource_get_times (GstBaseSrc * src, GstBuffer * buffer,
     GstClockTime * start, GstClockTime * end);
-static gboolean gst_nmeasource_get_size (GstBaseSrc * src, guint64 * size);
+//static gboolean gst_nmeasource_get_size (GstBaseSrc * src, guint64 * size);
 static gboolean gst_nmeasource_is_seekable (GstBaseSrc * src);
 static gboolean gst_nmeasource_prepare_seek_segment (GstBaseSrc * src,
     GstEvent * seek, GstSegment * segment);
@@ -82,14 +82,11 @@ enum
 {
   PROP_0,
   PROP_FRAME_RATE,
-  PROP_USE_LOCALTIME,
   PROP_PARENT,
-  PROP_TS_OFFSET,
   PROP_PIPELINE_TIME
 };
 
 #define DEFAULT_FRAMERATE 10
-#define DEFAULT_TSOFFSET  0
 
 
 /* pad templates */
@@ -143,7 +140,6 @@ gst_nmeasource_class_init (GstNmeaSourceClass * klass)
   base_src_class->start = GST_DEBUG_FUNCPTR (gst_nmeasource_start);
   base_src_class->stop = GST_DEBUG_FUNCPTR (gst_nmeasource_stop);
   base_src_class->get_times = GST_DEBUG_FUNCPTR (gst_nmeasource_get_times);
-  base_src_class->get_size = GST_DEBUG_FUNCPTR (gst_nmeasource_get_size);
   base_src_class->is_seekable = GST_DEBUG_FUNCPTR (gst_nmeasource_is_seekable);
   //base_src_class->prepare_seek_segment = GST_DEBUG_FUNCPTR (gst_nmeasource_prepare_seek_segment);
   //base_src_class->do_seek = GST_DEBUG_FUNCPTR (gst_nmeasource_do_seek);
@@ -163,24 +159,9 @@ gst_nmeasource_class_init (GstNmeaSourceClass * klass)
           1,30, DEFAULT_FRAMERATE,
           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));  
 
-
-  g_object_class_install_property (gobject_class, PROP_USE_LOCALTIME,
-      g_param_spec_boolean ("localtime", "localtime",
-          "Use OS time", 
-          FALSE,
-          (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));  
-
   g_object_class_install_property (gobject_class, PROP_PARENT,
       g_param_spec_pointer ("parent", "parent",
           "Parent gstPipeline ptr", 
-          (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));  
-
-
-
-  g_object_class_install_property (gobject_class, PROP_TS_OFFSET,
-      g_param_spec_int ("ts-offset-ms", "ts-offset-ms",
-          "ms to add to the subtitle meta", 
-          -10000,10000, DEFAULT_TSOFFSET,
           (GParamFlags)(G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS)));  
 
   g_object_class_install_property (gobject_class, PROP_PIPELINE_TIME,
@@ -198,14 +179,11 @@ gst_nmeasource_init (GstNmeaSource *nmeasource)
   gst_pad_use_fixed_caps(GST_BASE_SRC(nmeasource)->srcpad);
 #endif
 
-  nmeasource->threadInfo.useLocalTime=false;
   nmeasource->threadInfo.usePipelineTime=true;
   nmeasource->threadInfo.firstFrame=GST_CLOCK_TIME_NONE;
   nmeasource->parent=NULL;
-  nmeasource->threadInfo.tsoffsetms=0;
 
   nmeasource->threadInfo.frameRate=DEFAULT_FRAMERATE;
-  nmeasource->threadInfo.tsoffsetms=DEFAULT_TSOFFSET;
   nmeasource->threadInfo.frameTimeDelta=gst_util_uint64_scale(GST_SECOND,1,nmeasource->threadInfo.frameRate);
 
   // if i set this to true, i need to provide a clock to the pipeline
@@ -224,15 +202,9 @@ gst_nmeasource_set_property (GObject * object, guint property_id,
   GST_DEBUG_OBJECT (nmeasource, "set_property");
 
   switch (property_id) {
-    case PROP_TS_OFFSET:
-      nmeasource->threadInfo.tsoffsetms= g_value_get_int (value);
-      break;
-
     case PROP_FRAME_RATE:
       nmeasource->threadInfo.frameRate= g_value_get_int (value);
-      break;
-    case PROP_USE_LOCALTIME:
-      nmeasource->threadInfo.useLocalTime=g_value_get_boolean (value)?true:false;
+      nmeasource->threadInfo.frameTimeDelta=gst_util_uint64_scale(GST_SECOND,1,nmeasource->threadInfo.frameRate);
       break;
     case PROP_PARENT:
       nmeasource->parent=(gstreamPipeline*)g_value_get_pointer (value);
@@ -257,18 +229,9 @@ gst_nmeasource_get_property (GObject * object, guint property_id,
 
   switch (property_id) {
 
-    case PROP_TS_OFFSET:
-      g_value_set_int (value, nmeasource->threadInfo.tsoffsetms);
-      break;
-
     case PROP_FRAME_RATE:
       g_value_set_int (value, nmeasource->threadInfo.frameRate);
       break;
-
-    case PROP_USE_LOCALTIME:
-      g_value_set_boolean(value, nmeasource->threadInfo.useLocalTime);
-      break;
-
     case PROP_PARENT:
       g_value_set_pointer(value, nmeasource->parent);
       break;
@@ -436,18 +399,7 @@ gst_nmeasource_get_times (GstBaseSrc * src, GstBuffer * buffer,
 
 }
 
-/* get the total size of the resource in bytes */
-static gboolean
-gst_nmeasource_get_size (GstBaseSrc * src, guint64 * size)
-{
-  GstNmeaSource *nmeasource = GST_NMEASOURCE (src);
 
-  GST_DEBUG_OBJECT (nmeasource, "get_size");
-
-  *size=(GST_SECOND/DEFAULT_FRAMERATE);
-
-  return TRUE;
-}
 
 /* check if the resource is seekable */
 static gboolean
@@ -606,15 +558,6 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
     {
       GstClockTime pts=nmeasource->parent->FixTimeForEpoch((nmeasource->threadInfo.runningTime+baseTime));
 
-      if(nmeasource->threadInfo.tsoffsetms)
-      {
-        GstClockTime diff=(GstClockTime)abs(nmeasource->threadInfo.tsoffsetms)*(GST_MSECOND);
-        if(nmeasource->threadInfo.tsoffsetms>0)  
-          pts+=(diff);
-        else
-          pts-=(diff);
-      }
-
       struct tm *info; 
       time_t nowsecs=pts/GST_SECOND;
       info = gmtime(&nowsecs);
@@ -676,10 +619,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
   }
   else
   {
-    //while( nmeasource->threadInfo.runningTime<runningTime )
-    {
-      nmeasource->threadInfo.runningTime+=nmeasource->threadInfo.frameTimeDelta;
-    }
+    nmeasource->threadInfo.runningTime+=nmeasource->threadInfo.frameTimeDelta;
   }
 
   GST_INFO_OBJECT (nmeasource, "Fill: Running time = %" GST_TIME_FORMAT ,GST_TIME_ARGS(runningTime));
