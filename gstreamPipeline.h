@@ -559,7 +559,7 @@ public:
 
         if(ret==GST_STATE_CHANGE_NO_PREROLL)
         {
-            GST_WARNING_OBJECT (m_pipeline, "Pipeline is live and does not need PREROLL");
+            GST_INFO_OBJECT (m_pipeline, "Pipeline is live and does not need PREROLL");
             return true;
         }
 
@@ -1226,7 +1226,7 @@ protected:
             break;
         }
 
-        GST_WARNING_OBJECT (m_pipeline, "progress msg - '%s' - async %s prerolled %s target %d", text,
+        GST_INFO_OBJECT (m_pipeline, "progress msg - '%s' - async %s prerolled %s target %d", text,
             m_waitOnCompletedProgress?"TRUE":"FALSE",
             m_prerolled?"TRUE":"FALSE",
             m_target_state
@@ -1234,7 +1234,7 @@ protected:
 
         if (!m_waitOnCompletedProgress && m_prerolled && m_target_state == GST_STATE_PAUSED) 
         {
-            GST_WARNING_OBJECT (m_pipeline, "Playing from asyncProgressHandler");
+            GST_INFO_OBJECT (m_pipeline, "Playing from asyncProgressHandler");
             Play();
         }
 
