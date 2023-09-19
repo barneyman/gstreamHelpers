@@ -62,6 +62,7 @@ void* gpsdMonitorThreadEntry(void *arg)
   }
 
   filter->gpsPolling=true;
+  unsigned sats_visible=0, sats_used=0;
 
 
   while(filter->gpsPolling)
@@ -87,9 +88,11 @@ void* gpsdMonitorThreadEntry(void *arg)
       {
         case MODE_NOT_SEEN:
             jsonData["msg"]="no sky";
+            sats_visible=0, sats_used=0;
             break;
         case MODE_NO_FIX:
             jsonData["msg"]="not fixed";
+            sats_visible=0, sats_used=0;
             break;
         case MODE_3D:
             if(gps_data->set & ALTITUDE_SET)
@@ -103,8 +106,12 @@ void* gpsdMonitorThreadEntry(void *arg)
                 jsonData["longitudeE"]=trunc(gps_data->fix.longitude*10000)/10000.0;
                 jsonData["latitudeN"]=trunc(gps_data->fix.latitude*10000)/10000.0;
             }
-            if(gps_data->set & SATELLITE_SET)
-                jsonData["satelliteCount"]=gps_data->satellites_visible;
+
+            if(gps_data->set & SATELLITE_SET && gps_data->satellites_used)
+                sats_used=gps_data->satellites_used;
+
+            if(gps_data->set & SATELLITE_SET && gps_data->satellites_visible)
+                sats_visible=gps_data->satellites_visible;
 
             if(gps_data->set & TRACK_SET)
                 jsonData["bearingDeg"]=(int)(gps_data->fix.track);
@@ -114,6 +121,10 @@ void* gpsdMonitorThreadEntry(void *arg)
 
 
         }
+
+        jsonData["satellitesUsed"]=sats_used;
+        jsonData["satellitesVisible"]=sats_visible;
+
         pushJson(filter,jsonData);
         gps_data->set=0;
       }
