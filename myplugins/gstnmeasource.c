@@ -550,7 +550,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
 
   GST_DEBUG_OBJECT (nmeasource, "At frame rate %d timeDelta is %lu", nmeasource->threadInfo.frameRate, nmeasource->threadInfo.frameTimeDelta);
 
-
+  time_t utcmillis=0;
 
   if(nmeasource->threadInfo.usePipelineTime)
   {
@@ -561,6 +561,8 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
       struct tm *info; 
       time_t nowsecs=pts/GST_SECOND;
       info = gmtime(&nowsecs);
+
+      utcmillis=pts/GST_MSECOND;
 
       char timebuf[128];
       snprintf(timebuf,sizeof(timebuf)-1, "%d-%02d-%02dT%02d:%02d:%02d.%luZ",
@@ -593,6 +595,7 @@ gst_nmeasource_fill (GstBaseSrc * src, guint64 offset, guint size, GstBuffer * b
       if(timeString.length())
       {
         nmeasource->threadInfo.sample.gpsOutput["utc"]=timeString;
+        nmeasource->threadInfo.sample.gpsOutput["utc-millis"]=utcmillis;
       }
       copyOfData=nmeasource->threadInfo.sample.gpsOutput.dump();
     }
