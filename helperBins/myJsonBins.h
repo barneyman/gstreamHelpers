@@ -154,7 +154,6 @@ Absolute position (5) – absolute
         m_jsonPeek(this)
     {
         pluginContainer<GstElement>::AddPlugin("textoverlay");
-        pluginContainer<GstElement>::AddPlugin("queue");
 
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("textoverlay"),
             "valignment", valign, 
@@ -173,13 +172,12 @@ Absolute position (5) – absolute
 
         gst_element_link_many(   pluginContainer<GstElement>::FindNamedPlugin(m_jsonPeek),
                             pluginContainer<GstElement>::FindNamedPlugin("textoverlay"),
-                            pluginContainer<GstElement>::FindNamedPlugin("queue"),
                             NULL);
 
         // ghost my sink for json / utf-8
         AddGhostPads(m_jsonPeek, NULL);
         // ghost the video/raw pad for text overlay
-        AddGhostPads("textoverlay", "queue");
+        AddGhostPads("textoverlay", "textoverlay");
 
     }
 
