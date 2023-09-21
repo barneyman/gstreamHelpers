@@ -1083,6 +1083,7 @@ public:
             gst_pipeline_use_clock ((GstPipeline*)m_pipeline, netClock);
             if(waitForSync)
             {
+                GST_INFO_OBJECT (m_pipeline, "Waiting for NTP sync with %s",host);
                 if(!gst_clock_wait_for_sync (netClock,timeoutS==-1?GST_CLOCK_TIME_NONE:GST_SECOND*timeoutS))
                 {
                     GST_ERROR_OBJECT (m_pipeline, "Failed to NTP sync from %s:%u",host,port);
