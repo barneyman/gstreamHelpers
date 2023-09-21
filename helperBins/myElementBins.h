@@ -814,6 +814,12 @@ protected:
 
     virtual void placeVideo(GstPad*pad)
     {
+        // need to know the frame size of me and the frame size of the placed video
+        GstCaps *padCaps=gst_pad_get_current_caps(pad);
+        GST_WARNING_OBJECT (m_myBin, "placeVideo current caps are %s", gst_caps_to_string(padCaps));
+        if(padCaps)
+            gst_caps_unref(padCaps);
+
         g_object_set(pad,
             "xpos",10,
             "ypos",10,
@@ -967,7 +973,7 @@ public:
 class gstGLImageSink : public gstreamBin
 {
 public:
-    gstGLImageSink(pluginContainer<GstElement> *parent,const char *name="glimagesink"):gstreamBin(name,parent),
+    gstGLImageSink(pluginContainer<GstElement> *parent,const char *name="glimagesinkBin"):gstreamBin(name,parent),
     m_tee(this,"video/x-raw")
     {
         // glimagesink adds a glupload (and some other glelements)
@@ -1002,6 +1008,42 @@ protected:
 
     gstTeeBin m_tee;
 
+};
+
+template<class binToValve>
+class gstValve : public gstreamBin
+{
+public:
+    gstValve(pluginContainer<GstElement> *parent,const char *name="valveBin"):gstreamBin(name,parent),
+    m_valvedBin(this)
+    {
+        pluginContainer<GstElement>::AddPlugin("valve");
+        gst_element_link_many(
+            pluginContainer<GstElement>::FindNamedPlugin("valve"),
+            pluginContainer<GstElement>::FindNamedPlugin(m_valvedBin),
+            NULL
+        );
+
+        AddGhostPads(   pluginContainer<GstElement>::FindNamedPlugin("valve"),
+                        pluginContainer<GstElement>::FindNamedPlugin(m_valvedBin)
+                        );
+
+    }
+
+    void stop()
+    {
+        g_object_set(pluginContainer<GstElement>::FindNamedPlugin("valve"),"drop",true,NULL);
+
+    }
+
+    void start()
+    {
+        g_object_set(pluginContainer<GstElement>::FindNamedPlugin("valve"),"drop",false,NULL);
+
+    }
+
+protected:
+    binToValve m_valvedBin;
 };
 
 #endif // _myelementbins_guard
