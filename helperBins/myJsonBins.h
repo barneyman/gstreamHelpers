@@ -216,15 +216,20 @@ public:
 //#define _TRY_OPENGL
 #ifdef _TRY_OPENGL
         pluginContainer<GstElement>::AddPlugin("glupload");
+        pluginContainer<GstElement>::AddPlugin("glcolorconvert");
+        pluginContainer<GstElement>::AddPlugin("glcolorbalance");
         pluginContainer<GstElement>::AddPlugin("gloverlaycompositor");
         pluginContainer<GstElement>::AddPlugin("gldownload");
-        pluginContainer<GstElement>::AddPlugin("videoconvert");
-        gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin("glupload"),
+        pluginContainer<GstElement>::AddPlugin("videoconvert","vidconvout");
+
+        gst_element_link_many(  pluginContainer<GstElement>::FindNamedPlugin("glupload"),
+                                pluginContainer<GstElement>::FindNamedPlugin("glcolorconvert"),
+                                pluginContainer<GstElement>::FindNamedPlugin("glcolorbalance"),
                                 pluginContainer<GstElement>::FindNamedPlugin("gloverlaycompositor"),
                                 pluginContainer<GstElement>::FindNamedPlugin("gldownload"),
-                                pluginContainer<GstElement>::FindNamedPlugin("videoconvert"),
+                                pluginContainer<GstElement>::FindNamedPlugin("vidconvout"),
                                 NULL);
-        AddGhostPads(NULL,"videoconvert");
+        AddGhostPads(NULL,"vidconvout");
 #endif        
 
     }
