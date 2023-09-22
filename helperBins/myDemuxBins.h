@@ -177,6 +177,11 @@ public:
                         cached->unlock();
                     }
                 }
+                else
+                {
+                    m_fatal=true;
+                    return;
+                }
             }
             GST_WARNING_OBJECT (m_parent, "gstreamDemuxExamineDiscrete END");            
         }
@@ -340,14 +345,7 @@ public:
 
         if(seeking)
         {
-            // this 'works' but creates broken MP4s
             parent->SeekOnElementLate(startAt, endAt, *parent);
-
-            // this errors out
-            //parent->SeekOnElementLate(startAt,endAt, pluginContainer<GstElement>::FindNamedPlugin("demuxer"));
-
-            // this errors out
-            // parent->SeekOnElementLate(startAt,endAt, this->m_myBin);
         }
       
 
@@ -411,8 +409,11 @@ public:
     gstMP4DemuxDecodeSparseBin(gstreamPipeline *parent,std::vector<std::string> &locations,GstClockTime startAt=GST_CLOCK_TIME_NONE ,GstClockTime endAt=GST_CLOCK_TIME_NONE ,const char *name="demuxMP4DecodeSparseBin"):
         gstDemuxDecodeBin(parent,locations[0].c_str(),"splitmuxsrc",startAt,endAt,name)
         {
-            g_signal_connect (pluginContainer<GstElement>::FindNamedPlugin("demuxer"), "format-location", G_CALLBACK (staticFormatLocation), this);
-            m_locations=locations;
+            if(!fatalError())
+            {
+                g_signal_connect (pluginContainer<GstElement>::FindNamedPlugin("demuxer"), "format-location", G_CALLBACK (staticFormatLocation), this);
+                m_locations=locations;
+            }
         }
 
 
