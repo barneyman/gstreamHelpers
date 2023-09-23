@@ -61,7 +61,7 @@ public:
 class gstFrameBufferProgress : public gstreamBin
 {
 public:
-    gstFrameBufferProgress(pluginContainer<GstElement> *parent,unsigned frequencyS=15, const char *name="progress"):gstreamBin(name,parent)
+    gstFrameBufferProgress(pluginContainer<GstElement> *parent,unsigned frequencyS=5, const char *name="progress"):gstreamBin(name,parent)
     {
         pluginContainer<GstElement>::AddPlugin("progressreport");
 
@@ -844,7 +844,11 @@ public:
         m_optionalCaps(NULL)
     {
         // v4l2h264enc needs tailing caps to work now
-        std::vector<std::pair<std::string,std::string>> encoders={ {"vaapih264enc",""},{"v4l2h264enc","video/x-h264,level=(string)4"},{"x264enc",""}};
+        std::vector<std::pair<std::string,std::string>> encoders={ 
+            {"vaapih264enc",""},
+            // needs at least 128mb of GPU mem
+            {"v4l2h264enc","video/x-h264,level=(string)4,profile=main"},
+            {"x264enc",""}};
 
 
         bool encoderAdded=false;
@@ -859,7 +863,7 @@ public:
                 encoderAdded=true;
                 break;
             }
-            GST_DEBUG_OBJECT (m_parent, "Failed to create %s",encoder->first.c_str());
+            GST_WARNING_OBJECT (m_parent, "Failed to create %s",encoder->first.c_str());
         }
 
         if(!encoderAdded)
