@@ -276,7 +276,6 @@ public:
 
     void finished()
     {
-        // TODO test this!
         if(!m_pangoBins.size())
         {
             // need to sink the subs somewhere
