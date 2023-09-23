@@ -260,7 +260,6 @@ public:
         {
             m_last=m_first=newone;
             // ghost the raw video and raw text pins of the first pango renderer
-            //AddGhostPads(*m_first);
             gst_element_link(pluginContainer<GstElement>::FindNamedPlugin("queue"),pluginContainer<GstElement>::FindNamedPlugin(*m_first));
         }
         else
@@ -277,11 +276,26 @@ public:
 
     void finished()
     {
+        // TODO test this!
+        if(!m_pangoBins.size())
+        {
+            // need to sink the subs somewhere
+            pluginContainer<GstElement>::AddPlugin("fakesink");
+            gst_element_link_many(pluginContainer<GstElement>::FindNamedPlugin("tee"),
+                                    pluginContainer<GstElement>::FindNamedPlugin("fakesink"),
+                                    NULL
+                                    );
+            // and ghost 
+            AddGhostPads(NULL,"queue");
+        }
+        else
+        {
 #ifdef _TRY_OPENGL
-        gst_element_link(pluginContainer<GstElement>::FindNamedPlugin(*m_last), pluginContainer<GstElement>::FindNamedPlugin("glupload"));
+            gst_element_link(pluginContainer<GstElement>::FindNamedPlugin(*m_last), pluginContainer<GstElement>::FindNamedPlugin("glupload"));
 #else
-        AddGhostPads(NULL, *m_last);
+            AddGhostPads(NULL, *m_last);
 #endif        
+        }
     }
 
 protected:
