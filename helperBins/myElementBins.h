@@ -494,6 +494,8 @@ protected:
 
 };
 
+// TODO - reqork this - it's used wrong by others - they're directly using the 'capsfilter' name
+// and giving this the wrong parent (the piepline instead of themselves)
 class gstCapsFilterBaseBin: public gstreamBin
 {
 public:
