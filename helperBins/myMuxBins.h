@@ -236,13 +236,12 @@ public:
 
 };
 
-
-// TODO this should inherit from gstMuxOutBin
+template <class encoderBinType=gstH264encoderBin>
 class gstH264EncoderMuxOutBin :  public gstMuxOutBin
 {
 protected:
 
-    std::vector<gstH264encoderBin*> m_encoders;
+    std::vector<encoderBinType*> m_encoders;
 
 public:
     gstH264EncoderMuxOutBin(gstreamPipeline *parent,const char*location,const char *muxer, const char *name="muxh264OutBin"):
@@ -266,12 +265,12 @@ public:
 
 protected:
 
-    gstH264encoderBin* requestEncoder()
+    encoderBinType* requestEncoder()
     {
         char namebuf[32];
         snprintf(namebuf,sizeof(namebuf)-1,"encoder_%d",(int)m_encoders.size());
 
-        gstH264encoderBin *encoder=new gstH264encoderBin(this,namebuf);
+        encoderBinType *encoder=new encoderBinType(this,namebuf);
         m_encoders.push_back(encoder);
 
         return encoder;
@@ -300,7 +299,7 @@ protected:
 
 };
 
-class gstMatroskaOutBin : public gstH264EncoderMuxOutBin
+class gstMatroskaOutBin : public gstH264EncoderMuxOutBin<>
 {
 public:
     gstMatroskaOutBin(gstreamPipeline *parent,const char*location,const char *name="mkvOutBin"):
@@ -312,7 +311,7 @@ public:
 };
 
 
-class gstMP4OutBin : public gstH264EncoderMuxOutBin
+class gstMP4OutBin : public gstH264EncoderMuxOutBin<>
 {
 public:
     gstMP4OutBin(gstreamPipeline *parent,const char*location,const char *name="mp4OutBin"):
@@ -327,5 +326,22 @@ public:
     }
 
 };
+
+class gstRPIMP4OutBin : public gstH264EncoderMuxOutBin<rpiH264encoderBin>
+{
+public:
+    gstRPIMP4OutBin(gstreamPipeline *parent,const char*location,const char *name="mp4OutBin"):
+        gstH264EncoderMuxOutBin(parent,location,"mp4mux",name)
+    {
+
+    }
+
+    gstRPIMP4OutBin(gstreamPipeline *parent,FILE*location,const char *name="mp4OutBin"):
+        gstH264EncoderMuxOutBin(parent,location,"mp4mux",name)
+    {
+    }
+
+};
+
 
 #endif // _mymuxbins_guard

@@ -833,6 +833,39 @@ protected:
 
 };
 
+class rpiH264encoderBin : public gstreamBin
+{
+public:
+    rpiH264encoderBin(pluginContainer<GstElement> *parent,const char *name="rpiH264encoderBin"):
+        gstreamBin(name,parent),
+        m_encoderCaps(this, "video/x-h264,level=(string)4,profile=main")
+    {
+        pluginContainer<GstElement>::AddPlugin("v4l2h264enc");
+        pluginContainer<GstElement>::AddPlugin("h264parse");
+
+        g_object_set(
+                pluginContainer<GstElement>::FindNamedPlugin("v4l2h264enc"),
+                "extra-controls",
+                // encode,frame_level_rate_control_enable=1,h264_profile=0,h264_level=14,video_bitrate=2500000;
+                gst_structure_from_string("encode, video_bitrate=2000000", NULL),
+                NULL
+            );
+
+        gst_element_link_many(
+            pluginContainer<GstElement>::FindNamedPlugin("v4l2h264enc"),
+            m_encoderCaps.bin(),
+            pluginContainer<GstElement>::FindNamedPlugin("h264parse"),
+            NULL
+        );
+
+        AddGhostPads("v4l2h264enc", "h264parse");
+
+    }
+
+protected:
+    gstCapsFilterSimple m_encoderCaps;    
+};
+
 
 class gstH264encoderBin : public gstreamBin
 {
