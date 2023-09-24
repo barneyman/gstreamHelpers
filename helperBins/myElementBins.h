@@ -559,7 +559,7 @@ public:
 class gstFakeSinkForCapsSimple : public gstCapsFilterBaseBin
 {
 public:    
-    gstFakeSinkForCapsSimple(gstreamPipeline *parent,const char*caps,const char *name="fakeSinkBinForCapsSimple"):
+    gstFakeSinkForCapsSimple(pluginContainer<GstElement> *parent,const char*caps,const char *name="fakeSinkBinForCapsSimple"):
         gstCapsFilterBaseBin(parent,caps,name)
     {
         pluginContainer<GstElement>::AddPlugin("fakesink");
