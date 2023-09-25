@@ -23,9 +23,6 @@ MYPLUGINSAR = gstjsoninject.o gstjsontopango.o gstnmeasource.o nmealoop.o gstmyb
 MYPLUGINSOBJ = $(MYPLUGINSSRC:.cc=.o)
 MYPLUGINSLIB = libmyplugins.a
 
-RPICAMLIB = myplugins/gst-rpicamsrc/src/.libs/libgstrpicamsrc.so
-
-
 all: helperlib myplugins 
 
 helperlib: $(HELPERLIB)
@@ -39,9 +36,6 @@ $(HELPERLIB): $(HELPEROBJ) $(HELPERHEADERS)
 $(MYPLUGINSLIB) : $(MYPLUGINSOBJ) $(MYPLUGINSHEAD)
 	$(CXX) $(LDFLAGS) -c $(MYPLUGINSOBJ) $(CPPFLAGS) $(CXXFLAGS) $(GSTCONFIG) 
 	ar rvs $(MYPLUGINSLIB) $(MYPLUGINSAR)
-
-$(RPICAMLIB):
-	cd myplugins/gst-rpicamsrc && ./autogen.sh --prefix=/usr --libdir=/usr/lib/arm-linux-gnueabihf/ && $(MAKE) && sudo $(MAKE) install
 
 clean:
 	rm -rf *.o *.a
