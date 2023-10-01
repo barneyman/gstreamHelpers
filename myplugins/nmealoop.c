@@ -58,6 +58,7 @@ void* gpsdMonitorThreadEntry(void *arg)
 
   if (gps_rec.stream(WATCH_ENABLE|WATCH_JSON) == NULL) 
   {
+      filter->gpsPollingStopped=true;
       return NULL;
   }
 
