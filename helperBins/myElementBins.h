@@ -204,8 +204,8 @@ public:
 
 };
 
-#define _DATA_PTS_PROBE
-#define _EVENT_PTS_PROBE
+//#define _DATA_PTS_PROBE
+//#define _EVENT_PTS_PROBE
 
 
 // muxers need threads on their sinks, but they connect late
@@ -215,7 +215,22 @@ class gstMultiQueueBin : public gstreamBin
 
 public:
 
-    gstMultiQueueBin(pluginContainer<GstElement> *parent,unsigned numSinks, bool buffering=false, int numberOfSeconds=2, bool syncOnRunning=true, const char *name="multiQBin"):
+    gstMultiQueueBin(pluginContainer<GstElement> *parent, int numberOfMilliSeconds=500, const char *name="multiQBin"):
+        gstreamBin(name,parent),
+        m_owningPipeline(NULL)
+    {
+        // add a multiqueueMixer at the front
+        pluginContainer<GstElement>::AddPlugin("multiqueue","multiqueueDemux");
+
+        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("multiqueueDemux"), 
+            "max-size-buffers", -1,
+            "max-size-bytes", -1,
+            "max-size-time", numberOfMilliSeconds*GST_MSECOND,
+            NULL);
+    }
+
+
+    gstMultiQueueBin(pluginContainer<GstElement> *parent,unsigned numSinks, bool buffering=false, int numberOfMilliSeconds=2, bool syncOnRunning=true, const char *name="multiQBin"):
         gstreamBin(name,parent),
         m_owningPipeline(NULL)
     {
@@ -236,10 +251,9 @@ public:
         }
 
         g_object_set (pluginContainer<GstElement>::FindNamedPlugin("multiqueueDemux"), 
-            "max-size-buffers", 0,
-            "max-size-bytes", 0,//numberOfSeconds*4000000,
-            "max-size-time", numberOfSeconds*GST_SECOND,
-            "high-watermark", 0.75,
+            "max-size-buffers", -1,
+            "max-size-bytes", -1,
+            "max-size-time", numberOfMilliSeconds*GST_MSECOND,
             NULL);
 
 
@@ -299,9 +313,6 @@ public:
 
 #endif
 
-
-
-
     }
 
     ~gstMultiQueueBin()
@@ -318,7 +329,30 @@ public:
 
     }
 
+    virtual GstPad *request_new_pad (GstElement * element,GstPadTemplate * templ,const gchar * name,const GstCaps * caps)
+    {
+        GstPad *retPad=NULL;
+        GstElement *mqDemux=pluginContainer<GstElement>::FindNamedPlugin("multiqueueDemux");
+        // ask the mq src for it, ghost it, join the new mq sink to the tail - profit
+        GstPad *newPad=gst_element_request_pad(
+            mqDemux,
+            templ,
+            NULL,NULL);
+            
+        if(newPad)
+        {
+            addPadToBeReleased(mqDemux,newPad);
 
+            // and ghost the mq sink pin 
+            retPad=GhostSingleRequestPad(newPad);
+
+            // and ghost any source pads
+            AddGhostPads(NULL,pluginContainer::FindNamedPlugin("multiqueueDemux"));
+        }
+
+        return retPad;
+
+    }
 
 
 
