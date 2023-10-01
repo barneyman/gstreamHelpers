@@ -864,6 +864,12 @@ protected:
         {
             GstPad *eachSourcePad=(GstPad *)sourcePads->data;
 
+            // if it's linked, ignore it
+            if(gst_pad_is_linked(eachSourcePad))
+            {
+                continue;
+            }
+
             // if we've been asked to link a specific pad, and this isn't it, next ...
             if(srcPad && (srcPad!=eachSourcePad))
             {
