@@ -699,7 +699,7 @@ class gstNamedVideo : public gstreamBin
 
 public:
 
-    gstNamedVideo(pluginContainer<GstElement> *parent, const char *text,const char *name, int valign=1, int halign=1,const char* fontDesc="Sans, 12"):gstreamBin(name,parent)
+    gstNamedVideo(pluginContainer<GstElement> *parent, const char *text,const char *name="namedVid", int valign=1, int halign=1,const char* fontDesc="Sans, 12"):gstreamBin(name,parent)
     {
         // https://gstreamer.freedesktop.org/documentation/pango/GstBaseTextOverlay.html?gi-language=c#properties
         pluginContainer<GstElement>::AddPlugin("textoverlay");

@@ -86,7 +86,7 @@ enum
   PROP_PIPELINE_TIME
 };
 
-#define DEFAULT_FRAMERATE 10
+#define DEFAULT_FRAMERATE 30
 
 
 /* pad templates */
