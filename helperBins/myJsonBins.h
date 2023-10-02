@@ -125,10 +125,21 @@ public:
 
 #define PANGO_BUFFER  200
 
+class gstJsonToPangoRenderBinTbase : public gstreamBin
+{
+public:
+    gstJsonToPangoRenderBinTbase(pluginContainer<GstElement> *parent, const char *name="pangoBinBase"):
+        gstreamBin(name,parent)
+    {
 
+    }
+
+    virtual void turnOffWait(const char *text=NULL)=0;
+
+};
 
 template <class parser>
-class gstJsonToPangoRenderBinT : public gstreamBin
+class gstJsonToPangoRenderBinT : public gstJsonToPangoRenderBinTbase
 {
 
 public:
@@ -150,7 +161,7 @@ Absolute position (5) – absolute
 
 
     gstJsonToPangoRenderBinT(pluginContainer<GstElement> *parent, const char *name="pangoBin", unsigned halign=1, unsigned valign=1,bool shaded=false):
-        gstreamBin(name,parent),
+        gstJsonToPangoRenderBinTbase(parent,name),
         m_jsonPeek(this)
     {
         pluginContainer<GstElement>::AddPlugin("textoverlay");
@@ -179,6 +190,19 @@ Absolute position (5) – absolute
         // ghost the video/raw pad for text overlay
         AddGhostPads("textoverlay", "textoverlay");
 
+    }
+
+    // used if no json being pumped
+    virtual void turnOffWait(const char *text=NULL)
+    {
+        g_object_set (pluginContainer<GstElement>::FindNamedPlugin("textoverlay"), 
+            "wait-text", false, NULL);
+
+        if(text)
+        {
+            g_object_set (pluginContainer<GstElement>::FindNamedPlugin("textoverlay"), 
+                "text", text, NULL);
+        }
     }
 
 private:
@@ -242,6 +266,14 @@ public:
         }
     }
 
+    void turnOffWaitText(const char* text=NULL)
+    {
+        for(auto iter=m_pangoBins.begin();iter!=m_pangoBins.end();iter++)
+        {
+            (*iter)->turnOffWait(text);
+        }
+    }
+
     template <class parser>
     bool add(const char*name,unsigned halign, unsigned valign)
     {
@@ -299,8 +331,8 @@ public:
 
 protected:
 
-    std::vector<gstreamBin*> m_pangoBins;
-    gstreamBin *m_first, *m_last;
+    std::vector<gstJsonToPangoRenderBinTbase*> m_pangoBins;
+    gstJsonToPangoRenderBinTbase *m_first, *m_last;
 
 };
 
