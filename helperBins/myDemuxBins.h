@@ -243,12 +243,14 @@ public:
                 if(decode)
                 {
                     // need a parser and a decoder
-                    char parserName[20], decoderName[20];
+                    char parserName[20], decoderName[20], queueName[20];
                     snprintf(parserName,sizeof(parserName)-1,"parse_%u",padCount);
                     snprintf(decoderName,sizeof(decoderName)-1,"decode_%u",padCount);
+                    snprintf(queueName,sizeof(queueName)-1,"queue_%u",padCount);
 
                     // this will implicitly get the video stream
                     pluginContainer<GstElement>::AddPlugin("h264parse",parserName);
+                    pluginContainer<GstElement>::AddPlugin("queue",queueName);
 
                     const char *decoders[]={"vaapih264dec","v4l2h264dec","avdec_h264",NULL};
                     bool decoderAdded=false;
@@ -278,6 +280,7 @@ public:
 #ifdef _DEBUG_TIMESTAMPS
                         FindNamedPlugin("ptsnormalise_video"),
 #endif                        
+                        pluginContainer<GstElement>::FindNamedPlugin(queueName),
                         pluginContainer<GstElement>::FindNamedPlugin(parserName),
                         pluginContainer<GstElement>::FindNamedPlugin(decoderName),
                         NULL);
