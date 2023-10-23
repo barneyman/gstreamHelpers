@@ -731,8 +731,11 @@ public:
     {
         // optimisation - if offsets==0 then exclude the videobox, it will make the pipeline a lot quicker
 
-        // add a scaler
-        pluginContainer<GstElement>::AddPlugin("videoscale");
+        // add a scaler - try v4l2 first
+        if(pluginContainer<GstElement>::AddPlugin("v4l2convert","videoscale"))
+        {
+            pluginContainer<GstElement>::AddPlugin("videoscale");
+        }
 
         if(offsetTop || offsetLeft)
         {
