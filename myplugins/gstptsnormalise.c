@@ -210,6 +210,21 @@ gst_ptsnormalise_transform_ip (GstBaseTransform * base, GstBuffer * outbuf)
   
   Gstptsnormalise *filter = GST_PTSNORMALISE (base);
   GstElement *el=GST_ELEMENT(base);
+
+  // check PTS hasn't been biffed
+
+if (!GST_BUFFER_PTS_IS_VALID(outbuf))// || !GST_BUFFER_DTS_IS_VALID(outbuf))
+{
+
+    GST_WARNING_OBJECT (filter, "invalid PTS= %" GST_TIME_FORMAT " dts %" GST_TIME_FORMAT "" , GST_TIME_ARGS(outbuf->pts),GST_TIME_ARGS(outbuf->dts));
+
+
+    GstClockTime ts = gst_element_get_current_running_time(el);
+    GST_BUFFER_PTS(outbuf) = ts;
+//    GST_BUFFER_DTS(outbuf) = ts;
+}
+
+
 /*
   // first time thru grab the segment ...
   if(filter->segment_start==GST_CLOCK_TIME_NONE)

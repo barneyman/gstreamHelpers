@@ -1,6 +1,7 @@
 #include "../gstreamBin.h"
 #include "myElementBins.h"
 #include <gst/base/gstbasesrc.h>
+#include "../myplugins/gstptsnormalise.h"
 
 class baseRemoteSourceBin : public gstreamListeningBin
 {
@@ -120,6 +121,9 @@ public:
     multiRemoteSourceBin(pluginContainer<GstElement>*parent, std::vector<std::string> sources, const char *simple_caps):
         gstreamBin("multiRemoteSourceBin",parent)
     {
+
+        ptsnormalise_registerRunTimePlugin();
+
         int i=0;
         for(auto each=sources.begin();each!=sources.end();each++,i++)
         {
@@ -132,13 +136,16 @@ public:
 
             // Q causes stuttering subtitles ?!
 
-
+            char ptsName[20];
+            snprintf(ptsName,sizeof(ptsName)-1,"pts_%u",i);
+            pluginContainer<GstElement>::AddPlugin("ptsnormalise",ptsName);
             TremoteSource *eachSourceBin=new TremoteSource(this,each->c_str(),sourceName);
             gstCapsFilterSimple *eachSourceCaps=new gstCapsFilterSimple(this,simple_caps,capsFilterName);
             // pluginContainer<GstElement>::AddPlugin("queue",queueName);
             // connect them
             gst_element_link_many(  pluginContainer<GstElement>::FindNamedPlugin(*eachSourceBin),
                                     // pluginContainer<GstElement>::FindNamedPlugin(queueName),
+                                    pluginContainer<GstElement>::FindNamedPlugin(ptsName),
                                     pluginContainer<GstElement>::FindNamedPlugin(*eachSourceCaps),
                                     NULL);
             // and ghost it
