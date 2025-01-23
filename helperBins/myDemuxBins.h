@@ -348,7 +348,9 @@ public:
 
         if(seeking)
         {
-            parent->SeekOnElementLate(startAt, endAt, *parent);
+            // using parent caused the dreaded 'gst_segment_do_seek: assertion 'segment->format == format''
+            //parent->SeekOnElementLate(startAt, endAt, *parent);
+            parent->SeekOnElementLate(startAt, endAt,pluginContainer<GstElement>::FindNamedPlugin("demuxer"));
         }
       
 
