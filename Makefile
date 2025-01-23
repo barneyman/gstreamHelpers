@@ -1,6 +1,7 @@
 CXX = g++
 CPPFLAGS = -O0 -Wformat -ggdb3
 PRODFLAGS = -O3 -g0
+LEAKFLAGS = -O0 -Wformat -ggdb3 -fsanitize=address -fno-omit-frame-pointer
 
 GSTCONFIG = `pkg-config --cflags --libs gstreamer-1.0`
 GSTGESCONFIG = `pkg-config --cflags --libs gstreamer-1.0 gst-editing-services-1.0`
@@ -24,6 +25,15 @@ MYPLUGINSOBJ = $(MYPLUGINSSRC:.cc=.o)
 MYPLUGINSLIB = libmyplugins.a
 
 all: helperlib myplugins 
+
+leaks: 
+leaks: CPPFLAGS=$(LEAKFLAGS)
+leaks: all
+
+prod: CPPFLAGS=$(PRODFLAGS)
+prod: all
+
+
 
 helperlib: $(HELPERLIB)
 myplugins: $(MYPLUGINSLIB)
